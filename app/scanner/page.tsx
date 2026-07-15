@@ -3,13 +3,14 @@
 import { Suspense, useEffect, useRef, useCallback, useState, type RefObject } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Home, Search, Lightbulb, X } from 'lucide-react';
+import { Camera, ClipboardCheck, Home, Search, Lightbulb, X } from 'lucide-react';
 import {
   useBrxScanner,
   type DebugInfo,
   type ModelStatus,
 } from '@/hooks/useBrxScanner';
-import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
+import { useLocalScanSession } from '@/hooks/scanner/useLocalScanSession';
+import type { ScanSessionItem } from '@/hooks/scanner/scanner-types';
 import { ScannerBetaNotice } from '@/components/feature/scanner/ScannerBetaNotice';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -18,9 +19,6 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 // Constants
 // ---------------------------------------------------------------------------
 
-const COUNTDOWN_SECONDS = 3;
-
-// ---------------------------------------------------------------------------
 // Glass UI tokens (Ebartex + Apple-style)
 // ---------------------------------------------------------------------------
 
@@ -258,7 +256,15 @@ function ScanAreaBlurMask() {
 // Status bar at the bottom
 // ---------------------------------------------------------------------------
 
-type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow' | 'hint';
+type StatusBarState =
+  | 'idle'
+  | 'scanning'
+  | 'stabilizing'
+  | 'processing'
+  | 'matched'
+  | 'awaiting'
+  | 'slow'
+  | 'hint';
 
 function StatusBar({
   status,
@@ -271,8 +277,10 @@ function StatusBar({
   const messages: Record<StatusBarState, string> = {
     idle: t('scanner.statusIdle'),
     scanning: t('scanner.statusScanning'),
+    stabilizing: t('scanner.statusStabilizing'),
     processing: t('scanner.statusProcessing'),
     matched: t('scanner.statusMatched'),
+    awaiting: t('scanner.statusAwaitingRemoval'),
     slow: t('scanner.statusSlow'),
     hint: hintName ? t('scanner.statusHint', { name: hintName }) : t('scanner.statusRecognizing'),
   };
@@ -287,7 +295,7 @@ function StatusBar({
       : 'bg-white/70';
 
   return (
-    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex justify-center px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10">
+    <div className="pointer-events-none absolute bottom-[7.25rem] left-0 right-0 z-20 flex justify-center px-4 pt-10">
       <div
         className={cn(
           'flex max-w-lg items-center gap-3 rounded-2xl border border-white/20 bg-[#0a0f1a]/50 px-5 py-3.5 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
@@ -448,123 +456,61 @@ function CameraPermissionDenied({ noCamera }: { noCamera?: boolean }) {
 }
 
 // ---------------------------------------------------------------------------
-// Match preview panel (slides up from bottom)
+// Session tray
 // ---------------------------------------------------------------------------
 
-function MatchPreview({
-  cardName,
-  setName,
-  imageUri,
-  confidence,
-  countdown,
-  onSearchNow,
-  onNotThisCard,
+function ScanTray({
+  items,
+  needsReview,
+  onCaptureNow,
+  onReview,
 }: {
-  cardName: string;
-  setName: string;
-  imageUri: string | null;
-  confidence: number;
-  countdown: number;
-  onSearchNow: () => void;
-  onNotThisCard: () => void;
+  items: ScanSessionItem[];
+  needsReview: number;
+  onCaptureNow: () => void;
+  onReview: () => void;
 }) {
   const { t } = useTranslation();
-  const pct = Math.round(confidence * 100);
-  const badgeColor = pct >= 90 ? 'bg-green-500' : pct >= 80 ? 'bg-amber-500' : 'bg-zinc-500';
-  const progressPct = (countdown / COUNTDOWN_SECONDS) * 100;
-  const announceCard = setName ? `${cardName}, ${setName}` : cardName;
+  const lastItem = items.at(-1);
 
   return (
-    <div
-      className="absolute inset-x-0 bottom-0 z-30 overflow-hidden rounded-t-[2rem] animate-[slide-up_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
-      style={{ animation: 'slide-up 0.4s cubic-bezier(0.16,1,0.3,1) forwards' }}
-      role="dialog"
-      aria-label={t('scanner.matchFound')}
-    >
-      <style>{`
-        @keyframes slide-up {
-          from { transform: translateY(100%); opacity: 0; }
-          to   { transform: translateY(0);   opacity: 1; }
-        }
-      `}</style>
-
-      {/* Live region: annuncia la carta trovata una sola volta (evita lo spam
-          del countdown a ogni secondo). aria-atomic per leggere il messaggio intero. */}
+    <div className="absolute inset-x-0 bottom-0 z-30 border-t border-white/15 bg-[#08101d]/88 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-2xl">
       <p className="sr-only" aria-live="polite" aria-atomic="true">
-        {t('scanner.matchAnnounce', { card: announceCard })}
+        {lastItem ? t('scanner.batchAnnounce', { card: lastItem.result.card_name }) : ''}
       </p>
+      <div className="mx-auto flex max-w-xl items-center gap-3">
+        <button
+          type="button"
+          onClick={onCaptureNow}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FF7300] text-[#1a0f08] shadow-[0_5px_18px_rgba(255,115,0,0.35)] active:scale-95"
+          aria-label={t('scanner.captureNow')}
+        >
+          <Camera className="h-5 w-5" aria-hidden />
+        </button>
 
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 rounded-t-[2rem] border border-white/10 bg-gradient-to-b from-[#0d1528]/95 via-[#0a0f1a]/92 to-[#050810]/98 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_-12px_48px_rgba(0,0,0,0.55)]"
-        aria-hidden
-      />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-white">
+            {lastItem?.result.card_name ?? t('scanner.batchEmpty')}
+          </p>
+          <p className="truncate text-xs text-white/50">
+            {lastItem?.result.set_name || t('scanner.batchHint')}
+          </p>
+        </div>
 
-      <div className="relative flex flex-col gap-5 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
-        <div className="mx-auto h-1 w-12 rounded-full bg-white/25" aria-hidden />
-
-        <div className="flex items-start gap-4">
-          {imageUri && (
-            <div className="w-[5.5rem] shrink-0 overflow-hidden rounded-2xl border border-white/15 bg-white/[0.06] shadow-lg ring-1 ring-white/10">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUri}
-                alt={cardName}
-                className="aspect-[5/7] w-full object-cover"
-                loading="eager"
-              />
-            </div>
+        <button
+          type="button"
+          onClick={onReview}
+          className="flex h-12 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 text-sm font-semibold text-white active:scale-95"
+        >
+          <ClipboardCheck className="h-4 w-4 text-[#FF7300]" aria-hidden />
+          <span className="tabular-nums">{items.length}</span>
+          {needsReview > 0 && (
+            <span className="rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-black">
+              {needsReview}
+            </span>
           )}
-
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-0.5">
-            <p className="font-display text-lg font-bold leading-tight tracking-wide text-white">{cardName}</p>
-            <p className="text-sm text-white/50">{setName}</p>
-            <span
-              className={cn(
-                'self-start rounded-full border border-white/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white',
-                badgeColor
-              )}
-            >
-              {t('scanner.matchPercent', { pct })}
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-white/45">
-            <span className="flex items-center gap-2">
-              <span
-                className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-[pulse_1s_ease-in-out_infinite]"
-                aria-hidden
-              />
-              {t('scanner.redirecting')}
-            </span>
-            <span className="tabular-nums font-semibold text-[#FF7300]">{countdown}s</span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10 ring-1 ring-white/5">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[#FF7300] to-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_12px_rgba(255,115,0,0.45)]"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-3 pt-1">
-          <button
-            type="button"
-            onClick={onSearchNow}
-            className="flex-1 rounded-2xl bg-[#FF7300] px-4 py-3.5 text-sm font-bold uppercase tracking-wide text-[#1a0f08] shadow-[0_6px_20px_rgba(255,115,0,0.35)] transition hover:brightness-110 active:scale-[0.98]"
-          >
-            {t('scanner.searchNow')}
-          </button>
-          <button
-            type="button"
-            onClick={onNotThisCard}
-            className="flex-1 rounded-2xl border border-white/18 bg-white/[0.08] px-4 py-3.5 text-sm font-semibold text-white/85 backdrop-blur-md transition hover:bg-white/[0.12] active:scale-[0.98]"
-          >
-            {t('scanner.notThisCard')}
-          </button>
-        </div>
+          <span className="sr-only">{t('scanner.reviewBatch')}</span>
+        </button>
       </div>
     </div>
   );
@@ -676,78 +622,49 @@ function ScannerPageInner() {
   const showDebug =
     process.env.NODE_ENV !== 'production' || searchParams?.get('debug') === '1';
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSlowRef = useRef(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
+  const { session, totals, addResult } = useLocalScanSession();
 
-  const cancelRedirect = useCallback(() => {
-    if (redirectTimerRef.current) {
-      clearTimeout(redirectTimerRef.current);
-      redirectTimerRef.current = null;
+  const handleMatch = useCallback((scanResult: Parameters<typeof addResult>[0]) => {
+    if (slowTimerRef.current) {
+      clearTimeout(slowTimerRef.current);
+      slowTimerRef.current = null;
     }
-  }, []);
+    isSlowRef.current = false;
+    addResult(scanResult);
+  }, [addResult]);
 
   const {
     state,
-    result,
     hint,
     isBusy,
-    countdown,
     debug,
     videoRef,
     canvasRef,
-    openCamera,
     stopScanning,
-    restartScanning,
-    retryModelDownload,
-    continueWithStandardMode,
-    turboSkipped,
+    captureNow,
     modelStatus,
-    modelProgress,
-    modelError,
   } = useBrxScanner({
     autoOpenCamera: true,
-    countdownSeconds: COUNTDOWN_SECONDS,
-    apiBaseUrl: '/brx-match',
+    continuous: true,
+    apiBaseUrl: '/api/scanner',
     scanMode: 'auto',
-    onMatch: (r) => {
-      if (slowTimerRef.current) {
-        clearTimeout(slowTimerRef.current);
-        slowTimerRef.current = null;
-      }
-      isSlowRef.current = false;
-
-      // Auto-redirect when countdown hits 0 (cancellabile dai bottoni)
-      cancelRedirect();
-      redirectTimerRef.current = setTimeout(() => {
-        redirectTimerRef.current = null;
-        router.push(r.search_url);
-      }, COUNTDOWN_SECONDS * 1000);
-    },
+    onMatch: handleMatch,
   });
-
-  const showModelGate =
-    state === 'idle' &&
-    (modelStatus === 'loading' || (modelStatus === 'failed' && !turboSkipped));
-
-  const handleUseStandard = useCallback(() => {
-    continueWithStandardMode();
-    void openCamera();
-  }, [continueWithStandardMode, openCamera]);
 
   useEffect(() => {
     return () => {
       stopScanning();
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
-      cancelRedirect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Track slow processing (> 2s)
   useEffect(() => {
-    if (isBusy && state === 'scanning') {
+    if (isBusy) {
       slowTimerRef.current = setTimeout(() => {
         isSlowRef.current = true;
       }, 2500);
@@ -794,36 +711,31 @@ function ScannerPageInner() {
   }, [torchOn, videoRef]);
 
   const handleClose = useCallback(() => {
-    cancelRedirect();
     setTorchOn(false);
     stopScanning();
     router.back();
-  }, [cancelRedirect, stopScanning, router]);
+  }, [stopScanning, router]);
 
   const handleGoHome = useCallback(() => {
-    cancelRedirect();
     setTorchOn(false);
     stopScanning();
     router.push('/');
-  }, [cancelRedirect, stopScanning, router]);
+  }, [stopScanning, router]);
 
-  const handleSearchNow = useCallback(() => {
-    if (result) {
-      cancelRedirect();
-      stopScanning();
-      router.push(result.search_url);
-    }
-  }, [cancelRedirect, result, stopScanning, router]);
-
-  const handleNotThisCard = useCallback(() => {
-    cancelRedirect();
-    restartScanning();
-  }, [cancelRedirect, restartScanning]);
+  const handleReview = useCallback(() => {
+    setTorchOn(false);
+    stopScanning();
+    router.push('/scanner/review');
+  }, [router, stopScanning]);
 
   // Derive status bar state
   const statusBarState: StatusBarState =
     state === 'matched'
       ? 'matched'
+      : state === 'awaiting_removal'
+      ? 'awaiting'
+      : state === 'stabilizing'
+      ? 'stabilizing'
       : hint
       ? 'hint'
       : isBusy
@@ -835,7 +747,18 @@ function ScannerPageInner() {
       : 'idle';
 
   const bracketState: BracketState =
-    state === 'matched' ? 'matched' : hint ? 'scanning' : state === 'scanning' || isBusy ? 'scanning' : 'idle';
+    state === 'matched'
+      ? 'matched'
+      : state === 'scanning' || state === 'stabilizing' || state === 'processing' || state === 'awaiting_removal'
+      ? 'scanning'
+      : 'idle';
+
+  const cameraActive =
+    state === 'scanning' ||
+    state === 'stabilizing' ||
+    state === 'processing' ||
+    state === 'matched' ||
+    state === 'awaiting_removal';
 
   const noCamera =
     state === 'error' &&
@@ -890,7 +813,7 @@ function ScannerPageInner() {
       {state === 'error' && <CameraPermissionDenied noCamera={noCamera} />}
 
       {/* ── Scan overlay (clear center + soft blurred surroundings) ─── */}
-      {(state === 'scanning' || state === 'matched') && (
+      {cameraActive && (
         <>
           {/* Maschera blur attorno all'area di scan (centro NITIDO) */}
           <ScanAreaBlurMask />
@@ -923,7 +846,11 @@ function ScannerPageInner() {
                   state === 'scanning' && 'animate-[pulse_2s_ease-in-out_infinite]',
                 )}
               >
-                {state === 'scanning' ? t('scanner.scanHintScanning') : t('scanner.scanHintIdle')}
+                {state === 'awaiting_removal'
+                  ? t('scanner.scanHintNext')
+                  : state === 'stabilizing'
+                  ? t('scanner.scanHintHold')
+                  : t('scanner.scanHintScanning')}
               </p>
             )}
             {hint && state !== 'matched' && (
@@ -938,26 +865,12 @@ function ScannerPageInner() {
         </>
       )}
 
-      {showModelGate && (
-        <ScannerModelGate
-          modelStatus={modelStatus}
-          modelProgress={modelProgress}
-          modelError={modelError}
-          onRetry={retryModelDownload}
-          onUseStandard={handleUseStandard}
-        />
-      )}
-
-      {/* ── Match preview panel ─────────────────────────────────────── */}
-      {state === 'matched' && result && (
-        <MatchPreview
-          cardName={result.card_name}
-          setName={result.set_name}
-          imageUri={result.image_uri}
-          confidence={result.confidence}
-          countdown={countdown}
-          onSearchNow={handleSearchNow}
-          onNotThisCard={handleNotThisCard}
+      {cameraActive && (
+        <ScanTray
+          items={session.items}
+          needsReview={totals.needsReview}
+          onCaptureNow={captureNow}
+          onReview={handleReview}
         />
       )}
 

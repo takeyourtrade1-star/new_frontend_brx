@@ -2246,141 +2246,6 @@
   animation-play-state: paused;
 }
 
-/* Tutorial scambi: icona scambi (ultimo passo) che ruota in continuo. */
-@keyframes scambi-step-spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(-360deg);
-  }
-}
-
-.scambi-step-spin {
-  animation: scambi-step-spin 3.2s linear infinite;
-}
-
-/* Tutorial scambi: i passi compaiono uno dopo l'altro (delay per indice). */
-@keyframes scambi-step-enter {
-  0% {
-    opacity: 0;
-    transform: translateY(32px) scale(0.76) rotate(-7deg);
-    filter: blur(5px);
-  }
-  35% {
-    opacity: 0.85;
-    filter: blur(0px);
-  }
-  62% {
-    opacity: 1;
-    transform: translateY(-7px) scale(1.1) rotate(2.5deg);
-  }
-  80% {
-    transform: translateY(2px) scale(0.97) rotate(-1deg);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotate(0deg);
-    filter: blur(0px);
-  }
-}
-
-.scambi-step-enter {
-  opacity: 0;
-  animation: scambi-step-enter 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: var(--step-delay, 0ms);
-}
-
-/* Ogni icona del tutorial ha il suo micro-movimento in loop. */
-@keyframes scambi-icon-search {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  25% {
-    transform: translate(1.5px, -1.5px);
-  }
-  55% {
-    transform: translate(-1.5px, 1px);
-  }
-  80% {
-    transform: translate(1px, 1px);
-  }
-}
-@keyframes scambi-icon-coins {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  40% {
-    transform: translateY(-3px) rotate(-9deg);
-  }
-  65% {
-    transform: translateY(-3px) rotate(9deg);
-  }
-}
-@keyframes scambi-icon-send {
-  0%,
-  60%,
-  100% {
-    transform: translate(0, 0);
-  }
-  30% {
-    transform: translate(3px, -3px);
-  }
-}
-@keyframes scambi-icon-clock {
-  0%,
-  100% {
-    transform: rotate(-10deg);
-  }
-  50% {
-    transform: rotate(14deg);
-  }
-}
-
-.scambi-icon-search {
-  animation: scambi-icon-search 2.6s ease-in-out infinite;
-}
-.scambi-icon-coins {
-  animation: scambi-icon-coins 2.4s ease-in-out infinite;
-}
-.scambi-icon-send {
-  animation: scambi-icon-send 2s ease-in-out infinite;
-}
-.scambi-icon-clock {
-  transform-origin: 50% 55%;
-  animation: scambi-icon-clock 2.2s ease-in-out infinite;
-}
-
-/* Parola "carta/carte" evidenziata nel tutorial: leggero battito. */
-@keyframes scambi-card-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.07);
-  }
-}
-.scambi-card-word {
-  display: inline-block;
-  animation: scambi-card-pulse 2.4s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scambi-step-spin,
-  .scambi-step-enter,
-  .scambi-icon-search,
-  .scambi-icon-coins,
-  .scambi-icon-send,
-  .scambi-icon-clock,
-  .scambi-card-word {
-    animation: none;
-    opacity: 1;
-  }
-}
-
 /* OrderTabs: mini-icone animate "in modo figo".
    - pop elastico quando la tab diventa attiva
    - wiggle al passaggio del mouse sulla pillola/voce */
@@ -2486,42 +2351,6 @@
   opacity: 1;
 }
 
-/* ========== EMBLEMA SCAMBI: coppia di carte che si "scambiano" ========== */
-/* Le due carte ruotano l'una attorno all'altra (una passa sopra, una sotto)
-   simulando uno scambio. Usato accanto alla scritta "scambiare" in ScambiContent. */
-.trade-emblem-card-a,
-.trade-emblem-card-b {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.trade-emblem-card-a {
-  animation: trade-swap-a 2.6s ease-in-out infinite;
-}
-.trade-emblem-card-b {
-  animation: trade-swap-b 2.6s ease-in-out infinite;
-}
-@keyframes trade-swap-a {
-  0%, 100% { transform: translate(-2.5px, 0) rotate(-11deg); }
-  25%      { transform: translate(-2.5px, -2.5px) rotate(-11deg); }
-  50%      { transform: translate(3.5px, 0) rotate(11deg); }
-  75%      { transform: translate(3.5px, 2.5px) rotate(11deg); }
-}
-@keyframes trade-swap-b {
-  0%, 100% { transform: translate(3.5px, 0) rotate(11deg); }
-  25%      { transform: translate(3.5px, 2.5px) rotate(11deg); }
-  50%      { transform: translate(-2.5px, 0) rotate(-11deg); }
-  75%      { transform: translate(-2.5px, -2.5px) rotate(-11deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .trade-emblem-card-a,
-  .trade-emblem-card-b {
-    animation: none !important;
-  }
-  .trade-emblem-card-a { transform: translate(-2.5px, 0) rotate(-11deg); }
-  .trade-emblem-card-b { transform: translate(3.5px, 0) rotate(11deg); }
-}
-
-
 /* ========== EBARTEX JOURNEY: titolo animato della pagina blog ========== */
 /* Ogni lettera entra con un piccolo "rimbalzo" sfalsato e poi un bagliore
    arancio attraversa la parola in loop (delay per-lettera = effetto onda).
@@ -2559,5 +2388,59 @@
     animation: none !important;
     background: none;
     color: #1D3160;
+  }
+}
+
+/* Scambi: movimento funzionale per passaggi, selezioni e salvataggi. */
+@keyframes scambi-flow-sweep {
+  0% { transform: translateX(-140%); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateX(340%); opacity: 0; }
+}
+
+@keyframes scambi-selection-settle {
+  0% { transform: scale(0.985); }
+  65% { transform: scale(1.006); }
+  100% { transform: scale(1); }
+}
+
+.scambi-flow-track {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.scambi-flow-track::after,
+.scambi-busy-track::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 38%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, #ff9b45 45%, #ffffff 52%, transparent);
+  animation: scambi-flow-sweep 2.4s ease-in-out infinite;
+}
+
+.scambi-flow-track[data-active='false']::after {
+  animation-play-state: paused;
+}
+
+.scambi-busy-track::after {
+  width: 28%;
+  animation-duration: 1.25s;
+}
+
+.scambi-selection-live {
+  animation: scambi-selection-settle 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scambi-flow-track::after,
+  .scambi-busy-track::after,
+  .scambi-selection-live {
+    animation: none !important;
   }
 }

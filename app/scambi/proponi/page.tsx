@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function ProponiScambioPage() {
   return (
-    <main className="min-h-screen bg-[#F5F4F0]">
+    <main className="min-h-screen bg-transparent">
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>

@@ -12,7 +12,6 @@ export const metadata = {
 export default function ScambiPage() {
   return (
     <>
-      <h1 className="sr-only">Scambi di carte collezionabili su Ebartex</h1>
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>

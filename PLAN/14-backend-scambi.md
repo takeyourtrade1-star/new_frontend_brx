@@ -236,7 +236,7 @@ Hook, tab reali, dettaglio con azioni, composer unificato su inventari reali (fi
 **Criteri**: scambio completo end-to-end tra due utenti reali su dev **senza mock**; stock in escrow visibile ma bloccato; tracking apre il sito del corriere; ricevuto non pubblicato; `i18n:keys` verde; mock file eliminati.
 
 ### Fase 6 — Hardening e ops
-Metriche transizioni/escrow; schedule EventBridge (expire + recover); runbook DISPUTED; smoke staging; review sicurezza (authz, rate limit, input caps, token interni, log senza PII e senza indirizzi). Quick win già noto: l'healthcheck di `auction-api` è unhealthy probabilmente per lo stesso `curl` mancante fixato oggi sul sync — sistemarlo nel compose.
+Metriche transizioni/escrow; scheduler privato nel worker auction con claim/lease Redis per expire, recover, chiusure, dispute ed email; EventBridge mantenuto solo come rollback disabilitato; runbook DISPUTED; smoke staging; review sicurezza (authz, rate limit, input caps, token interni, log senza PII e senza indirizzi). Healthcheck dell'API verificato nel compose di produzione.
 **Criteri**: checklist sicurezza firmata; runbook provato su un DISPUTED simulato; un giro di reconciler in produzione durante uno scambio attivo → zero mutazioni inattese.
 
 ---
@@ -258,7 +258,8 @@ Metriche transizioni/escrow; schedule EventBridge (expire + recover); runbook DI
 ## 11. Criteri di accettazione complessivi
 
 - [ ] Due utenti reali completano uno scambio end-to-end: uno con item CardTrader e uno con inserzione Ebartex-only → proposta → accettazione → doppia spedizione → doppia conferma → vecchie quantità consumate e carte ricevute (`source='trade'`) non pubblicate.
-- [x] In nessuno scenario testato (concorrenza, retry, crash a metà saga, annulli, dispute, giro di reconciler) l'inventario totale cambia se non per il trasferimento previsto; mai quantità negative, mai duplicazioni.
+- [x] Nei test locali di concorrenza, retry, crash a metà saga, annulli e dispute l'inventario totale cambia solo per il trasferimento previsto; mai quantità negative, mai duplicazioni.
+- [ ] Durante uno scambio reale attivo, un giro del reconciler CardTrader in produzione non modifica quantità, reservation o visibilità inattese.
 - [x] Ogni transizione in `trade_status_history` e ogni mutazione inventario in `inventory_ops`, con attore e motivo.
 - [x] Un non partecipante non può né leggere né agire (404); gli endpoint `/internal/*` rifiutano chiamate senza token interno.
 - [x] Crediti disattivati ovunque (server rifiuta ≠0, UI non li mostra).
@@ -300,3 +301,23 @@ Metriche transizioni/escrow; schedule EventBridge (expire + recover); runbook DI
 - Migrazioni `20260714_trade_inventory_visibility.sql` e `006_trade_visibility` applicate; API e worker dei tre servizi sani, senza errori nei log di avvio.
 - Frontend Amplify job `495` riuscito sul commit `bc75159`; `/build-info.json` espone `bc75159`.
 - Smoke produzione: le righe ricevute `source=trade` restano nell'inventario proprietario ma non sono restituite dalle inserzioni pubbliche; auth BFF e redirect `/scambi` verificati.
+
+### Hardening post-audit — deployato il 2026-07-15
+
+- `auction`: manutenzione trade/aste spostata nel worker privato già esistente, con claim/lease Redis; recovery sia di `ACCEPTING` sia dei completamenti interrotti dopo la doppia ricezione.
+- `sync`: esiti CardTrader incerti non riaprono più lo stock. Reservation/release restano bloccate e vengono risolte dal Celery beat esistente tramite export mirato, retry idempotente o stato `manual_review_required` nei casi ambigui.
+- Email scambi: outbox PostgreSQL transazionale per entrambi gli utenti, retry esponenziale e `Message-ID` stabile. Gli errori SMTP ora risalgono al dispatcher invece di essere marcati erroneamente come inviati.
+- Privacy: un annullo prima dell'accettazione non rende mai visibile l'indirizzo dell'altra parte; dopo l'accettazione gli indirizzi restano disponibili solo per l'eventuale rientro fisico.
+- Superficie S2S: rate limit fail-closed su Redis per sync e marketplace, CORS `*` vietato in produzione e Redis host limitati a `127.0.0.1`. Auth contatti era già protetto da token, CIDR e rate limiter globale.
+- Marketplace Ebartex-only: confermati su PostgreSQL replay idempotente, visibilità durante escrow e due reservation concorrenti senza oversell.
+- Verifiche verdi: frontend `typecheck`, lint, 2520 chiavi × 6 lingue e 263 test; build Docker locali di auction/sync/marketplace; test critici unitari e PostgreSQL; catena Alembic auction fino a `20260714_trade_email` e marketplace fino a `006_trade_visibility`.
+- Impatto infrastrutturale fisso: **EUR 0/mese**. Si riusano worker, Redis, PostgreSQL e SMTP esistenti; nessuna nuova istanza, coda, database o provider.
+- Tag ECR finale comune: `trade-hardening-final-20260715-0030`. Digest verificati in produzione: sync `sha256:a2053eace6d025e693f44eac198d8c7213703e743a7ea0ee1d49ab5483ef2903`, marketplace `sha256:7408f0f9be0f691dea58e0059cd63f223f5c64591404ac9c4e4423c4446d5987`, auction `sha256:d255b95f666e439a680113e5c9f9ef67cc2f354fdba4d5363672276892993c01`.
+- Rollback conservato su tutti e tre i repository ECR: `rollback-pre-trade-hardening-20260714-2327`.
+- Migrazioni in produzione: marketplace `006_trade_visibility (head)`; auction `20260714_trade_email (head)`. Health, API e worker verdi; endpoint S2S senza token rispondono `401`.
+- Redis dei tre servizi è esposto sull'host solo su `127.0.0.1` (porte 6381/6382/6380). Tutti i container applicativi girano come UID non privilegiato `10001`.
+- Pool PostgreSQL ridimensionati senza nuove risorse: sync API `3+2` e worker `2+1`; marketplace API `3+2` e worker `2+1`; auction API/worker `3+2`. Anche i pool MySQL sync sono limitati a `5+5` e il logging su file del sync è disabilitato in produzione.
+- Lo scheduler privato auction ha completato recovery, chiusure, scadenze, dispute ed email outbox. I quattro timer EventBridge duplicati sono `DISABLED` (non eliminati, quindi riattivabili in rollback).
+- Verifica recovery sync in produzione completata dal Celery beat: zero reservation pendenti/ambigue nel giro osservato. SMTP runtime pronto; dispatcher email outbox eseguito senza elementi pendenti.
+- Artefatti temporanei S3 rimossi dopo il rollout. Runbook aggiornato in `repos/auction/docs/TRADES_RUNBOOK.md` con cutover e rollback.
+- Restano come collaudo funzionale, non come implementazione: scambio completo tra due utenti reali (uno CardTrader e uno Ebartex-only) e reconciler CardTrader durante uno scambio attivo.

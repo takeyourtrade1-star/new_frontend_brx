@@ -106,6 +106,27 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
       setModelProgress({ loaded: 0, total: 0, percent: -1, phase: 'downloading' });
 
       try {
+        const capabilitiesResponse = await fetch(`${apiBaseUrl}/capabilities`, {
+          cache: 'no-store',
+        });
+        const capabilities = capabilitiesResponse.ok
+          ? ((await capabilitiesResponse.json()) as { edge?: { enabled?: boolean } })
+          : null;
+        if (!capabilities?.edge?.enabled) {
+          if (!cancelled) {
+            setModelStatus('failed');
+            setModelProgress({
+              loaded: 0,
+              total: 0,
+              percent: 0,
+              phase: 'failed',
+              reason: 'Modalità standard attiva: compatibilità edge non certificata',
+            });
+            setTurboSkipped(true);
+          }
+          return;
+        }
+
         const modelUrls = await resolveOnnxDownloadUrls(apiBaseUrl);
         const modelData = await fetchAndCacheOnnxModel(modelUrls, (progress) => {
           if (!cancelled) setModelProgress(progress);

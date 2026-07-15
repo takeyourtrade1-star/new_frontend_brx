@@ -1,6 +1,6 @@
 # Indice Piani di Lavoro — Ebartex Frontend
 
-12 piani strutturati per refactor e hardening del codice, derivati dall'audit pre-lancio del 23 Giugno 2026.
+Piani strutturati per refactor, hardening ed evoluzione del prodotto Ebartex.
 
 ---
 
@@ -22,6 +22,8 @@
 | [12](./12-code-quality-hygiene.md) | Code Quality & Hygiene | Tipizzazione, Zod split, cache headers, error boundaries | ongoing | Bassa-Media |
 | [13](./13-refactor-mascotte-asso.md) | Refactor Mascotte Asso | `components/mascotte/`, chunk −67%, wardrobe lazy | 3-5 giorni | Media |
 | [14](./14-backend-scambi.md) | Backend Scambi | Escrow sync/CardTrader + Ebartex-only, stock “In scambio”, consegna/tracking, BFF + FE | 3-5 settimane | **Alta** |
+| [15](./15-backend-registrazione-verifica-email.md) | Backend registrazione e verifica email | Account pending, challenge, outbox, SES e contratto frontend | 2-3 settimane | **Alta** |
+| [16](./16-asso-vision-inventario-rapido.md) | Asso Vision e inventario rapido | Capture continua edge-primary, review locale e costo backend invariato | 6-10 settimane | **Alta** |
 
 ---
 

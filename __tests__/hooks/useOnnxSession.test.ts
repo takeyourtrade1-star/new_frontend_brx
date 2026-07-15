@@ -31,6 +31,15 @@ vi.mock('onnxruntime-web', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ edge: { enabled: true } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  );
   vi.mocked(resolveOnnxDownloadUrls).mockResolvedValue(['http://x/model.onnx']);
 });
 
@@ -78,5 +87,20 @@ describe('useOnnxSession', () => {
     await waitFor(() => expect(result.current.turboSkipped).toBe(true));
     expect(result.current.modelStatus).toBe('failed');
     expect(result.current.isTurboReady()).toBe(false);
+  });
+
+  it('non scarica il modello quando il BFF non certifica il percorso edge', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ edge: { enabled: false } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const { result } = renderHook(() => useOnnxSession({ apiBaseUrl: '/api/scanner' }));
+
+    await waitFor(() => expect(result.current.turboSkipped).toBe(true));
+    expect(result.current.modelStatus).toBe('failed');
+    expect(fetchAndCacheOnnxModel).not.toHaveBeenCalled();
   });
 });

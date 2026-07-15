@@ -14,6 +14,8 @@ export interface TradeProposalSeller {
 }
 
 export interface TradeProposalCard {
+  /** Blueprint CardTrader usato per risolvere immagine e metadati della carta. */
+  blueprintId: number;
   id: string;
   name: string;
   image: string;
@@ -65,7 +67,31 @@ export function getTradeProposalContext(): TradeProposalContext | null {
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as TradeProposalContext;
+    const parsed = JSON.parse(raw) as Partial<TradeProposalContext>;
+    if (
+      !parsed.seller || typeof parsed.seller.name !== 'string' ||
+      !parsed.card || typeof parsed.card.id !== 'string' || typeof parsed.card.name !== 'string' ||
+      !parsed.listing || typeof parsed.listing.id !== 'string' ||
+      typeof parsed.listing.sellerId !== 'string' || typeof parsed.listing.quantity !== 'number' ||
+      (parsed.listing.source !== 'sync' && parsed.listing.source !== 'marketplace')
+    ) {
+      return null;
+    }
+    const storedBlueprintId = Number(parsed.card.blueprintId);
+    const legacyBlueprintId = Number(parsed.card.id);
+    return {
+      ...parsed,
+      seller: parsed.seller,
+      card: {
+        ...parsed.card,
+        blueprintId: Number.isFinite(storedBlueprintId) && storedBlueprintId > 0
+          ? storedBlueprintId
+          : Number.isFinite(legacyBlueprintId) && legacyBlueprintId > 0
+            ? legacyBlueprintId
+            : 0,
+      },
+      listing: parsed.listing,
+    } as TradeProposalContext;
   } catch {
     return null;
   }

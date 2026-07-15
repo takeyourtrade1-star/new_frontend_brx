@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, RefreshCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { getCardImageUrl } from '@/lib/assets';
@@ -55,7 +55,8 @@ export function ScambiInCorsoCarousel({
       const el = scrollRef.current;
       if (!el) return;
       const amount = direction === 'left' ? -SCROLL_STEP : SCROLL_STEP;
-      el.scrollBy({ left: amount, behavior: 'smooth' });
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.scrollBy({ left: amount, behavior: reducedMotion ? 'auto' : 'smooth' });
 
       setIsPaused(true);
       if (pauseTimerRef.current) {
@@ -70,12 +71,14 @@ export function ScambiInCorsoCarousel({
   useEffect(() => {
     if (isPaused) return;
     const el = scrollRef.current;
-    if (!el || items.length < 2) return;
+    if (!el || items.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const id = setInterval(() => {
       const maxScroll = el.scrollWidth - el.clientWidth;
       if (el.scrollLeft < maxScroll - 2) {
         el.scrollBy({ left: CARD_WIDTH + CARD_GAP, behavior: 'smooth' });
+      } else {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
       }
     }, AUTOPLAY_MS);
 
@@ -130,8 +133,7 @@ export function ScambiInCorsoCarousel({
       {/* ── Header ── */}
       {!compact && (
         <div className="flex items-center justify-between px-5 py-2.5">
-          <div className="flex items-center gap-2">
-            <RefreshCcw className={cn('h-4 w-4', useLightText ? 'text-emerald-300' : 'text-emerald-600')} strokeWidth={2.5} />
+          <div>
             <h3 className={cn(
               'text-lg font-black uppercase tracking-wide font-sans',
               useLightText
@@ -155,6 +157,8 @@ export function ScambiInCorsoCarousel({
         className="group/carousel relative flex-1"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
+        onFocusCapture={() => setIsPaused(true)}
+        onBlurCapture={() => setIsPaused(false)}
       >
         {/* Left arrow overlay */}
         <button
@@ -164,7 +168,7 @@ export function ScambiInCorsoCarousel({
             'absolute left-0 top-0 z-10 flex h-full w-8 items-center justify-center',
             'bg-gradient-to-r from-black/30 to-transparent',
             'opacity-0 transition-opacity duration-300',
-            'group-hover/carousel:opacity-100',
+            'group-hover/carousel:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/60',
             !canScrollLeft && 'pointer-events-none !opacity-0'
           )}
           aria-label={t('home.scambi.scrollLeft')}
@@ -180,7 +184,7 @@ export function ScambiInCorsoCarousel({
             'absolute right-0 top-0 z-10 flex h-full w-8 items-center justify-center',
             'bg-gradient-to-l from-black/30 to-transparent',
             'opacity-0 transition-opacity duration-300',
-            'group-hover/carousel:opacity-100',
+            'group-hover/carousel:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/60',
             !canScrollRight && 'pointer-events-none !opacity-0'
           )}
           aria-label={t('home.scambi.scrollRight')}
@@ -267,19 +271,11 @@ function ScambiCard({ item, useLightText = false }: { item: PublicBestSellerItem
             onError={() => setImageOk(false)}
           />
         ) : (
-          <div className="flex h-full items-center justify-center bg-slate-200">
-            <RefreshCcw className="h-5 w-5 text-slate-400" />
-          </div>
+          <div className="h-full bg-gradient-to-br from-slate-100 to-slate-300" />
         )}
 
         {/* Sfumatura in alto */}
         <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/50 to-transparent" />
-
-        {/* Badge scambiabile */}
-        <div className="absolute left-1.5 top-1.5 flex items-center gap-0.5 rounded-full border border-orange-400/30 bg-black/50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-orange-400 backdrop-blur-sm">
-          <RefreshCcw className="h-2 w-2" strokeWidth={2.5} />
-          Scambia
-        </div>
       </div>
 
       {/* Testo */}

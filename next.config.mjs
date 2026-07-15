@@ -110,19 +110,10 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    if (!process.env.BRX_MATCH_API_URL) {
-      // Fallback hardcoded all'IP del servizio match: utile in dev, ma in
-      // produzione la variabile DEVE essere impostata. Segnaliamo a build-time
-      // così la mancanza non passa silenziosa in CI/deploy.
-      console.warn(
-        '[next.config] BRX_MATCH_API_URL non impostata: uso fallback hardcoded http://15.160.8.178:8005. Impostare la variabile in produzione.'
-      );
-    }
-    const brxMatchUrl = (process.env.BRX_MATCH_API_URL || 'http://15.160.8.178:8005').replace(/\/+$/, '');
-
-    // NOTA: /api/sync/* e /api/marketplace/* NON hanno rewrite qui.
+    // NOTA: /api/sync/*, /api/marketplace/* e /api/scanner/* NON hanno rewrite qui.
     // Esistono route handler dedicati (app/api/sync/[...path]/route.ts e
-    // app/api/marketplace/[...path]/route.ts) che applicano auth cookie-first,
+    // app/api/marketplace/[...path]/route.ts, app/api/scanner/[...path]/route.ts)
+    // che applicano auth cookie-first quando presente,
     // rate limiting e timeout. I rewrites Next.js vengono eseguiti prima dei
     // route handler e li bypasserebbero, vanificando i controlli di sicurezza.
     return [
@@ -131,11 +122,6 @@ const nextConfig = {
       // NOTA: il vecchio rewrite /search-api/* → BRX_Search (API admin, es. reindex)
       // è stato rimosso: nessun call-site nel frontend e bypassava auth/rate-limit
       // del BFF, esponendo il servizio admin a chiunque.
-      // Proxy per BRX Match (scanner MTG): /brx-match/* → EC2 dedicata (imposta BRX_MATCH_API_URL su Amplify)
-      {
-        source: '/brx-match/:path*',
-        destination: `${brxMatchUrl}/brx-match/:path*`,
-      },
     ];
   },
 };

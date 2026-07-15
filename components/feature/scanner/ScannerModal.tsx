@@ -4,7 +4,6 @@ import { useEffect, useCallback, useRef, useState, type RefObject } from 'react'
 import { Camera, X, Lightbulb } from 'lucide-react';
 import { useBrxScanner } from '@/hooks/useBrxScanner';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
 import { ScannerBetaNotice } from '@/components/feature/scanner/ScannerBetaNotice';
 import { cn } from '@/lib/utils';
 
@@ -453,31 +452,15 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
     state,
     result,
     errorMessage,
-    modelStatus,
-    modelProgress,
-    modelError,
     videoRef,
     canvasRef,
-    openCamera,
     stopScanning,
     restartScanning,
-    retryModelDownload,
-    continueWithStandardMode,
-    turboSkipped,
   } = useBrxScanner({
     autoOpenCamera: true,
-    apiBaseUrl: '/brx-match',
+    apiBaseUrl: '/api/scanner',
     scanMode: 'auto',
   });
-
-  const showModelGate =
-    state === 'idle' &&
-    (modelStatus === 'loading' || (modelStatus === 'failed' && !turboSkipped));
-
-  const handleUseStandard = useCallback(() => {
-    continueWithStandardMode();
-    void openCamera();
-  }, [continueWithStandardMode, openCamera]);
 
   useEffect(() => {
     return () => {
@@ -535,28 +518,18 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
 
   const bracketState: BracketState =
     state === 'matched' ? 'matched'
-    : state === 'scanning' || state === 'processing' ? 'scanning'
+    : state === 'scanning' || state === 'stabilizing' || state === 'processing' || state === 'awaiting_removal' ? 'scanning'
     : 'idle';
 
   const statusBarState: StatusBarState =
     state === 'matched' ? 'matched'
     : state === 'processing' ? 'processing'
-    : state === 'scanning' ? 'scanning'
+    : state === 'scanning' || state === 'stabilizing' || state === 'awaiting_removal' ? 'scanning'
     : 'idle';
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden bg-black" aria-modal aria-label="Scanner Magic">
       <TopLoadingBar active={state === 'processing'} />
-
-      {showModelGate && (
-        <ScannerModelGate
-          modelStatus={modelStatus}
-          modelProgress={modelProgress}
-          modelError={modelError}
-          onRetry={retryModelDownload}
-          onUseStandard={handleUseStandard}
-        />
-      )}
 
       {/* Header */}
       <header
@@ -612,7 +585,7 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
         <ErrorPanel message={errorMessage ?? t('scanner.cameraGenericError')} onClose={handleCloseBtn} />
       )}
 
-      {(state === 'scanning' || state === 'processing' || state === 'matched') && (
+      {(state === 'scanning' || state === 'stabilizing' || state === 'processing' || state === 'matched' || state === 'awaiting_removal') && (
         <>
           <ScanAreaBlurMask />
 

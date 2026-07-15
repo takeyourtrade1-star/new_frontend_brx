@@ -1,5 +1,7 @@
 /** DINOv2 224×224 preprocess — tuned for live scanner (reused buffers). */
 
+import { getCardCropRect } from './capture-analysis';
+
 export const ONNX_SIZE = 224;
 const PIXELS = ONNX_SIZE * ONNX_SIZE;
 
@@ -41,26 +43,14 @@ export function captureFrame224(
   const vh = video.videoHeight;
   if (!vw || !vh || video.readyState < 2) return null;
 
-  const side = Math.min(vw, vh);
-  const sx = (vw - side) / 2;
-  const sy = (vh - side) / 2;
-  ctx.drawImage(video, sx, sy, side, side, 0, 0, ONNX_SIZE, ONNX_SIZE);
+  const crop = getCardCropRect(vw, vh, video.clientWidth, video.clientHeight);
+  ctx.drawImage(video, crop.x, crop.y, crop.width, crop.height, 0, 0, ONNX_SIZE, ONNX_SIZE);
   return ctx.getImageData(0, 0, ONNX_SIZE, ONNX_SIZE);
 }
 
-export function bytesToBase64(bytes: Uint8Array): string {
-  const CHUNK = 0x8000;
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(binary);
-}
-
 export function vectorSearchJson(vec: Float32Array, topK: number): string {
-  const u8 = new Uint8Array(vec.buffer, vec.byteOffset, vec.byteLength);
   return JSON.stringify({
-    vector_b64: bytesToBase64(u8),
+    vector: Array.from(vec),
     top_k: topK,
     mode: 'fast',
   });

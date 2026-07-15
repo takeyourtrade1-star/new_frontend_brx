@@ -96,6 +96,7 @@ describe('useProductCart', () => {
         quantity: 5,
       },
       card: {
+        blueprintId: 42,
         id: 'mkt:listing-uuid',
         name: 'Sol Ring',
       },

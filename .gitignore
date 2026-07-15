@@ -80,6 +80,8 @@ Immagini\ da\ caricare\ sul\ backend/
 # IDE
 .idea
 .qwen/
+.claude/
+.codex-temp/
 *.swp
 *.swo
 *~

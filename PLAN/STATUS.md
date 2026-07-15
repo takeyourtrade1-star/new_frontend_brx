@@ -17,7 +17,9 @@ Questo file dice all'agente *quali piani sono già stati eseguiti* senza dover l
 | 11 | Responsive & Mobile | **Completato** (eseguito 2026-06-29: 11.1/11.2/11.4/11.6/11.7/11.8; 11.3 già in Plan 7, 11.5 già implementato con OggettiMobileList) |
 | 12 | Code Quality & Hygiene | **Quasi completato** (eseguito 2026-06-29: 12.1-12.4, 12.6, 12.8-12.12; 12.5/12.7 saltati per rischio runtime, 12.9 già ok) |
 | 13 | Refactor Mascotte Asso | **Completato** (eseguito 2026-07-08, dettagli nel file e in memoria agente) |
-| 14 | Backend Scambi | **Deployato, collaudo reale finale pendente** (2026-07-14: Ebartex-only/CardTrader online; gestione “In scambio”, consumo finale, ricevuto non pubblicato, annullo sicuro e tracking corrieri deployati. Smoke produzione verde; restano test completo a due utenti e reconciler durante uno scambio attivo) |
+| 14 | Backend Scambi | **Implementazione e hardening deployati** (2026-07-15: sync, marketplace e auction sul tag `trade-hardening-final-20260715-0030`; saga/recovery, email outbox, privacy, rate limit S2S, Redis loopback, container non-root, pool DB limitati e scheduler privato verificati. EventBridge duplicato disabilitato; costo fisso aggiuntivo EUR 0/mese. Restano solo collaudo completo a due utenti e reconciler durante uno scambio attivo) |
+| 15 | Backend registrazione e verifica email | **Originale** (piano scritto 2026-07-13, non ancora eseguito) |
+| 16 | Asso Vision e inventario rapido | **In corso** (2026-07-14: prima verticale frontend/BFF completata — capture continua, una recognition per carta, review IndexedDB, costo protetto; pendono mapping `blueprint_id`, batch inventario e modello edge compatto) |
 
 ## Legenda
 

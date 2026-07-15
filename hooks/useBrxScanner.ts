@@ -44,8 +44,10 @@ export interface UseBrxScannerOptions {
   /** Required votes within window for commit (default 3 for V3, 2 for legacy). */
   voteRequired?: number;
   maxInflight?: number;
-  /** If false, caller opens camera after model is ready (recommended). */
+  /** Se true, apre subito la camera mentre il modello edge si prepara in background. */
   autoOpenCamera?: boolean;
+  /** Mantiene la camera attiva e attende la rimozione della carta dopo ogni risultato. */
+  continuous?: boolean;
 }
 
 export interface UseBrxScannerReturn {
@@ -74,6 +76,8 @@ export interface UseBrxScannerReturn {
   continueWithStandardMode: () => void;
   /** User chose standard mode or ONNX was skipped — hide the pre-scan gate. */
   turboSkipped: boolean;
+  /** Forza una cattura accessibile senza attendere il rilevamento automatico. */
+  captureNow: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -89,7 +93,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     confidenceThreshold: rawConf = BALANCED.confDefault,
     hintConfidenceMin: rawHint = BALANCED.hintDefault,
     captureIntervalMs = BALANCED.captureIntervalMs,
-    apiBaseUrl = '/brx-match',
+    apiBaseUrl = '/api/scanner',
     countdownSeconds = 3,
     requestTimeoutMs = BALANCED.requestTimeoutMs,
     scanMode = 'auto',
@@ -97,6 +101,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     voteRequired = BALANCED.voteRequired,
     maxInflight = 3,
     autoOpenCamera = false,
+    continuous = false,
   } = options;
 
   // Enforce floors
@@ -146,6 +151,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     startScanLoop,
     stopLoop,
     restartScan,
+    captureNow,
     isLoopActive,
   } = useScanLoop({
     videoRef,
@@ -165,6 +171,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     countdownSeconds,
     effectiveConf,
     effectiveHint,
+    continuous,
     onMatch,
     onNoMatch,
     setScannerState: setState,
@@ -235,16 +242,9 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
 
   useEffect(() => {
     if (!autoOpenCamera || cameraOpenedRef.current) return;
-    if (turboSkipped) {
-      cameraOpenedRef.current = true;
-      void openCamera();
-      return;
-    }
-    if (modelStatus === 'ready') {
-      cameraOpenedRef.current = true;
-      void openCamera();
-    }
-  }, [autoOpenCamera, modelStatus, turboSkipped, openCamera]);
+    cameraOpenedRef.current = true;
+    void openCamera();
+  }, [autoOpenCamera, openCamera]);
 
   const restartScanning = useCallback(() => {
     restartScan();
@@ -273,5 +273,6 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     retryModelDownload,
     continueWithStandardMode,
     turboSkipped,
+    captureNow,
   };
 }

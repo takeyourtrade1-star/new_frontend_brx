@@ -21,6 +21,7 @@ export function useTrade(tradeId: number) {
     queryFn: () => tradesApi.get(tradeId),
     enabled: tradeId > 0,
     staleTime: 10_000,
+    refetchInterval: (query) => query.state.data?.data.status === 'ACCEPTING' ? 1_500 : false,
   });
 }
 

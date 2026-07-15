@@ -5,12 +5,15 @@ export type ScannerState =
   | 'idle'
   | 'requesting_camera'
   | 'scanning'
+  | 'stabilizing'
   | 'processing'
   | 'matched'
+  | 'awaiting_removal'
   | 'no_match'
   | 'error';
 
 export interface ScanResult {
+  capture_id?: string;
   card_name: string;
   set_name: string;
   set_code: string;
@@ -20,6 +23,24 @@ export interface ScanResult {
   search_url: string;
   search_query: string;
   latency_ms: number;
+  scryfall_id?: string;
+  blueprint_id?: number;
+  collector_number?: string;
+}
+
+export interface ScanSessionItem {
+  id: string;
+  capturedAt: string;
+  status: 'recognized' | 'needs_review' | 'confirmed' | 'rejected';
+  quantity: number;
+  result: ScanResult;
+}
+
+export interface ScanSession {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  items: ScanSessionItem[];
 }
 
 export interface DebugInfo {

@@ -14,12 +14,12 @@ type Props = { params: Promise<{ id: string }> };
 export default async function ScambiDetailPage({ params }: Props) {
   const { id } = await params;
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-transparent">
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>
       <ScambiGuard>
-      <ScambiDetailView scambioId={id} />
+        <ScambiDetailView scambioId={id} />
       </ScambiGuard>
     </main>
   );
