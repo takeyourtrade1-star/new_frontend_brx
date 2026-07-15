@@ -25,6 +25,22 @@ export type BlogPost = {
 
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'scambi',
+    date: '2026-07-15',
+    dateLabel: '15 luglio 2026',
+    tag: 'Scambi',
+    tagClass: 'bg-emerald-100 text-emerald-700',
+    title: 'Gli Scambi sono ufficialmente live: entra nella beta',
+    excerpt:
+      'Trasforma i doppioni nelle carte che cerchi: gli Scambi Ebartex sono aperti e pronti da provare.',
+    paragraphs: [
+      'Da oggi gli Scambi Ebartex sono ufficialmente live in beta. Cerca un collezionista, guarda le carte che ha messo a disposizione e componi una proposta usando quelle del tuo inventario.',
+      'Puoi inviare e ricevere proposte, confrontare con chiarezza le carte sui due lati e seguire ogni scambio fino alla risposta. Tutto parte dalle collezioni reali degli utenti.',
+      'Questa beta serve anche a costruire il servizio insieme alla community: provalo, completa il tuo primo scambio e raccontaci cosa possiamo rendere ancora più semplice e veloce.',
+    ],
+    cta: { href: '/scambi', label: 'Prova gli Scambi (beta) →' },
+  },
+  {
     slug: 'tornei-live',
     date: '2026-07-09',
     dateLabel: '9 luglio 2026',
@@ -67,21 +83,6 @@ export const BLOG_POSTS: BlogPost[] = [
     paragraphs: [
       'Vendere una collezione richiede tempo: foto, schede, spedizioni, messaggi. Con BRX Express ci pensiamo noi: ci invii le tue carte, le verifichiamo, le fotografiamo e le mettiamo in vendita al posto tuo.',
       'Tu segui tutto dal tuo account e incassi a ogni vendita. Semplice, tracciato e veloce — è il servizio perfetto per chi ha tante carte e poco tempo.',
-    ],
-  },
-  {
-    slug: 'scambi',
-    date: '2026-04-15',
-    dateLabel: '15 aprile 2026',
-    tag: 'Scambi',
-    tagClass: 'bg-emerald-100 text-emerald-700',
-    wip: true,
-    title: 'Scambi: le carte che vuoi, senza spendere',
-    excerpt:
-      'Da oggi puoi scambiare i tuoi doppioni con gli altri collezionisti, direttamente sul tavolo di scambio.',
-    paragraphs: [
-      'I doppioni smettono di prendere polvere: con gli Scambi metti le tue carte sul tavolo, scegli quelle che ti mancano dall’inventario di un altro collezionista e proponi lo scambio.',
-      'Puoi compensare le differenze di valore con i crediti e scegliere tra spedizione diretta o Ebartex come intermediario. Completare i set non è mai stato così divertente.',
     ],
   },
   {
