@@ -1,7 +1,7 @@
 # Piano 19 — Rollout sicuro CardTrader in produzione
 
 > Stato: **in esecuzione, un passo alla volta**.
-> Fasi 1 e 2 completate. Fase 3 in preparazione su staging.
+> Fasi 1, 2 e 3 completate. Fase 4 pronta ma non ancora avviata.
 
 ## Obiettivo
 
@@ -30,10 +30,10 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 ### Esito locale del 2026-07-16
 
 - Sync: commit `7bbbe2c`; 42 test verdi, Ruff e Compose verdi.
-- Marketplace: commit `f6e6455`; 19 test verdi, Ruff e Compose verdi.
+- Marketplace: commit base `f6e6455` e correzione deploy `c79abb3`; test, Ruff e Compose verdi.
 - Frontend: commit `8aec798`; typecheck, lint, i18n, 285 test e build verdi.
 - Tag immagine previsto sync: `cardtrader-sync-20260716-7bbbe2c`; rollback codice: `c0720c4`.
-- Tag immagine previsto marketplace: `cardtrader-marketplace-20260716-f6e6455`; rollback codice: `3670068`.
+- Tag immagine previsto marketplace: `cardtrader-marketplace-20260716-c79abb3`; rollback codice: `3670068`.
 - Frontend: release `8aec798`; rollback codice: `7cd6dba`.
 - Migrazioni provate solo su PostgreSQL locale usa-e-getta: catena marketplace fino alla `011` e migrazione sync applicata due volte.
 - Nessun push, deploy o scrittura reale verso CardTrader.
@@ -76,13 +76,27 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 
 ## Fase 3 — Provare migrazioni e deploy in staging
 
-- [ ] Applicare le migrazioni marketplace fino alla `011`.
-- [ ] Applicare dopo la migrazione del backend sync `20260716_cardtrader_execution_policy.sql`.
-- [ ] Verificare schema, constraint, indici e catena delle migrazioni.
-- [ ] Eseguire smoke test di collegamento, import, riconciliazione e modalità.
-- [ ] Provare il rollback applicativo senza eliminare le nuove tabelle.
+- [x] Applicare le migrazioni marketplace fino alla `011`.
+- [x] Applicare dopo la migrazione del backend sync `20260716_cardtrader_execution_policy.sql`.
+- [x] Verificare schema, constraint, indici e catena delle migrazioni.
+- [x] Eseguire smoke test di collegamento, import, riconciliazione e modalità.
+- [x] Provare il rollback applicativo senza eliminare le nuove tabelle.
 
-**Gate:** staging stabile, dati coerenti e rollback provato.
+**Gate:** superato; staging stabile, dati coerenti e rollback provato.
+
+### Esito staging locale isolato del 2026-07-16
+
+- Non esiste uno staging AWS dedicato: è stato usato un ambiente Docker locale isolato con soli dati sintetici.
+- Migrazioni applicate nell'ordine previsto: baseline sync, marketplace fino alla `011`, poi migrazione sync; l'ultima è stata riapplicata senza errori.
+- Tabelle, 18 colonne di policy e lifecycle, constraint e indici attesi risultano presenti.
+- API sync, worker Celery, marketplace, PostgreSQL, MySQL e Redis sono risultati sani.
+- DEMO e PARTIAL non hanno effettuato scritture; PARTIAL è passato alla versione 2.
+- Il tentativo REAL è stato bloccato con HTTP 503 dal kill switch globale.
+- Tutti i processi candidati avevano `CARDTRADER_WRITES_ENABLED=false`.
+- Code REAL, outbox e inbox sono rimaste vuote; nessun listing pubblico o quantità negativa.
+- Le vecchie immagini applicative sono ripartite sul nuovo schema senza rollback distruttivi del database.
+- Trovato e corretto un errore nello script deploy marketplace: tentava di scaricare un worker ormai rimosso. Fix nel commit `c79abb3`, coperto da test.
+- Tutti i container, la rete e le immagini temporanee di staging sono stati rimossi con nomi controllati.
 
 ## Fase 4 — Deploy passivo in produzione
 
@@ -152,4 +166,3 @@ Per i primi scaglioni usare almeno 24 ore di osservazione.
 5. Eseguire una riconciliazione completa in sola lettura.
 6. Se necessario, ripristinare la versione applicativa precedente.
 7. Non fare rollback distruttivi del database.
-
