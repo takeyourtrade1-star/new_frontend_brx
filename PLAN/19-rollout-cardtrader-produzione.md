@@ -1,8 +1,8 @@
 # Piano 19 — Rollout sicuro CardTrader in produzione
 
-> Stato: **da eseguire in futuro, un passo alla volta**.
-> Il codice è stato verificato localmente, ma non sono stati eseguiti deploy,
-> migrazioni in produzione o scritture reali verso CardTrader.
+> Stato: **in esecuzione, un passo alla volta**.
+> Fase 1 completata. Fase 2 completata salvo il test reale di ripristino su una
+> copia temporanea, che richiede conferma esplicita prima di creare costi AWS.
 
 ## Obiettivo
 
@@ -16,6 +16,7 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 - Frontend, backend sync e backend marketplace hanno release e rollback separati.
 - Le modifiche non collegate già presenti nei repository non vanno incluse nei commit.
 - Un job con esito incerto non viene ripetuto alla cieca: prima si riconcilia l'inventario.
+- Il database principale e i suoi snapshot non devono mai essere cancellati durante il rollout.
 
 ## Fase 1 — Preparare le release
 
@@ -36,17 +37,40 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 - Tag immagine previsto marketplace: `cardtrader-marketplace-20260716-f6e6455`; rollback codice: `3670068`.
 - Frontend: release `8aec798`; rollback codice: `7cd6dba`.
 - Migrazioni provate solo su PostgreSQL locale usa-e-getta: catena marketplace fino alla `011` e migrazione sync applicata due volte.
-- Nessun push, deploy, accesso al database di produzione o scrittura reale CardTrader.
+- Nessun push, deploy o scrittura reale verso CardTrader.
 
 ## Fase 2 — Backup e fotografia della produzione
 
-- [ ] Creare backup verificati dei database coinvolti.
-- [ ] Salvare le versioni correnti delle migrazioni e dei servizi.
-- [ ] Registrare code, outbox, webhook inbox, job `uncertain` e utenti abilitati.
-- [ ] Verificare che il backup sia leggibile e ripristinabile.
-- [ ] Confermare che i kill switch globale e per utente siano disponibili.
+- [x] Creare backup verificati dei database coinvolti.
+- [x] Salvare le versioni correnti delle migrazioni e dei servizi.
+- [x] Registrare code, outbox, webhook inbox, job `uncertain` e utenti abilitati.
+- [ ] Verificare il ripristino reale del backup su un'istanza temporanea isolata.
+- [x] Confermare che i kill switch globale e per utente siano disponibili nella release candidata.
 
-**Gate:** backup valido e stato iniziale documentato.
+**Gate:** non ancora superato; manca soltanto il restore drill isolato.
+
+### Fotografia di produzione del 2026-07-16
+
+- Snapshot RDS manuale disponibile al 100%: `ebartex-cardtrader-pre-rollout-20260716-160626`.
+- Copia cifrata disponibile al 100%: `ebartex-cardtrader-pre-rollout-20260716-160626-encrypted`.
+- Database controllato: `ebartex_auth_db`, PostgreSQL `16.13`, migrazione marketplace `006_trade_visibility`.
+- Le nuove tabelle e colonne CardTrader non sono ancora presenti: la base è quella prevista prima delle migrazioni.
+- Controlli eseguiti in transazione `read-only`, sempre chiusa con rollback.
+- Quantità listing negative: `0`.
+- Prenotazioni terminali duplicate: `0`.
+- Operazioni trade in stato `processing`: `0`.
+- Code note sync e marketplace: tutte `0`.
+- Configurazioni sync: `1 active`, `4 idle`; modalità marketplace: `5 demo`, `1 partial`, nessuna `real`.
+- Inventario fotografato: `3513` righe CardTrader e `6` righe trade.
+- Outbox, webhook inbox e job `uncertain` non esistono ancora perché saranno creati dalle nuove migrazioni.
+- I servizi erano sani; il flag globale live era assente. Prima del deploy passivo deve essere impostato esplicitamente a `false`.
+- Nessun dato è stato modificato o cancellato. Sono stati creati soltanto i due snapshot di sicurezza.
+
+### Passo ancora richiesto per chiudere la Fase 2
+
+Creare una piccola istanza RDS temporanea dalla copia cifrata, verificarne avvio,
+schema e sola lettura, poi eliminare esclusivamente l'istanza temporanea conservando
+entrambi gli snapshot. Questo passo genera un costo AWS e richiede conferma esplicita.
 
 ## Fase 3 — Provare migrazioni e deploy in staging
 
