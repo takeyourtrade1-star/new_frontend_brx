@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -82,6 +82,7 @@ export function NotificationBell() {
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [open, setOpen] = useState(false);
+  const [mobilePanelTop, setMobilePanelTop] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const unreadQuery = useUnreadNotificationsCount({
@@ -130,11 +131,18 @@ export function NotificationBell() {
     void queryClient.invalidateQueries({ queryKey: ['notifications'] });
   };
 
+  const toggleNotifications = () => {
+    if (!open && containerRef.current) {
+      setMobilePanelTop(containerRef.current.getBoundingClientRect().bottom + 8);
+    }
+    setOpen((current) => !current);
+  };
+
   return (
     <div ref={containerRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleNotifications}
         className="flex h-10 w-10 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
         aria-haspopup="true"
         aria-expanded={open}
@@ -154,7 +162,8 @@ export function NotificationBell() {
         <div
           role="menu"
           aria-label="Lista notifiche"
-          className="absolute right-0 top-full z-[120] mt-2 w-[22rem] max-w-[90vw] overflow-hidden rounded-xl border border-gray-200 bg-white text-gray-900 shadow-2xl"
+          style={{ '--notification-mobile-top': `${mobilePanelTop}px` } as CSSProperties}
+          className="fixed inset-x-0 top-[var(--notification-mobile-top)] z-[120] w-full overflow-hidden rounded-none border border-gray-200 bg-white text-gray-900 shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[22rem] sm:max-w-[90vw] sm:rounded-xl"
         >
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
             <span className="text-sm font-bold uppercase tracking-wide">Notifiche</span>
