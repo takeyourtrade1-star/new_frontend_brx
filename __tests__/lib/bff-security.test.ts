@@ -187,16 +187,21 @@ describe('/api/notifications — sicurezza', () => {
   });
 
   it('passa al backend con cookie valido', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    const fetchMock = vi.fn().mockResolvedValue({
       status: 200,
       ok: true,
       json: () => Promise.resolve({ items: [] }),
-    }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
     const { GET } = await import('@/app/api/notifications/route');
     const req = makeRequest('/api/notifications', { cookie: VALID_COOKIE });
     const res = await GET(req);
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toMatch(/no-store/);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://auction-api.test/notifications',
+      expect.objectContaining({ method: 'GET' }),
+    );
   });
 });
 

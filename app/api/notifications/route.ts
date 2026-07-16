@@ -1,5 +1,5 @@
 /**
- * Proxy root /api/notifications → AUCTION_API_URL/notifications/
+ * Proxy root /api/notifications → AUCTION_API_URL/notifications
  * Sicurezza: cookie-first, 401 fail-closed, no-store, rate limit, timeout.
  */
 
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   const rl = checkRateLimit(request, { scope: 'notifications', limit: 60, windowMs: 60_000, userId });
   if (!rl.allowed) return rateLimitExceededResponse(rl);
 
-  const url = new URL('/notifications/', AUCTION_API_URL);
+  const url = new URL('/notifications', AUCTION_API_URL);
   request.nextUrl.searchParams.forEach((value, key) => url.searchParams.set(key, value));
 
   const headers: Record<string, string> = {
