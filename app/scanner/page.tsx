@@ -655,6 +655,13 @@ function ScannerPageInner() {
   });
 
   useEffect(() => {
+    if (!totals.limitReached) return;
+    setTorchOn(false);
+    stopScanning();
+    router.push('/scanner/review');
+  }, [router, stopScanning, totals.limitReached]);
+
+  useEffect(() => {
     return () => {
       stopScanning();
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
@@ -738,12 +745,12 @@ function ScannerPageInner() {
       ? 'stabilizing'
       : hint
       ? 'hint'
+      : state === 'scanning'
+      ? 'scanning'
       : isBusy
       ? isSlowRef.current
         ? 'slow'
         : 'processing'
-      : state === 'scanning'
-      ? 'scanning'
       : 'idle';
 
   const bracketState: BracketState =

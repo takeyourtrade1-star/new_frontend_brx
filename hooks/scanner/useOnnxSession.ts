@@ -73,6 +73,7 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
     resolve: (v: Float32Array) => void;
     reject: (e: Error) => void;
   } | null>(null);
+  const embedQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   /** ONNX InferenceSession (set once after model loads). */
   const sessionRef = useRef<OrtLib.InferenceSession | null>(null);
@@ -184,6 +185,8 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
               };
               worker.onerror = () => {
                 clearTimeout(t);
+                embedPendingRef.current?.reject(new Error('worker embed failed'));
+                embedPendingRef.current = null;
                 resolve(false);
               };
               const modelCopy = modelData.slice(0);
@@ -252,6 +255,8 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
     loadOnnxModel();
     return () => {
       cancelled = true;
+      embedPendingRef.current?.reject(new Error('ONNX session closed'));
+      embedPendingRef.current = null;
       embedWorkerRef.current?.terminate();
       embedWorkerRef.current = null;
       workerReadyRef.current = false;
@@ -260,6 +265,8 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
   }, [apiBaseUrl, modelLoadAttempt, turboSkipped]);
 
   const retryModelDownload = useCallback(() => {
+    embedPendingRef.current?.reject(new Error('ONNX model reload'));
+    embedPendingRef.current = null;
     embedWorkerRef.current?.terminate();
     embedWorkerRef.current = null;
     workerReadyRef.current = false;
@@ -272,6 +279,8 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
   }, []);
 
   const continueWithStandardMode = useCallback(() => {
+    embedPendingRef.current?.reject(new Error('ONNX standard mode enabled'));
+    embedPendingRef.current = null;
     setTurboSkipped(true);
     setModelError(null);
     setModelStatus('failed');
@@ -283,29 +292,35 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
   }, []);
 
   const runOnnxEmbed = useCallback(
-    async (tensor: Float32Array): Promise<Float32Array> => {
-      if (workerReadyRef.current && embedWorkerRef.current) {
-        const worker = embedWorkerRef.current;
-        const payload = tensor.slice();
-        return new Promise((resolve, reject) => {
-          embedPendingRef.current = { resolve, reject };
-          worker.postMessage({ type: 'embed', tensor: payload }, [payload.buffer]);
-        });
-      }
-      const ort = ortRef.current;
-      const session = sessionRef.current;
-      if (!ort?.Tensor || !session?.run) {
-        throw new Error('ONNX session not ready');
-      }
-      const t = new ort.Tensor('float32', tensor, [1, 3, ONNX_SIZE, ONNX_SIZE]);
-      const outputs = await session.run({ [session.inputNames[0]]: t });
-      const raw = outputs[session.outputNames[0]].data as Float32Array;
-      const out = new Float32Array(raw.buffer, raw.byteOffset, 384);
-      let sumSq = 0;
-      for (let i = 0; i < out.length; i++) sumSq += out[i] * out[i];
-      const norm = Math.sqrt(sumSq);
-      if (norm > 1e-8) for (let i = 0; i < out.length; i++) out[i] /= norm;
-      return out;
+    (tensor: Float32Array): Promise<Float32Array> => {
+      const task = embedQueueRef.current.then(async () => {
+        if (workerReadyRef.current && embedWorkerRef.current) {
+          const worker = embedWorkerRef.current;
+          const payload = tensor.slice();
+          return new Promise<Float32Array>((resolve, reject) => {
+            embedPendingRef.current = { resolve, reject };
+            worker.postMessage({ type: 'embed', tensor: payload }, [payload.buffer]);
+          });
+        }
+        const ort = ortRef.current;
+        const session = sessionRef.current;
+        if (!ort?.Tensor || !session?.run) {
+          throw new Error('ONNX session not ready');
+        }
+        const t = new ort.Tensor('float32', tensor, [1, 3, ONNX_SIZE, ONNX_SIZE]);
+        const outputs = await session.run({ [session.inputNames[0]]: t });
+        const raw = outputs[session.outputNames[0]].data as Float32Array;
+        const out = new Float32Array(raw.buffer, raw.byteOffset, 384);
+        let sumSq = 0;
+        for (let i = 0; i < out.length; i++) sumSq += out[i] * out[i];
+        const norm = Math.sqrt(sumSq);
+        if (norm > 1e-8) for (let i = 0; i < out.length; i++) out[i] /= norm;
+        return out;
+      });
+      // Il worker espone un solo canale di risposta: la coda evita che due carte
+      // si sovrascrivano, mentre le successive ricerche FAISS possono sovrapporsi.
+      embedQueueRef.current = task.then(() => undefined, () => undefined);
+      return task;
     },
     [],
   );

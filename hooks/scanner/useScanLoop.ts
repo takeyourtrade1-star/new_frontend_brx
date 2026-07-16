@@ -32,6 +32,19 @@ interface VectorCandidate {
   blueprint_id?: number;
 }
 
+function toRecognitionCandidate(candidate: VectorCandidate) {
+  return {
+    card_name: candidate.card_name,
+    set_name: candidate.set_name,
+    set_code: candidate.set_code,
+    image_uri: candidate.image_uri ?? null,
+    confidence: candidate.confidence,
+    scryfall_id: candidate.scryfall_id,
+    blueprint_id: candidate.blueprint_id,
+    collector_number: candidate.collector_number,
+  };
+}
+
 async function blobToBase64Strip(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -101,6 +114,7 @@ export function useScanLoop({
   apiBaseUrl,
   scanMode,
   requestTimeoutMs,
+  maxInflight,
   effectiveConf,
   continuous,
   onMatch,
@@ -123,7 +137,9 @@ export function useScanLoop({
   const phaseRef = useRef<CapturePhase>('seeking');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const capturedFlashRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const abortControllersRef = useRef<Set<AbortController>>(new Set());
+  const inflightRef = useRef(0);
+  const latestCaptureIdRef = useRef<string | null>(null);
   const previousSampleRef = useRef<FrameSample | null>(null);
   const capturedPixelsRef = useRef<Uint8Array | null>(null);
   const stableFramesRef = useRef(0);
@@ -214,19 +230,21 @@ export function useScanLoop({
   }, [canvasRef, videoRef]);
 
   const fetchWithTimeout = useCallback(async (url: string, init: RequestInit): Promise<Response> => {
-    abortRef.current?.abort();
     const controller = new AbortController();
-    abortRef.current = controller;
+    abortControllersRef.current.add(controller);
     const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
     try {
       return await fetch(url, { ...init, signal: controller.signal, cache: 'no-store' });
     } finally {
       clearTimeout(timeout);
-      if (abortRef.current === controller) abortRef.current = null;
+      abortControllersRef.current.delete(controller);
     }
   }, [requestTimeoutMs]);
 
-  const recognizeWithVector = useCallback(async (captureId: string): Promise<ScanResult | null> => {
+  const recognizeWithVector = useCallback(async (
+    captureId: string,
+    captureBlobPromise: Promise<Blob | null>,
+  ): Promise<ScanResult | null> => {
     const video = videoRef.current;
     const onnxCanvas = onnxCanvasRef.current;
     const context = onnxCtxRef.current;
@@ -255,7 +273,7 @@ export function useScanLoop({
       captureCountRef.current >= 7 &&
       (verifyCountRef.current + 1) / captureCountRef.current <= 0.15;
     if (canUseVerifyBudget && shouldRunOrbVerify(margin, top1.confidence)) {
-      const crop = await captureCardBlob();
+      const crop = await captureBlobPromise;
       if (crop) {
         try {
           verifyCountRef.current++;
@@ -294,10 +312,10 @@ export function useScanLoop({
       scryfall_id: top1.scryfall_id,
       blueprint_id: top1.blueprint_id,
       collector_number: top1.collector_number,
+      candidates: candidates.slice(0, BALANCED.searchTopK).map(toRecognitionCandidate),
     };
   }, [
     apiBaseUrl,
-    captureCardBlob,
     fetchWithTimeout,
     onnxCanvasRef,
     onnxCtxRef,
@@ -306,8 +324,10 @@ export function useScanLoop({
     videoRef,
   ]);
 
-  const recognizeWithServer = useCallback(async (captureId: string): Promise<ScanResult | null> => {
-    const blob = await captureCardBlob();
+  const recognizeWithServer = useCallback(async (
+    captureId: string,
+    blob: Blob | null,
+  ): Promise<ScanResult | null> => {
     if (!blob) return null;
     const formData = new FormData();
     formData.append('image', blob, 'card.jpg');
@@ -319,6 +339,18 @@ export function useScanLoop({
     const data = (await response.json()) as Record<string, unknown>;
     if (typeof data.card_name !== 'string' || !data.card_name) return null;
     const setName = typeof data.set_name === 'string' ? data.set_name : '';
+    const alternatives = Array.isArray(data.alternatives)
+      ? data.alternatives.filter((value): value is VectorCandidate => {
+          if (!value || typeof value !== 'object') return false;
+          const candidate = value as Partial<VectorCandidate>;
+          return (
+            typeof candidate.card_name === 'string' &&
+            typeof candidate.set_name === 'string' &&
+            typeof candidate.set_code === 'string' &&
+            typeof candidate.confidence === 'number'
+          );
+        })
+      : [];
     return {
       capture_id: captureId,
       card_name: data.card_name,
@@ -334,8 +366,12 @@ export function useScanLoop({
       search_query:
         typeof data.search_query === 'string' ? data.search_query : `${data.card_name} ${setName}`.trim(),
       latency_ms: typeof data.latency_ms === 'number' ? data.latency_ms : 0,
+      scryfall_id: typeof data.scryfall_id === 'string' ? data.scryfall_id : undefined,
+      collector_number:
+        typeof data.collector_number === 'string' ? data.collector_number : undefined,
+      candidates: alternatives.slice(0, BALANCED.searchTopK).map(toRecognitionCandidate),
     };
-  }, [apiBaseUrl, captureCardBlob, fetchWithTimeout, scanMode]);
+  }, [apiBaseUrl, fetchWithTimeout, scanMode]);
 
   const finishCapture = useCallback((sample: FrameSample) => {
     capturedPixelsRef.current = sample.grayscale.slice();
@@ -347,12 +383,22 @@ export function useScanLoop({
   }, []);
 
   const recognize = useCallback(async (sample: FrameSample) => {
-    if (!activeRef.current || phaseRef.current === 'processing') return;
-    phaseRef.current = 'processing';
-    setScannerState('processing');
+    if (!activeRef.current || inflightRef.current >= maxInflight) return;
+    const captureId = createCaptureId();
+    const capturedAtMs = Date.now();
+    latestCaptureIdRef.current = captureId;
+    if (continuous) {
+      // Blocca subito il fotogramma e lascia il loop libero di rilevare la rimozione:
+      // embedding e ricerca proseguono senza fermare la carta successiva.
+      finishCapture(sample);
+      setScannerState('awaiting_removal');
+    } else {
+      phaseRef.current = 'processing';
+      setScannerState('processing');
+    }
+    inflightRef.current++;
     setIsBusy(true);
     setHint(null);
-    const captureId = createCaptureId();
     const startedAt = performance.now();
     let holdMatchedResult = false;
     captureCountRef.current++;
@@ -364,14 +410,24 @@ export function useScanLoop({
     }));
 
     try {
+      // La compressione del crop procede in parallelo al riconoscimento edge.
+      // Il Blob resta locale e viene usato anche per il fallback server, senza duplicare il lavoro.
+      const captureBlobPromise = captureCardBlob();
       const scanResult = isTurboReady()
-        ? await recognizeWithVector(captureId)
-        : await recognizeWithServer(captureId);
+        ? await recognizeWithVector(captureId, captureBlobPromise)
+        : await recognizeWithServer(captureId, await captureBlobPromise);
       if (!activeRef.current) return;
       const elapsed = Math.round(performance.now() - startedAt);
       if (scanResult) {
+        const captureBlob = await captureBlobPromise;
+        if (captureBlob) scanResult.capture_blob = captureBlob;
+        scanResult.captured_at_ms = capturedAtMs;
         const outcome = scanResult.confidence >= effectiveConf ? 'matched' : 'not_matched';
-        setResult(scanResult);
+        const isLatestCapture = latestCaptureIdRef.current === captureId;
+        const shouldShowCapture = isLatestCapture && (
+          !continuous || phaseRef.current === 'awaiting_removal'
+        );
+        if (shouldShowCapture) setResult(scanResult);
         setDebug((current) => ({
           ...current,
           lastStatus: '200',
@@ -381,9 +437,9 @@ export function useScanLoop({
           lastMethod: scanResult.method,
         }));
         onMatchRef.current?.(scanResult);
-        setScannerState('matched');
+        if (shouldShowCapture) setScannerState('matched');
         holdMatchedResult = !continuous;
-        if (continuous) {
+        if (continuous && shouldShowCapture) {
           if (capturedFlashRef.current) clearTimeout(capturedFlashRef.current);
           capturedFlashRef.current = setTimeout(() => {
             if (activeRef.current && phaseRef.current === 'awaiting_removal') {
@@ -392,6 +448,10 @@ export function useScanLoop({
           }, 350);
         }
       } else {
+        const isLatestCapture = latestCaptureIdRef.current === captureId;
+        const shouldShowCapture = isLatestCapture && (
+          !continuous || phaseRef.current === 'awaiting_removal'
+        );
         setDebug((current) => ({
           ...current,
           lastStatus: '200',
@@ -401,7 +461,7 @@ export function useScanLoop({
           lastMethod: isTurboReady() ? 'edge+faiss' : 'server',
         }));
         onNoMatchRef.current?.();
-        setScannerState('awaiting_removal');
+        if (shouldShowCapture) setScannerState('awaiting_removal');
       }
     } catch (error) {
       if (!activeRef.current) return;
@@ -415,24 +475,35 @@ export function useScanLoop({
         lastMethod: null,
       }));
       onNoMatchRef.current?.();
-      setScannerState('awaiting_removal');
+      if (
+        latestCaptureIdRef.current === captureId &&
+        (!continuous || phaseRef.current === 'awaiting_removal')
+      ) {
+        setScannerState('awaiting_removal');
+      }
     } finally {
+      inflightRef.current = Math.max(0, inflightRef.current - 1);
       if (activeRef.current) {
-        if (holdMatchedResult) {
+        if (continuous) {
+          setIsBusy(inflightRef.current > 0);
+        } else if (holdMatchedResult) {
+          setIsBusy(false);
           activeRef.current = false;
           clearTimer();
         } else {
           finishCapture(sample);
+          setIsBusy(false);
         }
-        setIsBusy(false);
       }
     }
   }, [
     clearTimer,
+    captureCardBlob,
     continuous,
     effectiveConf,
     finishCapture,
     isTurboReady,
+    maxInflight,
     recognizeWithServer,
     recognizeWithVector,
     requestTimeoutMs,
@@ -461,7 +532,12 @@ export function useScanLoop({
       }
     } else if (phaseRef.current === 'stabilizing') {
       if (manualCaptureRef.current) {
-        void recognize(sample).finally(() => schedule(() => tickRef.current()));
+        if (continuous) {
+          void recognize(sample);
+          schedule(() => tickRef.current());
+        } else {
+          void recognize(sample).finally(() => schedule(() => tickRef.current()));
+        }
         return;
       }
       if (sample.quality.usable && motion <= CAPTURE_THRESHOLDS.stableMotion) {
@@ -470,7 +546,12 @@ export function useScanLoop({
         stableFramesRef.current = 0;
       }
       if (stableFramesRef.current >= CAPTURE_THRESHOLDS.stableFrames) {
-        void recognize(sample).finally(() => schedule(() => tickRef.current()));
+        if (continuous) {
+          void recognize(sample);
+          schedule(() => tickRef.current());
+        } else {
+          void recognize(sample).finally(() => schedule(() => tickRef.current()));
+        }
         return;
       }
     } else if (phaseRef.current === 'awaiting_removal') {
@@ -530,8 +611,10 @@ export function useScanLoop({
   const stopLoop = useCallback(() => {
     activeRef.current = false;
     clearTimer();
-    abortRef.current?.abort();
-    abortRef.current = null;
+    abortControllersRef.current.forEach((controller) => controller.abort());
+    abortControllersRef.current.clear();
+    inflightRef.current = 0;
+    latestCaptureIdRef.current = null;
     if (capturedFlashRef.current) clearTimeout(capturedFlashRef.current);
     capturedFlashRef.current = null;
     resetCaptureState();

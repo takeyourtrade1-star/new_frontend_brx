@@ -1,13 +1,26 @@
-# Piano 16 — Asso Vision: scansione continua e inventario rapido
+# Piano 16 — Asso Vision: scansione continua e vendita rapida
 
-> Destinatari: frontend, backend `brx-match`, backend inventario/sync, ML/data e DevOps.
+> Destinatari: frontend, backend `brx-match`, marketplace, ML/data e DevOps.
 > Scritto il 2026-07-14 dopo la lettura end-to-end del frontend e del servizio `brx-match` recuperato.
 > Obiettivo: `passa carta → cattura → riconoscimento in background → ripeti → revisione → pubblicazione`.
 > Vincolo economico: il costo backend mensile di Asso Vision non deve superare la baseline attuale, anche durante il rollout.
 
 ---
 
-## Stato implementazione — 2026-07-14
+## Decisione di prodotto aggiornata — 2026-07-16
+
+Asso Vision **non crea inventario**. È un banco di preparazione locale per venditori:
+
+1. acquisisce 50–100 carte in sequenza;
+2. propone nome e possibili stampe, senza dichiararne una ufficiale;
+3. il venditore sceglie la stampa ufficiale e completa lingua, condizione, quantità e prezzo;
+4. solo le carte confermate vengono pubblicate come listing.
+
+Le vecchie sezioni di questo documento che propongono `inventory-batch`, promozione
+automatica o draft inventario sono superate da questa decisione. Foto, candidati e
+bozze restano nel browser fino alla pubblicazione.
+
+## Stato implementazione — 2026-07-16
 
 Prima verticale completata nel frontend:
 
@@ -19,14 +32,18 @@ Prima verticale completata nel frontend:
 - verifica ORB limitata matematicamente a ≤15% delle catture;
 - crop 5:7 allineato alla cornice `object-cover` e condiviso tra quality gate, upload ed embedding;
 - lotto persistente in IndexedDB, tray continua, review locale e nessun redirect dopo il match;
+- cattura e riconoscimento disaccoppiati: dopo lo scatto la carta successiva può essere preparata mentre ONNX e ricerca proseguono in background;
+- crop fisico locale conservato per il confronto manuale, senza upload automatico;
+- top-K del matcher mantenuto nella sessione e catalogo ufficiale risolto con una sola multi-search per lotto;
+- selezione esplicita della stampa ufficiale da parte del venditore;
+- review sequenziale con lingua, condizione, quantità, prezzo suggerito e correzione manuale;
+- pubblicazione delle sole carte confermate tramite il flusso listing esistente;
+- copie commercialmente identiche aggregate in una singola richiesta di pubblicazione;
+- limite operativo di 100 carte e migrazione sicura dei vecchi lotti locali;
 - rewrite diretto eliminato e modalità operativa `edge_only` disponibile come circuit breaker.
 
-Restano bloccanti per la promozione reale nell'inventario:
-
-- mapping backend atomico `scryfall_id → blueprint_id` CardTrader;
-- API batch idempotente nel servizio inventario esistente;
-- modello edge compatto ≤15 MB validato su holdout fisico;
-- benchmark su telefoni/carte reali prima di alzare l'auto-accept.
+Restano da validare sul campo il modello edge compatto ≤15 MB e la cadenza su
+telefoni/carte reali. Non sono necessari nuovi servizi backend o nuove API a consumo.
 
 ---
 

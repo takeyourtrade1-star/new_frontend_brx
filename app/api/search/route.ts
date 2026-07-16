@@ -46,6 +46,10 @@ export interface SearchHit {
   collector_number?: string;
   /** Lingue disponibili per questa carta (es. ["en","it","fr"]). */
   available_languages?: string[];
+  /** ID ufficiale CardTrader, usato dalla review venditore di Asso Vision. */
+  cardtrader_id?: number;
+  market_price?: number;
+  foil_price?: number;
 }
 
 export interface SearchApiResponse {
@@ -70,6 +74,9 @@ const SEARCH_ATTRIBUTES_TO_RETRIEVE = [
   'rarity',
   'collector_number',
   'available_languages',
+  'cardtrader_id',
+  'market_price',
+  'foil_price',
 ] as const;
 
 function buildFilter(game: string, set: string, categoryId: number | null, categoryIds: number[]): string[] {
