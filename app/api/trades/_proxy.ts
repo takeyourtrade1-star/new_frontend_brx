@@ -5,6 +5,7 @@ import {
 } from '@/app/api/_lib/forwarded-authorization';
 import { noStoreHeaders, unauthorizedResponse } from '@/app/api/_lib/proxy-response';
 import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import { normalizeProxyPathSegments } from '@/app/api/_lib/safe-proxy-path';
 
 const PROXY_TIMEOUT_MS = 12_000;
 const AUCTION_API_URL = (
@@ -14,6 +15,14 @@ const AUCTION_API_URL = (
 ).replace(/\/+$/, '');
 
 export async function proxyTrade(request: NextRequest, pathSegments: string[]) {
+  const path = normalizeProxyPathSegments(pathSegments);
+  if (path === null) {
+    return NextResponse.json(
+      { detail: 'Percorso scambi non valido' },
+      { status: 400, headers: noStoreHeaders() },
+    );
+  }
+
   const auth = getForwardedAuthorization(request);
   if (!auth) return unauthorizedResponse();
   if (!AUCTION_API_URL) {
@@ -30,7 +39,6 @@ export async function proxyTrade(request: NextRequest, pathSegments: string[]) {
   });
   if (!limit.allowed) return rateLimitExceededResponse(limit);
 
-  const path = pathSegments.join('/');
   const url = new URL(`/trades${path ? `/${path}` : ''}`, AUCTION_API_URL);
   request.nextUrl.searchParams.forEach((value, key) => url.searchParams.set(key, value));
   const headers: Record<string, string> = {

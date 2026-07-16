@@ -770,6 +770,7 @@ export const fr: Record<MessageKey, string> = {
     'Délai dépassé : la synchronisation prend plus de temps que prévu. Réessayez plus tard.',
   'accountPage.syncErrFailed': 'Échec de la synchronisation.',
   'accountPage.syncErrStart': 'Impossible de démarrer la synchronisation.',
+  'accountPage.syncErrLink': 'Impossible de connecter le jeton. Vérifiez-le et réessayez.',
   'accountPage.syncStatusActive': 'Actif',
   'accountPage.syncStatusSyncing': 'Synchronisation',
   'accountPage.syncStatusIdle': 'En attente',

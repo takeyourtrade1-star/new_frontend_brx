@@ -18,6 +18,7 @@ export function SyncManagementPanel({
   isDisconnected,
   loadingSetup,
   loadingDisconnect,
+  linkError,
   onLinkToken,
   onSuspend,
   onRemove,
@@ -25,7 +26,8 @@ export function SyncManagementPanel({
   isDisconnected: boolean;
   loadingSetup: boolean;
   loadingDisconnect: boolean;
-  onLinkToken: (token: string) => Promise<void>;
+  linkError: string | null;
+  onLinkToken: (token: string) => Promise<boolean>;
   onSuspend: () => Promise<void>;
   onRemove: () => Promise<void>;
 }) {
@@ -76,12 +78,25 @@ export function SyncManagementPanel({
               <Button
                 type="button"
                 disabled={loadingSetup || !token.trim()}
-                onClick={() => void onLinkToken(token.trim()).then(() => setToken(''))}
+                onClick={() =>
+                  void onLinkToken(token.trim()).then((linked) => {
+                    if (linked) setToken('');
+                  })
+                }
                 className="w-full bg-[#FF7300] font-semibold text-white hover:bg-[#e66a00] disabled:opacity-50"
               >
                 {loadingSetup ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Salva e collega
               </Button>
+              {linkError && (
+                <p
+                  role="alert"
+                  className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {linkError}
+                </p>
+              )}
             </div>
           )}
         </div>

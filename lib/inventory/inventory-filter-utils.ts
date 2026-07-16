@@ -113,7 +113,7 @@ export function getInventoryGameKey(item: InventoryItemWithCatalog): InventoryGa
 const VISIBLE_INVENTORY_GAME_KEYS: ReadonlySet<string> = new Set(['mtg', 'sealed']);
 
 /** Prefissi card_id di giochi nascosti, per righe marketplace senza dato catalogo. */
-const HIDDEN_CARD_ID_PREFIXES = ['pk_', 'op_'] as const;
+const HIDDEN_CARD_ID_PREFIXES = ['pk_', 'op_', 'ygo_'] as const;
 
 export function isVisibleInventoryGame(item: InventoryItemWithCatalog): boolean {
   if (item.card) {

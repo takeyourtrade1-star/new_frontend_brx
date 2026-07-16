@@ -29,8 +29,13 @@ export async function fetchAccountInventoryRaw(
 
   let marketplaceListings: ListingResponse[] = [];
   try {
-    const mkt = await getMyListings({ page: 1, page_size: 200, status_filter: 'active' });
-    marketplaceListings = mkt.items ?? [];
+    const pageSize = 200;
+    for (let page = 1; page <= 100; page += 1) {
+      const mkt = await getMyListings({ page, page_size: pageSize, status_filter: 'active' });
+      const pageItems = mkt.items ?? [];
+      marketplaceListings.push(...pageItems);
+      if (pageItems.length < pageSize || marketplaceListings.length >= (mkt.total ?? 0)) break;
+    }
   } catch {
     /* marketplace opzionale */
   }

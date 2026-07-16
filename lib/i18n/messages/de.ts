@@ -770,6 +770,7 @@ export const de: Record<MessageKey, string> = {
     'Zeitüberschreitung: Die Synchronisation dauert länger als erwartet. Später erneut prüfen.',
   'accountPage.syncErrFailed': 'Synchronisation fehlgeschlagen.',
   'accountPage.syncErrStart': 'Synchronisation konnte nicht gestartet werden.',
+  'accountPage.syncErrLink': 'Token konnte nicht verbunden werden. Bitte prüfen und erneut versuchen.',
   'accountPage.syncStatusActive': 'Aktiv',
   'accountPage.syncStatusSyncing': 'Synchronisiert',
   'accountPage.syncStatusIdle': 'Bereit',

@@ -68,8 +68,8 @@ export function useInventorySync({
     setSyncBanner(null);
 
     const pollTaskUntilReady = async (taskId: string) => {
-      const pollIntervalMs = 2500;
-      const maxPolls = 240; // ~10 min
+      const pollIntervalMs = 5000;
+      const maxPolls = 240; // ~20 min
       let lastTask: Awaited<ReturnType<typeof syncClient.getTaskStatus>> | null = null;
       for (let polls = 0; polls < maxPolls; polls++) {
         lastTask = await syncClient.getTaskStatus(taskId, accessToken);
@@ -132,12 +132,7 @@ export function useInventorySync({
         return;
       }
 
-      // Stato incoerente: backend segnala sync in corso ma non espone operation_id.
-      // Proviamo un avvio forzato per riallineare lo stato.
-      const forced = await syncClient.startSync(userId, accessToken, true);
-      if (!forced?.task_id) throw new Error(t('accountPage.syncErrStart'));
-      const forcedTask = await pollTaskUntilReady(forced.task_id);
-      await applyTaskResult(forcedTask);
+      throw new Error('Sincronizzazione in corso senza task associato. Riprova tra poco.');
     };
 
     try {
@@ -146,7 +141,10 @@ export function useInventorySync({
         return;
       }
 
-      const startRes = await syncClient.startSync(userId, accessToken);
+      const startRes =
+        syncStatus.sync_status === 'active'
+          ? await syncClient.reconcileFromCardTrader(userId, accessToken)
+          : await syncClient.startSync(userId, accessToken);
       const taskId = startRes?.task_id;
       if (!taskId) throw new Error(t('accountPage.syncErrStart'));
 

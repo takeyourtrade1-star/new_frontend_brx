@@ -81,14 +81,13 @@ class TokenManager {
       const newRefreshToken = (data?.data?.refresh_token ?? data?.refresh_token) as string | undefined;
 
       if (accessToken && newRefreshToken && res.ok) {
-        localStorage.setItem(config.auth.tokenKey, accessToken);
         localStorage.setItem(config.auth.refreshTokenKey, newRefreshToken);
 
         // Update auth-client in-memory cache (dynamic import avoids circular dep)
         try {
           const { authApi } = await import('./auth-client');
           authApi.setToken(accessToken, newRefreshToken);
-        } catch { /* SSR or import error — localStorage update is sufficient */ }
+        } catch { /* SSR or import error */ }
 
         // Update Zustand auth store
         try {
@@ -115,10 +114,10 @@ let proactiveRefreshGeneration = 0;
 /** Backoff between retries when a refresh fails or keeps returning near-expiry tokens. */
 const REFRESH_RETRY_DELAY_MS = 60_000;
 
-function scheduleProactiveRefresh(delayMs: number): void {
+function scheduleProactiveRefresh(delayMs: number, accessToken: string): void {
   proactiveRefreshTimer = setTimeout(() => {
     proactiveRefreshTimer = null;
-    startProactiveRefresh();
+    startProactiveRefresh(accessToken);
   }, delayMs);
 }
 
@@ -129,7 +128,7 @@ function scheduleProactiveRefresh(delayMs: number): void {
  * On failure it retries with a fixed backoff instead of looping immediately —
  * a revoked/expired refresh token must not hammer /api/auth/refresh.
  */
-export function startProactiveRefresh(): void {
+export function startProactiveRefresh(accessToken?: string | null): void {
   if (typeof window === 'undefined') return;
 
   if (proactiveRefreshTimer !== null) {
@@ -138,7 +137,7 @@ export function startProactiveRefresh(): void {
   }
   const generation = ++proactiveRefreshGeneration;
 
-  const token = localStorage.getItem(config.auth.tokenKey);
+  const token = accessToken;
   if (!token) return;
 
   try {
@@ -154,20 +153,20 @@ export function startProactiveRefresh(): void {
         // stop/start intervenuti durante il refresh: non ri-schedulare.
         if (generation !== proactiveRefreshGeneration) return;
         if (newToken && !isTokenNearExpiry(newToken)) {
-          startProactiveRefresh();
+          startProactiveRefresh(newToken);
           return;
         }
         // Refresh fallito o token ancora prossimo alla scadenza: senza backoff
         // questo ramo rientrerebbe subito in msUntilRefresh <= 0 → loop.
         // Riprova solo se esiste ancora un refresh token da spendere.
         if (localStorage.getItem(config.auth.refreshTokenKey)) {
-          scheduleProactiveRefresh(REFRESH_RETRY_DELAY_MS);
+          scheduleProactiveRefresh(REFRESH_RETRY_DELAY_MS, newToken ?? token);
         }
       });
       return;
     }
 
-    scheduleProactiveRefresh(msUntilRefresh);
+    scheduleProactiveRefresh(msUntilRefresh, token);
   } catch {
     // Malformed token — nothing to schedule.
   }

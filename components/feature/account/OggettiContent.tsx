@@ -51,14 +51,7 @@ export function OggettiContent() {
   const { t } = useTranslation();
   const isMobile = useMobileViewport();
   const user = useAuthStore((s) => s.user);
-  // FE-REV-018: selector puro; il fallback localStorage va nel useMemo, non dentro il selector Zustand.
-  const accessTokenFromStore = useAuthStore((s) => s.accessToken);
-  const accessToken = useMemo(
-    () =>
-      accessTokenFromStore ??
-      (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null),
-    [accessTokenFromStore]
-  );
+  const accessToken = useAuthStore((s) => s.accessToken);
 
   const {
     inventoryRaw,

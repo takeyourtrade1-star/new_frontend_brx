@@ -770,6 +770,7 @@ export const pt: Record<MessageKey, string> = {
     'Tempo esgotado: a sincronização está a demorar mais do que o esperado. Verifique o estado mais tarde.',
   'accountPage.syncErrFailed': 'Sincronização falhou.',
   'accountPage.syncErrStart': 'Não foi possível iniciar a sincronização.',
+  'accountPage.syncErrLink': 'Não foi possível ligar o token. Verifique-o e tente novamente.',
   'accountPage.syncStatusActive': 'Ativo',
   'accountPage.syncStatusSyncing': 'A sincronizar',
   'accountPage.syncStatusIdle': 'Em espera',

@@ -770,6 +770,7 @@ export const es: Record<MessageKey, string> = {
     'Tiempo de espera: la sincronización tarda más de lo previsto. Comprueba el estado más tarde.',
   'accountPage.syncErrFailed': 'Sincronización fallida.',
   'accountPage.syncErrStart': 'No se pudo iniciar la sincronización.',
+  'accountPage.syncErrLink': 'No se pudo vincular el token. Compruébalo e inténtalo de nuevo.',
   'accountPage.syncStatusActive': 'Activo',
   'accountPage.syncStatusSyncing': 'Sincronizando',
   'accountPage.syncStatusIdle': 'En espera',

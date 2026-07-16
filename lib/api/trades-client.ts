@@ -8,12 +8,6 @@ import type {
   TradeStatus,
 } from '@/types/trade';
 
-function authHeaders(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('ebartex_access_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 function idempotencyKey(): string {
   return globalThis.crypto?.randomUUID?.() ?? `trade-${Date.now()}-${Math.random()}`;
 }
@@ -24,7 +18,6 @@ async function request<T>(path: string, options: RequestInit = {}, retried = fal
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      ...authHeaders(),
       ...(options.headers as Record<string, string> | undefined),
     },
   });

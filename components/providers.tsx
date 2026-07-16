@@ -23,7 +23,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
         const store = useAuthStore.getState();
         if (store && typeof store.initializeAuth === 'function') {
           store.initializeAuth().then(() => {
-            startProactiveRefresh();
+            startProactiveRefresh(useAuthStore.getState().accessToken);
           }).catch((err) => {
             console.error('Error initializing auth:', err);
             setInitError(err);

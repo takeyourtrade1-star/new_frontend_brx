@@ -139,14 +139,9 @@ class AuthApiClient {
   }
 
   private setupInterceptors() {
-    // Request Interceptor - Aggiunge l'access_token a OGNI richiesta in uscita
+    // Request Interceptor - usa solo il token tenuto in memoria.
     this.instance.interceptors.request.use(
       (requestConfig: InternalAxiosRequestConfig) => {
-        // Carica il token da localStorage se non è in memoria
-        if (!this.token) {
-          this.token = this.getStoredToken();
-        }
-
         if (
           this.token &&
           requestConfig.headers &&
@@ -225,7 +220,6 @@ class AuthApiClient {
    */
   setToken(accessToken: string, refreshToken?: string) {
     this.token = accessToken;
-    this.setStoredToken(accessToken);
     if (refreshToken) {
       this.setStoredRefreshToken(refreshToken);
     }
@@ -235,9 +229,6 @@ class AuthApiClient {
    * Ottiene l'access token corrente
    */
   getToken(): string | null {
-    if (!this.token) {
-      this.token = this.getStoredToken();
-    }
     return this.token;
   }
 
@@ -253,17 +244,7 @@ class AuthApiClient {
     }
   }
 
-  // Helper methods per localStorage (safe per SSR)
-  private getStoredToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(config.auth.tokenKey);
-  }
-
-  private setStoredToken(token: string): void {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(config.auth.tokenKey, token);
-  }
-
+  // Il refresh token resta nel flusso legacy; l'access token è solo in memoria.
   private getStoredRefreshToken(): string | null {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem(config.auth.refreshTokenKey);

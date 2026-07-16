@@ -30,6 +30,22 @@ import {
   saveMfaPreAuthToken,
 } from '@/lib/auth/mfa-session';
 
+function clearLegacyStoredAccessToken(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(config.auth.tokenKey);
+
+  const persistedAuth = localStorage.getItem('ebartex-auth');
+  if (!persistedAuth) return;
+  try {
+    const parsed = JSON.parse(persistedAuth) as { state?: Record<string, unknown> };
+    if (!parsed.state || !('accessToken' in parsed.state)) return;
+    delete parsed.state.accessToken;
+    localStorage.setItem('ebartex-auth', JSON.stringify(parsed));
+  } catch {
+    // Lo storage corrotto verrà gestito dal middleware Zustand.
+  }
+}
+
 interface AuthState {
   // State
   user: User | null;
@@ -95,19 +111,18 @@ export const useAuthStore = create<AuthState>()(
 
       // Initialize auth: refresh proattivo se c'è refresh_token, poi valida con /api/auth/me
       initializeAuth: async () => {
+        // Elimina eventuali access token lasciati da versioni precedenti.
+        clearLegacyStoredAccessToken();
         if (typeof window !== 'undefined' && isTournamentsTransitionPath()) {
           return;
         }
 
-        let accessToken: string | null =
-          typeof window !== 'undefined'
-            ? localStorage.getItem(config.auth.tokenKey)
-            : null;
+        let accessToken: string | null = null;
         let refreshToken =
           typeof window !== 'undefined'
             ? localStorage.getItem(config.auth.refreshTokenKey)
             : null;
-        // SSO: sessione da tornei.ebartex.com (cookie parent-domain) → sync localStorage
+        // SSO: sessione da tornei.ebartex.com (cookie parent-domain) → stato in memoria
         if (!refreshToken && typeof window !== 'undefined') {
           try {
             const bridgeRes = await fetch('/api/auth/bridge', { credentials: 'same-origin' });
@@ -119,7 +134,6 @@ export const useAuthStore = create<AuthState>()(
                 (bridgeData?.refresh_token ?? bridgeData?.data?.refresh_token) as string | undefined;
               if (bridgedAccess && bridgedRefresh) {
                 authApi.setToken(bridgedAccess, bridgedRefresh);
-                localStorage.setItem(config.auth.tokenKey, bridgedAccess);
                 localStorage.setItem(config.auth.refreshTokenKey, bridgedRefresh);
                 set({ accessToken: bridgedAccess, isAuthenticated: true, sessionExpired: false });
                 accessToken = bridgedAccess;
@@ -215,11 +229,7 @@ export const useAuthStore = create<AuthState>()(
       fetchUser: async (): Promise<User | null> => {
         if (fetchUserPromise) return fetchUserPromise;
 
-        const token =
-          get().accessToken ||
-          (typeof window !== 'undefined'
-            ? localStorage.getItem(config.auth.tokenKey)
-            : null);
+        const token = get().accessToken;
         if (!token) {
           set({ isLoading: false });
           return null;
@@ -233,9 +243,6 @@ export const useAuthStore = create<AuthState>()(
             if (normalized) {
               set({
                 user: normalized,
-                // Allinea lo stato in-memory all'header Authorization: il token
-                // può provenire da localStorage mentre get().accessToken era null
-                // (es. fetchUser invocato prima/indipendentemente da initializeAuth).
                 accessToken: token,
                 isAuthenticated: true,
                 isLoading: false,
@@ -521,10 +528,7 @@ export const useAuthStore = create<AuthState>()(
 
       // Logout
       logout: async (opts) => {
-        const accessToken =
-          typeof window !== 'undefined'
-            ? localStorage.getItem(config.auth.tokenKey)
-            : null;
+        const accessToken = get().accessToken;
         const refreshToken =
           typeof window !== 'undefined'
             ? localStorage.getItem(config.auth.refreshTokenKey)
@@ -760,7 +764,6 @@ export const useAuthStore = create<AuthState>()(
       name: 'ebartex-auth',
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
         // NB: preAuthToken/mfaRequired NON vengono persistiti qui: il flusso MFA
         // tra reload vive in sessionStorage (lib/auth/mfa-session.ts, superficie
@@ -769,8 +772,7 @@ export const useAuthStore = create<AuthState>()(
       merge: (persisted, current) => ({
         ...current,
         user: (persisted as { user: User | null }).user ?? null,
-        accessToken:
-          (persisted as { accessToken: string | null }).accessToken ?? null,
+        accessToken: null,
         isAuthenticated:
           (persisted as { isAuthenticated: boolean }).isAuthenticated ?? false,
         flashMessage: null, // Non persistire flashMessage

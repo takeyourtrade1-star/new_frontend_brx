@@ -5,16 +5,10 @@
  *  - browser → same-origin proxy /api/marketplace (avoids CORS on mobile)
  *  - server  → direct NEXT_PUBLIC_MARKETPLACE_API_URL/api/v1
  *
- * Auth: all requests attach the user's JWT as Authorization: Bearer <token>
+ * Auth browser: cookie HttpOnly same-origin, inoltrato dal BFF.
  */
 
-import { config } from '@/lib/config';
 import { tokenManager } from '@/lib/api/refresh-token';
-
-function getStoredAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(config.auth.tokenKey);
-}
 
 export type SyncMode = 'demo' | 'partial' | 'real';
 
@@ -59,6 +53,8 @@ export interface MarketplaceSyncStatus {
   user_id: string;
   sync_mode: SyncMode;
   is_active: boolean;
+  mode_version: number;
+  writes_enabled: boolean;
   last_sync_event_at: string | null;
   total_listings: number;
   synced_listings: number;
@@ -71,6 +67,8 @@ export interface MarketplaceSyncConfig {
   sync_mode: SyncMode;
   cardtrader_seller_id: number | null;
   is_active: boolean;
+  mode_version: number;
+  writes_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -91,10 +89,8 @@ async function marketplaceFetch<T>(
   options: RequestInit = {},
   retried = false,
 ): Promise<T> {
-  const token = getStoredAccessToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers ?? {}),
   };
 
@@ -147,19 +143,17 @@ export async function getMarketplaceSyncStatus(): Promise<MarketplaceSyncStatus>
 
 export async function updateMarketplaceSyncMode(
   mode: SyncMode,
+  options: { expectedModeVersion?: number; confirmRealWrites?: boolean } = {},
 ): Promise<MarketplaceSyncConfig> {
   return marketplaceFetch<MarketplaceSyncConfig>('/sync/mode', {
     method: 'PUT',
-    body: JSON.stringify({ sync_mode: mode }),
+    body: JSON.stringify({
+      sync_mode: mode,
+      expected_mode_version: options.expectedModeVersion,
+      confirm_real_writes: options.confirmRealWrites ?? false,
+    }),
   });
 }
-
-export async function triggerMarketplaceSync(): Promise<SyncTriggerResponse> {
-  return marketplaceFetch<SyncTriggerResponse>('/sync/trigger', { method: 'POST' });
-}
-
-/** Alias for triggerMarketplaceSync. */
-export const triggerSync = triggerMarketplaceSync;
 
 // ── Listings ──────────────────────────────────────────────────────────────────
 
@@ -214,13 +208,6 @@ export interface ListingListResponse {
   total: number;
   page: number;
   page_size: number;
-}
-
-export interface SyncTriggerResponse {
-  status: string;
-  message: string;
-  user_id: string;
-  sync_mode: SyncMode;
 }
 
 export async function createListing(body: ListingCreate): Promise<ListingResponse> {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { RefreshCw, Loader2, Play, Package } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -16,7 +16,6 @@ import { SyncManagementPanel } from '@/components/feature/sync/SyncManagementPan
 import {
   getSyncEvents,
   getMarketplaceSyncStatus,
-  triggerMarketplaceSync,
   MarketplaceApiError,
   type SyncEvent,
   type MarketplaceSyncStatus,
@@ -25,14 +24,7 @@ import {
 export function SincronizzazioneContent() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  // FE-REV-018 (pattern): selector puro; fallback localStorage in useMemo, non dentro il selector Zustand.
-  const accessTokenFromStore = useAuthStore((s) => s.accessToken);
-  const accessToken = useMemo(
-    () =>
-      accessTokenFromStore ??
-      (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null),
-    [accessTokenFromStore]
-  );
+  const accessToken = useAuthStore((s) => s.accessToken);
 
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
   const [webhookData, setWebhookData] = useState<WebhookUrlResponse | null>(null);
@@ -49,6 +41,7 @@ export function SincronizzazioneContent() {
   const [marketplaceSyncLoading, setMarketplaceSyncLoading] = useState(false);
   const [marketplaceSyncMessage, setMarketplaceSyncMessage] = useState<string | null>(null);
   const [marketplaceSyncError, setMarketplaceSyncError] = useState<string | null>(null);
+  const [linkTokenError, setLinkTokenError] = useState<string | null>(null);
   const [syncEvents, setSyncEvents] = useState<SyncEvent[]>([]);
   const [syncEventsTotal, setSyncEventsTotal] = useState<number | undefined>();
   const [syncEventsLoading, setSyncEventsLoading] = useState(false);
@@ -123,8 +116,9 @@ export function SincronizzazioneContent() {
   }, []);
 
   const handleLinkToken = async (token: string) => {
-    if (!userId || !accessToken) return;
+    if (!userId || !accessToken) return false;
     setLoadingSetup(true);
+    setLinkTokenError(null);
     try {
       const res = await syncClient.linkCardtrader(
         { user_id: userId, cardtrader_token: token },
@@ -132,17 +126,32 @@ export function SincronizzazioneContent() {
       );
       setSyncStatus((prev) =>
         prev
-          ? { ...prev, sync_status: res.sync_status as SyncStatusResponse['sync_status'], disconnected: false }
+          ? {
+              ...prev,
+              sync_status: res.sync_status as SyncStatusResponse['sync_status'],
+              disconnected: false,
+              execution_mode: res.execution_mode,
+              mode_version: res.mode_version,
+              writes_enabled: res.writes_enabled,
+            }
           : {
               user_id: userId,
               sync_status: res.sync_status as SyncStatusResponse['sync_status'],
               last_sync_at: null,
               last_error: null,
               disconnected: false,
+              execution_mode: res.execution_mode,
+              mode_version: res.mode_version,
+              writes_enabled: res.writes_enabled,
             }
       );
       const webhookRes = await syncClient.getWebhookUrl(userId, accessToken);
       setWebhookData(webhookRes);
+      setMarketplaceStatus(await getMarketplaceSyncStatus());
+      return true;
+    } catch {
+      setLinkTokenError(t('accountPage.syncErrLink'));
+      return false;
     } finally {
       setLoadingSetup(false);
     }
@@ -157,8 +166,13 @@ export function SincronizzazioneContent() {
     setLastSyncError(null);
     setEtaSeconds(null);
     try {
-      const res = await syncClient.startSync(userId, accessToken);
-      setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'initial_sync' } : null));
+      const isReconcile = syncStatus?.sync_status === 'active';
+      const res = isReconcile
+        ? await syncClient.reconcileFromCardTrader(userId, accessToken)
+        : await syncClient.startSync(userId, accessToken);
+      if (!isReconcile) {
+        setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'initial_sync' } : null));
+      }
       const taskId = res?.task_id;
       if (!taskId) {
         setLoadingStart(false);
@@ -166,7 +180,7 @@ export function SincronizzazioneContent() {
       }
       setCurrentTaskId(taskId);
 
-      const pollIntervalMs = 2500;
+      const pollIntervalMs = 5000;
       const maxPolls = 240;
       let polls = 0;
 
@@ -252,7 +266,7 @@ export function SincronizzazioneContent() {
       }
     };
     void tick();
-    const id = setInterval(() => void tick(), 3000);
+    const id = setInterval(() => void tick(), 10000);
     return () => {
       stopped = true;
       clearInterval(id);
@@ -260,11 +274,12 @@ export function SincronizzazioneContent() {
   }, [userId, accessToken, syncStatus?.sync_status]);
 
   const handleMarketplaceSyncTrigger = async () => {
+    if (!userId || !accessToken) return;
     setMarketplaceSyncLoading(true);
     setMarketplaceSyncMessage(null);
     setMarketplaceSyncError(null);
     try {
-      const res = await triggerMarketplaceSync();
+      const res = await syncClient.reconcileFromCardTrader(userId, accessToken);
       setMarketplaceSyncMessage(res.message || 'Sincronizzazione marketplace avviata.');
       const mkt = await getMarketplaceSyncStatus();
       setMarketplaceStatus(mkt);
@@ -294,6 +309,9 @@ export function SincronizzazioneContent() {
           last_sync_at: null,
           last_error: null,
           disconnected: true,
+          execution_mode: 'demo',
+          mode_version: (syncStatus?.mode_version ?? 0) + 1,
+          writes_enabled: false,
         });
         setWebhookData(null);
       } else {
@@ -515,6 +533,7 @@ export function SincronizzazioneContent() {
             isDisconnected={isDisconnected}
             loadingSetup={loadingSetup}
             loadingDisconnect={loadingDisconnect}
+            linkError={linkTokenError}
             onLinkToken={handleLinkToken}
             onSuspend={() => handleDisconnect('suspend')}
             onRemove={() => handleDisconnect('remove')}

@@ -111,7 +111,7 @@ export function useMarketplaceListings(blueprintId: number | null, cardId: strin
   const pollSyncTaskThenRefresh = useCallback(
     async (taskId: string, accessToken: string) => {
       const maxPolls = 60;
-      const intervalMs = 1500;
+      const intervalMs = 2500;
       for (let i = 0; i < maxPolls; i++) {
         await new Promise((r) => setTimeout(r, intervalMs));
         try {
@@ -120,8 +120,18 @@ export function useMarketplaceListings(blueprintId: number | null, cardId: strin
             await refetchListings();
             return;
           }
-        } catch {
-          // transient
+        } catch (error) {
+          const status =
+            error instanceof Error && 'status' in error
+              ? (error as Error & { status?: number }).status
+              : undefined;
+          if (status === 429) {
+            console.warn('[sync polling] rate limit raggiunto; polling interrotto');
+            return;
+          }
+          if (i === maxPolls - 1) {
+            console.warn('[sync polling] task non completato entro la finestra prevista');
+          }
         }
       }
     },

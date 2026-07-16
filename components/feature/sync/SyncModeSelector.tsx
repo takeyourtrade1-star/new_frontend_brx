@@ -147,13 +147,25 @@ export function SyncModeSelector() {
   }, [fetchStatus]);
 
   const applyMode = useCallback(
-    async (mode: SyncMode) => {
+    async (mode: SyncMode, confirmRealWrites = false) => {
       setSaving(true);
       setError(null);
       setSuccess(null);
       try {
-        await updateMarketplaceSyncMode(mode);
-        setStatus((prev) => (prev ? { ...prev, sync_mode: mode } : prev));
+        const updated = await updateMarketplaceSyncMode(mode, {
+          expectedModeVersion: status?.mode_version,
+          confirmRealWrites,
+        });
+        setStatus((prev) =>
+          prev
+            ? {
+                ...prev,
+                sync_mode: updated.sync_mode,
+                mode_version: updated.mode_version,
+                writes_enabled: updated.writes_enabled,
+              }
+            : prev,
+        );
         const label = SYNC_MODES.find((m) => m.value === mode)?.label ?? mode;
         setSuccess(`Modalità aggiornata a ${label}.`);
         setTimeout(() => setSuccess(null), 4000);
@@ -168,7 +180,7 @@ export function SyncModeSelector() {
         setPendingMode(null);
       }
     },
-    [],
+    [status?.mode_version],
   );
 
   const handleSelectMode = (mode: SyncMode) => {
@@ -190,7 +202,7 @@ export function SyncModeSelector() {
         <ConfirmRealModal
           onConfirm={() => {
             setShowConfirmReal(false);
-            if (pendingMode) void applyMode(pendingMode);
+            if (pendingMode) void applyMode(pendingMode, true);
           }}
           onCancel={() => {
             setShowConfirmReal(false);

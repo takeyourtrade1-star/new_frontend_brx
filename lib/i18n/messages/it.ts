@@ -770,6 +770,7 @@ export const it: Record<MessageKey, string> = {
     'Timeout: la sincronizzazione sta impiegando più del previsto. Controlla lo stato più tardi.',
   'accountPage.syncErrFailed': 'Sincronizzazione fallita.',
   'accountPage.syncErrStart': 'Impossibile avviare la sincronizzazione.',
+  'accountPage.syncErrLink': 'Impossibile collegare il token. Controllalo e riprova.',
   'accountPage.syncStatusActive': 'Attivo',
   'accountPage.syncStatusSyncing': 'Sincronizzazione in corso',
   'accountPage.syncStatusIdle': 'In attesa',

@@ -10,15 +10,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getForwardedAuthorization } from '@/app/api/_lib/forwarded-authorization';
+import {
+  extractUserIdForRateLimit,
+  getForwardedAuthorization,
+} from '@/app/api/_lib/forwarded-authorization';
 import { noStoreHeaders, publicCacheHeaders, unauthorizedResponse } from '@/app/api/_lib/proxy-response';
+import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import { normalizeProxyPathSegments } from '@/app/api/_lib/safe-proxy-path';
 
 export const dynamic = 'force-dynamic';
 
 /** Fail fast before Amplify/API gateway returns opaque 504. */
 const PROXY_TIMEOUT_MS = 12000;
 
-const DEFAULT_MARKETPLACE_API_URL = 'http://marketplace-api.ebartex.com';
+const DEFAULT_MARKETPLACE_API_URL = 'https://marketplace-api.ebartex.com';
 
 function getMarketplaceApiUrl(): string {
   const url =
@@ -60,9 +65,16 @@ function buildTargetUrl(base: string, targetPath: string, request: NextRequest):
 }
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
+  const path = normalizeProxyPathSegments(pathSegments);
+  if (path === null) {
+    return NextResponse.json(
+      { detail: 'Percorso marketplace non valido' },
+      { status: 400, headers: noStoreHeaders() },
+    );
+  }
+
   const MARKETPLACE_API_URL = getMarketplaceApiUrl();
 
-  const path = pathSegments.join('/');
   const targetPath = `/api/v1/${path}`;
   const isPublicGet =
     request.method === 'GET' && isPublicMarketplacePath(path);
@@ -74,6 +86,14 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   if (!isPublicGet && !auth) {
     return unauthorizedResponse();
   }
+
+  const rateLimit = checkRateLimit(request, {
+    scope: isPublicGet ? 'marketplace-public' : 'marketplace-private',
+    limit: 60,
+    windowMs: 60_000,
+    userId: extractUserIdForRateLimit(auth),
+  });
+  if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit);
 
   const headers: Record<string, string> = {
     Accept: 'application/json',

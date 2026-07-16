@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getForwardedAuthorization, extractUserIdForRateLimit } from '@/app/api/_lib/forwarded-authorization';
 import { noStoreHeaders, unauthorizedResponse } from '@/app/api/_lib/proxy-response';
 import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import { normalizeProxyPathSegments } from '@/app/api/_lib/safe-proxy-path';
 
 const PROXY_TIMEOUT_MS = 12_000;
 
@@ -37,6 +38,14 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
 }
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
+  const path = normalizeProxyPathSegments(pathSegments);
+  if (path === null) {
+    return NextResponse.json(
+      { detail: 'Percorso sync non valido' },
+      { status: 400, headers: noStoreHeaders() }
+    );
+  }
+
   const SYNC_API_URL = getSyncApiUrl();
   if (!SYNC_API_URL) {
     return NextResponse.json(
@@ -52,7 +61,6 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   const rl = checkRateLimit(request, { scope: 'sync', limit: 30, windowMs: 60_000, userId });
   if (!rl.allowed) return rateLimitExceededResponse(rl);
 
-  const path = pathSegments.join('/');
   const targetPath = `/api/v1/sync${path ? `/${path}` : ''}`;
   const url = new URL(targetPath, SYNC_API_URL);
   request.nextUrl.searchParams.forEach((value, key) => {

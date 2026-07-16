@@ -12,7 +12,7 @@ export function isCardTraderSyncRow(item: InventoryItemResponse): boolean {
 
 /** Stock realmente in vendita: CardTrader. Le carte ricevute richiedono una nuova inserzione. */
 export function isTradableSyncRow(item: InventoryItemResponse): boolean {
-  return item.source === 'cardtrader';
+  return item.source === 'cardtrader' || item.source === 'trade';
 }
 
 /**
@@ -32,6 +32,7 @@ export function composeAccountInventory(
 ): InventoryItemWithCatalog[] {
   const tradableRows: InventoryItemWithCatalog[] = syncItems
     .filter(isTradableSyncRow)
+    .filter((item) => !['archived', 'pending_delete'].includes(item.lifecycle_status ?? 'active'))
     .filter((item) => (item.quantity ?? 0) + (item.reserved_quantity ?? 0) > 0)
     .map((item) => ({ ...item, listing_source: 'sync' as const }));
 

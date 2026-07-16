@@ -26,6 +26,9 @@ export interface SyncStatusResponse {
   last_error: string | null;
   /** True if marketplace link was removed (no token); user must re-configure. */
   disconnected?: boolean | null;
+  execution_mode: 'demo' | 'partial' | 'real';
+  mode_version: number;
+  writes_enabled: boolean;
 }
 
 export interface WebhookUrlResponse {
@@ -73,6 +76,11 @@ export interface InventoryItemResponse {
   properties?: Record<string, unknown> | null;
   external_stock_id?: string | null;
   source?: 'cardtrader' | 'trade' | 'internal_test';
+  environment?: 'demo' | 'partial' | 'real';
+  lifecycle_status?: 'active' | 'sold_out' | 'stale' | 'archived' | 'pending_delete' | 'sync_failed';
+  sync_state?: 'synced' | 'pending' | 'accepted' | 'failed' | 'uncertain';
+  mapping_status?: 'mapped' | 'unsupported' | 'missing' | 'error';
+  row_version?: number;
   description?: string | null;
   user_data_field?: string | null;
   graded?: boolean | null;
@@ -84,6 +92,16 @@ export interface InventoryResponse {
   user_id: string;
   items: InventoryItemResponse[];
   total: number;
+}
+
+interface LinkCardtraderResponse {
+  status: string;
+  user_id: string;
+  sync_status: string;
+  webhook_secret_configured: boolean;
+  execution_mode: 'demo' | 'partial' | 'real';
+  mode_version: number;
+  writes_enabled: boolean;
 }
 
 /** Single listing (item for sale) for marketplace by blueprint. */
@@ -122,20 +140,6 @@ export interface ListingsByBlueprintResponse {
   listings: ListingItem[];
 }
 
-/** Response from purchase (simulate buyer) endpoint: checks inventory + external availability then decrements. */
-export interface PurchaseItemResponse {
-  status: string;
-  item_id: number;
-  message: string;
-  available: boolean;
-  quantity_purchased: number;
-  quantity_before: number;
-  quantity_after: number;
-  cardtrader_sync_queued: boolean;
-  external_stock_id?: string | null;
-  error?: string | null;
-}
-
 async function request<T>(
   path: string,
   token: string,
@@ -171,7 +175,7 @@ async function request<T>(
     credentials: isBrowser ? 'same-origin' : options.credentials,
     signal: controller.signal,
     headers: {
-      Authorization: `Bearer ${t}`,
+      ...(!isBrowser ? { Authorization: `Bearer ${t}` } : {}),
       'Content-Type': 'application/json',
       Accept: 'application/json',
       ...options.headers,
@@ -246,7 +250,7 @@ export const syncClient = {
   setupTestUser(
     body: { user_id: string; cardtrader_token: string },
     token: string
-  ): Promise<{ status: string; user_id: string; sync_status: string; webhook_secret_configured: boolean }> {
+  ): Promise<LinkCardtraderResponse> {
     return request(`/api/v1/sync/setup-test-user`, token, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -256,21 +260,27 @@ export const syncClient = {
   linkCardtrader(
     body: { user_id: string; cardtrader_token: string },
     token: string
-  ): Promise<{ status: string; user_id: string; sync_status: string; webhook_secret_configured: boolean }> {
+  ): Promise<LinkCardtraderResponse> {
     return request(`/api/v1/sync/link-cardtrader`, token, {
       method: 'POST',
       body: JSON.stringify(body),
     });
   },
 
-  /**
-   * POST /api/v1/sync/start/{userId}?force=false
-   */
-  startSync(userId: string, token: string, force = false): Promise<SyncStartResponse> {
-    const qs = force ? '?force=true' : '';
-    return request<SyncStartResponse>(`/api/v1/sync/start/${userId}${qs}`, token, {
+  /** POST /api/v1/sync/start/{userId} — initial import only. */
+  startSync(userId: string, token: string): Promise<SyncStartResponse> {
+    return request<SyncStartResponse>(`/api/v1/sync/start/${userId}`, token, {
       method: 'POST',
     });
+  },
+
+  /** POST /api/v1/sync/sync-from-cardtrader/{userId} — safe single-flight reconcile. */
+  reconcileFromCardTrader(userId: string, token: string): Promise<SyncStartResponse> {
+    return request<SyncStartResponse>(
+      `/api/v1/sync/sync-from-cardtrader/${userId}`,
+      token,
+      { method: 'POST' },
+    );
   },
 
   /**
@@ -378,22 +388,6 @@ export const syncClient = {
     );
   },
 
-  /**
-   * POST /api/v1/sync/purchase/{userId}/item/{itemId}
-   * Simula acquisto: verifica inventario locale + disponibilità esterna, poi decrementa entrambi (evita doppie vendite).
-   */
-  purchaseInventoryItem(
-    userId: string,
-    itemId: number,
-    body: { quantity: number },
-    token: string
-  ): Promise<PurchaseItemResponse> {
-    return request<PurchaseItemResponse>(
-      `/api/v1/sync/purchase/${userId}/item/${itemId}`,
-      token,
-      { method: 'POST', body: JSON.stringify(body) }
-    );
-  },
 };
 
 export default syncClient;

@@ -270,6 +270,34 @@ describe('auth-store', () => {
       expect(persisted.state.mfaRequired).toBeUndefined();
     });
 
+    it('non persiste l\'access token nello storage Zustand', () => {
+      useAuthStore.setState({
+        user: mockUser,
+        accessToken: 'access_non_persistito',
+        isAuthenticated: true,
+      });
+
+      const raw = localStorage.getItem('ebartex-auth');
+      expect(raw).toBeTruthy();
+      const persisted = JSON.parse(raw!);
+      expect(persisted.state.accessToken).toBeUndefined();
+      expect(localStorage.getItem('ebartex_access_token')).toBeNull();
+    });
+
+    it('ripulisce i token access legacy durante l\'inizializzazione', async () => {
+      localStorage.setItem('ebartex_access_token', 'legacy-diretto');
+      localStorage.setItem(
+        'ebartex-auth',
+        JSON.stringify({ state: { accessToken: 'legacy-zustand', isAuthenticated: true } }),
+      );
+
+      await useAuthStore.getState().initializeAuth();
+
+      expect(localStorage.getItem('ebartex_access_token')).toBeNull();
+      const persisted = JSON.parse(localStorage.getItem('ebartex-auth')!);
+      expect(persisted.state.accessToken).toBeUndefined();
+    });
+
 
   });
 

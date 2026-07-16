@@ -70,7 +70,7 @@ describe('refresh-token', () => {
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('refresh riuscito: aggiorna storage e ritorna il nuovo access token', async () => {
+    it('refresh riuscito: persiste solo il refresh token e ritorna il nuovo access token', async () => {
       localStorage.setItem(config.auth.refreshTokenKey, 'old_refresh');
       const fetchMock = vi.fn().mockResolvedValue(okRefreshResponse('new_access', 'new_refresh'));
       vi.stubGlobal('fetch', fetchMock);
@@ -79,7 +79,7 @@ describe('refresh-token', () => {
 
       expect(token).toBe('new_access');
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(localStorage.getItem(config.auth.tokenKey)).toBe('new_access');
+      expect(localStorage.getItem(config.auth.tokenKey)).toBeNull();
       expect(localStorage.getItem(config.auth.refreshTokenKey)).toBe('new_refresh');
     });
 
@@ -137,20 +137,20 @@ describe('refresh-token', () => {
 
   describe('startProactiveRefresh / stopProactiveRefresh', () => {
     it('rinnova immediatamente se il token è già prossimo alla scadenza', async () => {
-      localStorage.setItem(config.auth.tokenKey, makeJwt(60)); // entro il buffer
+      const accessToken = makeJwt(60); // entro il buffer
       localStorage.setItem(config.auth.refreshTokenKey, 'r');
       // Il nuovo token è un JWT lontano: il re-schedule imposta un timer, non rilancia fetch.
       const fetchMock = vi.fn().mockResolvedValue(okRefreshResponse(makeJwt(60 * 60), 'nr'));
       vi.stubGlobal('fetch', fetchMock);
 
-      startProactiveRefresh();
+      startProactiveRefresh(accessToken);
 
       await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
       stopProactiveRefresh();
     });
 
     it('refresh fallito con token in scadenza: una sola fetch, poi backoff (niente loop)', async () => {
-      localStorage.setItem(config.auth.tokenKey, makeJwt(60)); // entro il buffer
+      const accessToken = makeJwt(60); // entro il buffer
       localStorage.setItem(config.auth.refreshTokenKey, 'r');
       const fetchMock = vi.fn().mockResolvedValue({
         ok: false,
@@ -158,7 +158,7 @@ describe('refresh-token', () => {
       } as unknown as Response);
       vi.stubGlobal('fetch', fetchMock);
 
-      startProactiveRefresh();
+      startProactiveRefresh(accessToken);
 
       await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
       // Senza backoff il fallimento rientrerebbe subito nel ramo "refresh
@@ -169,12 +169,12 @@ describe('refresh-token', () => {
     });
 
     it('non rinnova subito se il token è lontano dalla scadenza', async () => {
-      localStorage.setItem(config.auth.tokenKey, makeJwt(60 * 60));
+      const accessToken = makeJwt(60 * 60);
       localStorage.setItem(config.auth.refreshTokenKey, 'r');
       const fetchMock = vi.fn().mockResolvedValue(okRefreshResponse('na', 'nr'));
       vi.stubGlobal('fetch', fetchMock);
 
-      startProactiveRefresh();
+      startProactiveRefresh(accessToken);
       await Promise.resolve();
 
       expect(fetchMock).not.toHaveBeenCalled();
@@ -186,8 +186,7 @@ describe('refresh-token', () => {
       vi.stubGlobal('fetch', fetchMock);
 
       expect(() => startProactiveRefresh()).not.toThrow(); // nessun token
-      localStorage.setItem(config.auth.tokenKey, 'non-un-jwt');
-      expect(() => startProactiveRefresh()).not.toThrow();
+      expect(() => startProactiveRefresh('non-un-jwt')).not.toThrow();
 
       expect(fetchMock).not.toHaveBeenCalled();
       stopProactiveRefresh();

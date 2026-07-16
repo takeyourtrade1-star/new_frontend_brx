@@ -768,6 +768,7 @@ export const en = {
     'Timeout: sync is taking longer than expected. Check status later.',
   'accountPage.syncErrFailed': 'Sync failed.',
   'accountPage.syncErrStart': 'Could not start sync.',
+  'accountPage.syncErrLink': 'Could not link the token. Check it and try again.',
   'accountPage.syncStatusActive': 'Active',
   'accountPage.syncStatusSyncing': 'Syncing',
   'accountPage.syncStatusIdle': 'Idle',

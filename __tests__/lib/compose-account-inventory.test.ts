@@ -55,9 +55,9 @@ describe('isCardTraderSyncRow', () => {
 });
 
 describe('isTradableSyncRow', () => {
-  it('accetta solo stock CardTrader gia in vendita', () => {
+  it('accetta stock CardTrader e carte ricevute tramite scambio', () => {
     expect(isTradableSyncRow(syncRow())).toBe(true);
-    expect(isTradableSyncRow(syncRow({ source: 'trade', external_stock_id: null }))).toBe(false);
+    expect(isTradableSyncRow(syncRow({ source: 'trade', external_stock_id: null }))).toBe(true);
   });
 
   it('rifiuta lo stock di test interno', () => {
@@ -76,12 +76,13 @@ describe('composeAccountInventory', () => {
     expect(items[0].listing_source).toBe('sync');
   });
 
-  it('non pubblica automaticamente le carte ricevute da uno scambio', () => {
+  it('mostra nell inventario le carte ricevute da uno scambio', () => {
     const items = composeAccountInventory(
       [syncRow({ id: 2, source: 'trade', external_stock_id: null })],
       []
     );
-    expect(items).toEqual([]);
+    expect(items).toHaveLength(1);
+    expect(items[0].source).toBe('trade');
   });
 
   it('esclude le righe sync a quantità zero (sold out)', () => {
@@ -166,9 +167,11 @@ describe('isVisibleInventoryGame', () => {
   it('nasconde le righe marketplace senza catalogo ma con card_id di gioco non supportato', () => {
     const pokemon: InventoryItemWithCatalog = { ...syncRow(), card_id: 'pk_456' };
     const onePiece: InventoryItemWithCatalog = { ...syncRow(), card_id: 'op_789' };
+    const yugioh: InventoryItemWithCatalog = { ...syncRow(), card_id: 'ygo_999' };
     const mtg: InventoryItemWithCatalog = { ...syncRow(), card_id: 'mtg_111' };
     expect(isVisibleInventoryGame(pokemon)).toBe(false);
     expect(isVisibleInventoryGame(onePiece)).toBe(false);
+    expect(isVisibleInventoryGame(yugioh)).toBe(false);
     expect(isVisibleInventoryGame(mtg)).toBe(true);
   });
 });
