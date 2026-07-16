@@ -1,8 +1,7 @@
 # Piano 19 — Rollout sicuro CardTrader in produzione
 
 > Stato: **in esecuzione, un passo alla volta**.
-> Fase 1 completata. Fase 2 completata salvo il test reale di ripristino su una
-> copia temporanea, che richiede conferma esplicita prima di creare costi AWS.
+> Fasi 1 e 2 completate. Fase 3 in preparazione su staging.
 
 ## Obiettivo
 
@@ -44,10 +43,10 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 - [x] Creare backup verificati dei database coinvolti.
 - [x] Salvare le versioni correnti delle migrazioni e dei servizi.
 - [x] Registrare code, outbox, webhook inbox, job `uncertain` e utenti abilitati.
-- [ ] Verificare il ripristino reale del backup su un'istanza temporanea isolata.
+- [x] Verificare il ripristino reale del backup su un'istanza temporanea isolata.
 - [x] Confermare che i kill switch globale e per utente siano disponibili nella release candidata.
 
-**Gate:** non ancora superato; manca soltanto il restore drill isolato.
+**Gate:** superato; backup ripristinabile e stato iniziale documentato.
 
 ### Fotografia di produzione del 2026-07-16
 
@@ -66,11 +65,14 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 - I servizi erano sani; il flag globale live era assente. Prima del deploy passivo deve essere impostato esplicitamente a `false`.
 - Nessun dato è stato modificato o cancellato. Sono stati creati soltanto i due snapshot di sicurezza.
 
-### Passo ancora richiesto per chiudere la Fase 2
+### Restore drill completato il 2026-07-16
 
-Creare una piccola istanza RDS temporanea dalla copia cifrata, verificarne avvio,
-schema e sola lettura, poi eliminare esclusivamente l'istanza temporanea conservando
-entrambi gli snapshot. Questo passo genera un costo AWS e richiede conferma esplicita.
+- Creata la sola istanza privata `codex-cardtrader-restorecheck-20260716-01` dalla copia cifrata.
+- Durante il test la copia era privata e protetta dalla cancellazione.
+- Verificati in transazione `read-only`: database corretto, schema `006_trade_visibility`, 3519 righe inventario, 5 configurazioni sync, 6 configurazioni marketplace e 0 quantità negative.
+- La copia temporanea è stata eliminata con un controllo rigido sul suo identificatore.
+- Verifica finale: copia temporanea assente, produzione `available`, entrambi gli snapshot `available`.
+- Nessun dato o snapshot del database reale è stato modificato o cancellato.
 
 ## Fase 3 — Provare migrazioni e deploy in staging
 
@@ -150,3 +152,4 @@ Per i primi scaglioni usare almeno 24 ore di osservazione.
 5. Eseguire una riconciliazione completa in sola lettura.
 6. Se necessario, ripristinare la versione applicativa precedente.
 7. Non fare rollback distruttivi del database.
+
