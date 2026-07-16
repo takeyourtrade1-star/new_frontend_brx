@@ -36,6 +36,7 @@ export const BLOG_POSTS: BlogPost[] = [
     paragraphs: [
       'Da oggi gli Scambi Ebartex sono ufficialmente live in beta. Cerca un collezionista, guarda le carte che ha messo a disposizione e componi una proposta usando quelle del tuo inventario.',
       'Puoi inviare e ricevere proposte, confrontare con chiarezza le carte sui due lati e seguire ogni scambio fino alla risposta. Tutto parte dalle collezioni reali degli utenti.',
+      'Hai carte pubblicate altrove che non riesci a vendere? Aggiungile su Ebartex e proponile in scambio: puoi trasformare le carte ferme da tempo in nuove occasioni per la tua collezione e dare loro una nuova vita.',
       'Questa beta serve anche a costruire il servizio insieme alla community: provalo, completa il tuo primo scambio e raccontaci cosa possiamo rendere ancora più semplice e veloce.',
     ],
     cta: { href: '/scambi', label: 'Prova gli Scambi (beta) →' },

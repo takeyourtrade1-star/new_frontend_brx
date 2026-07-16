@@ -24,6 +24,9 @@ Piani strutturati per refactor, hardening ed evoluzione del prodotto Ebartex.
 | [14](./14-backend-scambi.md) | Backend Scambi | Escrow sync/CardTrader + Ebartex-only, stock “In scambio”, consegna/tracking, BFF + FE | 3-5 settimane | **Alta** |
 | [15](./15-backend-registrazione-verifica-email.md) | Backend registrazione e verifica email | Account pending, challenge, outbox, SES e contratto frontend | 2-3 settimane | **Alta** |
 | [16](./16-asso-vision-inventario-rapido.md) | Asso Vision e inventario rapido | Capture continua edge-primary, review locale e costo backend invariato | 6-10 settimane | **Alta** |
+| [17](./17-backoffice-rbac-staff.md) | Back office staff, ruoli e permessi | App separata, RBAC con scope, MFA, audit e revoca rapida | Per fasi | **Critica** |
+| [18](./18-hardening-scambi-beta.md) | Hardening Scambi per la beta | Invariante escrow, constraint idempotenza, superficie/leak, JWT fuori da localStorage, onboarding CardTrader | 1-2 settimane | **Alta** |
+| [19](./19-rollout-cardtrader-produzione.md) | Rollout sicuro CardTrader in produzione | Backup, migrazioni, deploy passivo, canary, apertura graduale e monitoraggio | Per fasi | **Critica** |
 
 ---
 

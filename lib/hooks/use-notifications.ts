@@ -49,7 +49,8 @@ type QueryWithErrorState = { state: { error: unknown } };
 
 function notificationsRefetchInterval(query: QueryWithErrorState): number | false {
   if (query.state.error && isHttp401Error(query.state.error)) return false;
-  return 30_000;
+  if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return false;
+  return 120_000;
 }
 
 function notificationsRefetchOnWindowFocus(query: QueryWithErrorState): boolean {
@@ -65,7 +66,7 @@ export function useNotificationList(
     queryKey: KEYS.list(params),
     queryFn: () => notificationsApi.list(params),
     staleTime: 10_000,
-    refetchInterval: notificationsRefetchInterval,
+    refetchInterval: false,
     retry: notificationsRetry,
     refetchOnWindowFocus: notificationsRefetchOnWindowFocus,
     ...options,
@@ -80,6 +81,7 @@ export function useUnreadNotificationsCount(
     queryFn: () => notificationsApi.unreadCount(),
     staleTime: 15_000,
     refetchInterval: notificationsRefetchInterval,
+    refetchIntervalInBackground: false,
     retry: notificationsRetry,
     refetchOnWindowFocus: notificationsRefetchOnWindowFocus,
     ...options,
@@ -89,9 +91,27 @@ export function useUnreadNotificationsCount(
 export function useMarkNotificationRead() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => notificationsApi.markRead(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['notifications'] });
+    mutationFn: (id: string) => notificationsApi.markRead(id),
+    onSuccess: (_response, id) => {
+      const readAt = new Date().toISOString();
+      qc.setQueryData<NotificationUnreadCountResponse>(KEYS.unread, (current) =>
+        current
+          ? { ...current, data: { unread: Math.max(0, current.data.unread - 1) } }
+          : current,
+      );
+      qc.setQueriesData<NotificationListResponse>(
+        { queryKey: ['notifications', 'list'] },
+        (current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.map((item) =>
+                  item.id === id ? { ...item, read_at: item.read_at ?? readAt } : item,
+                ),
+                unread: Math.max(0, current.unread - 1),
+              }
+            : current,
+      );
     },
   });
 }
@@ -101,7 +121,21 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: () => notificationsApi.markAllRead(),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['notifications'] });
+      const readAt = new Date().toISOString();
+      qc.setQueryData<NotificationUnreadCountResponse>(KEYS.unread, (current) =>
+        current ? { ...current, data: { unread: 0 } } : current,
+      );
+      qc.setQueriesData<NotificationListResponse>(
+        { queryKey: ['notifications', 'list'] },
+        (current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.map((item) => ({ ...item, read_at: item.read_at ?? readAt })),
+                unread: 0,
+              }
+            : current,
+      );
     },
   });
 }

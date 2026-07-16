@@ -1,5 +1,6 @@
 /**
- * Proxy /api/notifications/* → AUCTION_API_URL/notifications/*
+ * Proxy /api/notifications/* → NOTIFICATIONS_API_URL/notifications/*.
+ * Falls back to AUCTION_API_URL while the notification hub lives there.
  * Sicurezza: cookie-first, 401 fail-closed, no-store, rate limit, timeout.
  */
 
@@ -12,7 +13,8 @@ export const dynamic = 'force-dynamic';
 
 const PROXY_TIMEOUT_MS = 12_000;
 
-const AUCTION_API_URL = (
+const NOTIFICATIONS_API_URL = (
+  process.env.NOTIFICATIONS_API_URL ||
   process.env.AUCTION_API_URL ||
   process.env.NEXT_PUBLIC_AUCTION_API_URL ||
   ''
@@ -29,8 +31,8 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
 }
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
-  if (!AUCTION_API_URL) {
-    return NextResponse.json({ detail: 'AUCTION_API_URL is not configured' }, { status: 503, headers: noStoreHeaders() });
+  if (!NOTIFICATIONS_API_URL) {
+    return NextResponse.json({ detail: 'Notifications service is not configured' }, { status: 503, headers: noStoreHeaders() });
   }
 
   const auth = getForwardedAuthorization(request);
@@ -42,7 +44,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
 
   const path = pathSegments.join('/');
   const targetPath = `/notifications${path ? `/${path}` : ''}`;
-  const url = new URL(targetPath, AUCTION_API_URL);
+  const url = new URL(targetPath, NOTIFICATIONS_API_URL);
   request.nextUrl.searchParams.forEach((value, key) => url.searchParams.set(key, value));
 
   const headers: Record<string, string> = {

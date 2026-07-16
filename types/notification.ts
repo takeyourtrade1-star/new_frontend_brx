@@ -6,7 +6,7 @@
  * frontend enough information to deep-link to the relevant page.
  */
 
-export type NotificationType =
+export type KnownNotificationType =
   | 'AUCTION_WON'
   | 'AUCTION_SOLD'
   | 'PAYMENT_RECEIVED'
@@ -15,6 +15,7 @@ export type NotificationType =
   | 'DISPUTE_MESSAGE'
   | 'AUCTION_REASSIGNED'
   | 'AUCTION_CANCELLED'
+  | 'AUCTION_BID_RECEIVED'
   | 'TRADE_PROPOSED'
   | 'TRADE_RECEIVED'
   | 'TRADE_COUNTERED'
@@ -26,19 +27,41 @@ export type NotificationType =
   | 'TRADE_COMPLETED'
   | 'TRADE_EXPIRING'
   | 'TRADE_EXPIRED'
-  | 'TRADE_ASSISTANCE';
+  | 'TRADE_ASSISTANCE'
+  | 'SYSTEM_ANNOUNCEMENT';
 
-export type NotificationRelatedKind = 'order' | 'auction' | 'dispute' | 'trade';
+export type NotificationType = KnownNotificationType | (string & {});
+
+export type NotificationRelatedKind = 'order' | 'auction' | 'dispute' | 'trade' | 'announcement';
+
+export type NotificationActionKind =
+  | 'AUCTION_DETAIL'
+  | 'TRADE_DETAIL'
+  | 'ORDER_BUYER'
+  | 'ORDER_SELLER'
+  | 'DISPUTE_DETAIL'
+  | 'TOURNAMENTS'
+  | 'HOME'
+  | 'NOTIFICATIONS';
+
+export interface NotificationAction {
+  kind: NotificationActionKind;
+  id: string | null;
+}
 
 export interface NotificationAPI {
-  id: number;
+  id: string;
   type: NotificationType;
+  source: string;
   title: string;
   body: string;
   related_kind: NotificationRelatedKind | null;
   related_id: number | null;
+  action: NotificationAction | null;
+  payload: Record<string, unknown>;
   read_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface NotificationListResponse {

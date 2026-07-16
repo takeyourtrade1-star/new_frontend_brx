@@ -90,8 +90,8 @@ export const notificationsApi = {
     return request<NotificationUnreadCountResponse>('/unread-count');
   },
 
-  markRead(id: number): Promise<{ success: boolean; data: { id: number; marked: boolean } }> {
-    return request(`/${id}/read`, { method: 'PATCH' });
+  markRead(id: string): Promise<{ success: boolean; data: { id: string; marked: boolean } }> {
+    return request(`/${encodeURIComponent(id)}/read`, { method: 'PATCH' });
   },
 
   markAllRead(): Promise<{ success: boolean; data: { updated: number } }> {

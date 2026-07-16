@@ -749,6 +749,9 @@ Non registrare token o payload sensibili non anonimizzati.
 
 ## 10. Rollout sicuro
 
+> La checklist operativa aggiornata per il rilascio futuro è nel
+> [Piano 19 — Rollout sicuro CardTrader in produzione](../PLAN/19-rollout-cardtrader-produzione.md).
+
 ### Passo 1 — Deploy passivo
 
 - nuove tabelle e colonne;

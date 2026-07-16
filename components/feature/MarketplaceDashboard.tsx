@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Trophy, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useSearchCards } from '@/lib/hooks/use-search';
 import { useBestSellers } from '@/lib/hooks/use-best-sellers';
 import { getCdnImageUrl } from '@/lib/config';
@@ -15,7 +15,7 @@ import { TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import { cn } from '@/lib/utils';
 import { FeaturesSection } from './FeaturesSection';
 import { AsteInCorsoCarousel } from './aste/AsteInCorsoCarousel';
-import { ScambiInCorsoCarousel } from './scambi/ScambiInCorsoCarousel';
+import { TorneiLiveCarousel } from './tornei/TorneiLiveCarousel';
 import { CardFoilOverlay } from './product/detail/CardFoilOverlay';
 
 /** Velo "foil" arcobaleno molto attenuato per le 3 card blu (Best Sellers/Aste/Scambi):
@@ -280,7 +280,7 @@ export function MarketplaceDashboard({
   const isMtg = !gameSlug || gameSlug === 'mtg';
 
   // Best sellers REALI: carte in vendita dai venditori registrati (feed pubblico).
-  const { data: bestSellersData, isLoading: bestSellersLoading } = useBestSellers(
+  const { data: bestSellersData } = useBestSellers(
     { game: gameSlug ?? 'mtg', limit: 12 },
     { enabled: isMtg },
   );
@@ -308,13 +308,6 @@ export function MarketplaceDashboard({
     const hits = (searchData?.hits ?? []).filter((h) => h?.id && h?.name);
     return hits.length > 0 ? hits : MTG_HITS_FALLBACK;
   }, [gameSlug, bestSellersData, searchData]);
-
-  // Gli scambi mostrano solo carte con inserzioni attive reali. Niente fallback
-  // Meilisearch/mock: in assenza del feed pubblico mostriamo lo stato vuoto.
-  const tradeableListings = useMemo(
-    () => (bestSellersData?.items ?? []).filter((item) => item.card_id && item.listings_count > 0),
-    [bestSellersData],
-  );
 
   const [magicOffset, setMagicOffset] = useState(0);
 
@@ -475,7 +468,7 @@ export function MarketplaceDashboard({
             </div>
           </div>
 
-          {/* Mobile: Prova gli scambi */}
+          {/* Mobile: Tornei live */}
           <div
             className={`relative isolate mt-3 flex flex-col overflow-hidden rounded-2xl ${
               useUnifiedBackground
@@ -490,26 +483,21 @@ export function MarketplaceDashboard({
             {/* Header */}
             <div className="relative z-10 flex items-center justify-between gap-4 px-5 pt-3 pb-1">
               <div className="flex items-center gap-2">
-                <div className="h-4.5 w-1 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500" />
-                <h3 className={`text-lg font-black uppercase tracking-wide font-sans ${useUnifiedBackground ? 'text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.42)]' : 'text-slate-900'}`}>
-                  {t('home.scambi.title')}
-                </h3>
+                  <div className="h-4.5 w-1 rounded-full bg-gradient-to-b from-violet-400 to-fuchsia-500" />
+                  <h3 className={`text-lg font-black uppercase tracking-wide font-sans ${useUnifiedBackground ? 'text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.42)]' : 'text-slate-900'}`}>
+                  {t('home.tornei.liveTitle')}
+                  </h3>
               </div>
               <Link
-                href="/scambi"
+                {...TOURNAMENTS_PORTAL_LINK_PROPS}
                 className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wide text-primary transition-colors hover:text-orange-600"
               >
-                {t('home.scambi.seeAll')}
+                {t('home.tornei.seeAll')}
               </Link>
             </div>
 
             <div className="relative z-10 flex flex-col overflow-hidden">
-              <ScambiInCorsoCarousel
-                items={tradeableListings}
-                isLoading={bestSellersLoading}
-                useLightText
-                compact
-              />
+              <TorneiLiveCarousel useLightText />
             </div>
           </div>
         </div>
@@ -582,7 +570,7 @@ export function MarketplaceDashboard({
             </div>
           </div>
 
-          {/* ═══ Card ASTE + SCAMBI (DESKTOP) ═══ */}
+          {/* ═══ Card ASTE + TORNEI (DESKTOP) ═══ */}
           <div className="flex flex-col gap-3">
             {/* Aste in corso */}
             <div
@@ -617,7 +605,7 @@ export function MarketplaceDashboard({
               </div>
             </div>
 
-            {/* Prova gli scambi */}
+            {/* Tornei live */}
             <div
               className={`relative isolate flex flex-col overflow-hidden rounded-2xl ${
                 useUnifiedBackground
@@ -632,26 +620,21 @@ export function MarketplaceDashboard({
               {/* Header */}
               <div className="relative z-10 flex items-center justify-between gap-4 px-5 pt-3 pb-1">
                 <div className="flex items-center gap-2">
-                  <div className="h-4.5 w-1 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500" />
+                  <div className="h-4.5 w-1 rounded-full bg-gradient-to-b from-violet-400 to-fuchsia-500" />
                   <h3 className="text-lg font-black uppercase tracking-wide font-sans text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.42)]">
-                    {t('home.scambi.title')}
+                    {t('home.tornei.liveTitle')}
                   </h3>
                 </div>
                 <Link
-                  href="/scambi"
+                  {...TOURNAMENTS_PORTAL_LINK_PROPS}
                   className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wide text-primary transition-colors hover:text-orange-600"
                 >
-                  {t('home.scambi.seeAll')}
+                  {t('home.tornei.seeAll')}
                 </Link>
               </div>
 
               <div className="relative z-10 flex flex-col overflow-hidden">
-                <ScambiInCorsoCarousel
-                  items={tradeableListings}
-                  isLoading={bestSellersLoading}
-                  useLightText
-                  compact
-                />
+                <TorneiLiveCarousel useLightText />
               </div>
             </div>
           </div>

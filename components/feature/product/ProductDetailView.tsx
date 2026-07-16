@@ -132,15 +132,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [listingActionMessage, setListingActionMessage] = useState<string | null>(null);
 
   const user = useAuthStore((s) => s.user);
-  const accessTokenFromStore = useAuthStore((s) => s.accessToken);
-  const accessToken = useMemo(
-    () =>
-      accessTokenFromStore ??
-      (typeof window !== 'undefined'
-        ? localStorage.getItem('ebartex_access_token')
-        : null),
-    [accessTokenFromStore]
-  );
+  const accessToken = useAuthStore((s) => s.accessToken);
   const flyToCart = useFlyToCart();
   const addToCartStore = useCartStore((s) => s.addItem);
   const detectedCountry = useUserCountry();

@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -15,73 +14,14 @@ import {
 } from '@/lib/hooks/use-notifications';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import type { NotificationAPI } from '@/types/notification';
-
-const TYPE_LABEL: Record<NotificationAPI['type'], string> = {
-  AUCTION_WON: 'Asta vinta',
-  AUCTION_SOLD: 'Asta aggiudicata',
-  PAYMENT_RECEIVED: 'Pagamento',
-  PAYMENT_OVERDUE: 'Pagamento in ritardo',
-  DISPUTE_OPENED: 'Contestazione',
-  DISPUTE_MESSAGE: 'Messaggio',
-  AUCTION_REASSIGNED: 'Riassegnazione',
-  AUCTION_CANCELLED: 'Asta annullata',
-  TRADE_PROPOSED: 'Scambio proposto',
-  TRADE_RECEIVED: 'Proposta ricevuta',
-  TRADE_COUNTERED: 'Controproposta',
-  TRADE_ACCEPTED: 'Scambio accettato',
-  TRADE_DECLINED: 'Scambio rifiutato',
-  TRADE_CANCEL_REQUESTED: 'Annullamento richiesto',
-  TRADE_CANCELLED: 'Scambio annullato',
-  TRADE_SHIPPED: 'Carte spedite',
-  TRADE_COMPLETED: 'Scambio completato',
-  TRADE_EXPIRING: 'Scambio in scadenza',
-  TRADE_EXPIRED: 'Scambio scaduto',
-  TRADE_ASSISTANCE: 'Assistenza scambio',
-};
-
-function getDeepLink(n: NotificationAPI): string | null {
-  switch (n.related_kind) {
-    case 'order':
-      // Buyer-side notifications point to /ordini/acquisti, seller-side to
-      // /ordini/vendite. We don't know the role from the notification alone,
-      // so we link to the buyer view by default; the seller dashboard is one
-      // click away from the bell-icon dropdown.
-      switch (n.type) {
-        case 'AUCTION_SOLD':
-        case 'PAYMENT_RECEIVED':
-          return n.related_id ? `/ordini/vendite` : null;
-        default:
-          return n.related_id ? `/ordini/acquisti` : null;
-      }
-    case 'auction':
-      return n.related_id ? `/aste/${n.related_id}` : null;
-    case 'dispute':
-      return n.related_id ? `/ordini/contestazioni/${n.related_id}` : null;
-    case 'trade':
-      return n.related_id ? `/scambi/${n.related_id}` : null;
-    default:
-      return null;
-  }
-}
-
-function formatRelative(iso: string, locale: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  if (ms < 60_000) return 'ora';
-  const min = Math.floor(ms / 60_000);
-  if (min < 60) return `${min} min fa`;
-  const hours = Math.floor(min / 60);
-  if (hours < 24) return `${hours} ore fa`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} giorni fa`;
-  return new Date(iso).toLocaleDateString(locale);
-}
+import { NotificationFeedItem } from './NotificationFeedItem';
 
 export function NotificationBell() {
   const { t } = useTranslation();
-  const intlLocale = useIntlLocale();
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [open, setOpen] = useState(false);
+  const [mobilePanelTop, setMobilePanelTop] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const unreadQuery = useUnreadNotificationsCount({
@@ -130,18 +70,32 @@ export function NotificationBell() {
     void queryClient.invalidateQueries({ queryKey: ['notifications'] });
   };
 
+  const toggleNotifications = () => {
+    if (!open && containerRef.current) {
+      setMobilePanelTop(containerRef.current.getBoundingClientRect().bottom + 8);
+    }
+    setOpen((current) => !current);
+  };
+
   return (
     <div ref={containerRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleNotifications}
         className="flex h-10 w-10 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
         aria-haspopup="true"
         aria-expanded={open}
-        aria-label="Notifiche"
+        aria-label={t('notifications.title')}
       >
         <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5" aria-hidden>
-          <Bell className="h-[1.1rem] w-[1.1rem]" stroke="#FF7300" strokeWidth={2} />
+          <Bell
+            className={cn(
+              'h-[1.1rem] w-[1.1rem]',
+              unread > 0 && 'notification-bell-unread',
+            )}
+            stroke="#FF7300"
+            strokeWidth={2}
+          />
           {unread > 0 && (
             <span className="absolute -right-1.5 -top-1 flex h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-[#FF3B3B] px-1 text-[9px] font-extrabold text-white shadow ring-1 ring-black/10">
               {unread > 99 ? '99+' : unread}
@@ -153,11 +107,12 @@ export function NotificationBell() {
       {open && (
         <div
           role="menu"
-          aria-label="Lista notifiche"
-          className="absolute right-0 top-full z-[120] mt-2 w-[22rem] max-w-[90vw] overflow-hidden rounded-xl border border-gray-200 bg-white text-gray-900 shadow-2xl"
+          aria-label={t('notifications.listAria')}
+          style={{ '--notification-mobile-top': `${mobilePanelTop}px` } as CSSProperties}
+          className="fixed inset-x-0 top-[var(--notification-mobile-top)] z-[120] w-full overflow-hidden rounded-none border border-gray-200 bg-white text-gray-900 shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[22rem] sm:max-w-[90vw] sm:rounded-xl"
         >
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <span className="text-sm font-bold uppercase tracking-wide">Notifiche</span>
+            <span className="text-sm font-bold uppercase tracking-wide">{t('notifications.title')}</span>
             <button
               type="button"
               onClick={handleMarkAll}
@@ -167,7 +122,7 @@ export function NotificationBell() {
               )}
             >
               <CheckCheck className="h-3.5 w-3.5" aria-hidden />
-              {markAll.isPending ? 'Aggiornamento…' : 'Segna come letto'}
+              {markAll.isPending ? t('notifications.updating') : t('notifications.markAllRead')}
             </button>
           </div>
 
@@ -201,69 +156,31 @@ export function NotificationBell() {
             </div>
           ) : items.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-gray-500">
-              Nessuna notifica.
+              {t('notifications.empty')}
             </div>
           ) : (
             <ul className="max-h-[24rem] divide-y divide-gray-300 overflow-y-auto">
-              {items.map((n) => {
-                const href = getDeepLink(n);
-                const typeLabel = TYPE_LABEL[n.type] ?? n.type;
-                const showTypeLabel =
-                  typeLabel.trim().localeCompare(n.title.trim(), undefined, { sensitivity: 'base' }) !== 0;
-                const Inner = (
-                  <div
-                    className={cn(
-                      'flex flex-col gap-0.5 px-4 py-3 transition-colors',
-                      !n.read_at ? 'bg-[#FFF7EC]' : 'bg-white',
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      {showTypeLabel ? (
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-[#FF7300]">
-                          {typeLabel}
-                        </span>
-                      ) : null}
-                      <span className="ml-auto text-[10px] text-gray-500">{formatRelative(n.created_at, intlLocale)}</span>
-                    </div>
-                    <span className="line-clamp-2 text-sm font-semibold text-gray-900">{n.title}</span>
-                    <span className="line-clamp-2 text-xs text-gray-600">{n.body}</span>
-                  </div>
-                );
-                return (
-                  <li key={n.id}>
-                    {href ? (
-                      <Link
-                        href={href}
-                        onClick={() => {
-                          handleClickItem(n);
-                          setOpen(false);
-                        }}
-                        className="block w-full text-left hover:bg-gray-50"
-                      >
-                        {Inner}
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleClickItem(n)}
-                        className="block w-full text-left hover:bg-gray-50"
-                      >
-                        {Inner}
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
+              {items.map((notification) => (
+                <li key={notification.id}>
+                  <NotificationFeedItem
+                    notification={notification}
+                    onActivate={(item) => {
+                      handleClickItem(item);
+                      setOpen(false);
+                    }}
+                  />
+                </li>
+              ))}
             </ul>
           )}
 
           <div className="border-t border-gray-100 px-4 py-3 text-right">
             <Link
-              href="/account/messaggi"
+              href="/account/notifiche"
               onClick={() => setOpen(false)}
               className="text-xs font-semibold text-[#FF7300] hover:underline"
             >
-              Vedi tutto
+              {t('notifications.viewAll')}
             </Link>
           </div>
         </div>

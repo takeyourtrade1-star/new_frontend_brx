@@ -576,6 +576,48 @@
   animation: cart-fab-land 0.55s ease-out both;
 }
 
+/* Campanella notifiche: uno squillo breve, seguito da una pausa. */
+@keyframes notification-bell-ring {
+  0%,
+  68%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(255, 115, 0, 0));
+    transform: rotate(0deg);
+  }
+  73% {
+    transform: rotate(-20deg);
+  }
+  78% {
+    filter: drop-shadow(0 0 4px rgba(255, 115, 0, 0.7));
+    transform: rotate(18deg);
+  }
+  83% {
+    transform: rotate(-13deg);
+  }
+  88% {
+    transform: rotate(9deg);
+  }
+  93% {
+    transform: rotate(-5deg);
+  }
+  97% {
+    transform: rotate(2deg);
+  }
+}
+
+.notification-bell-unread {
+  animation: notification-bell-ring 2.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 12%;
+  will-change: filter, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-bell-unread {
+    animation: none;
+  }
+}
+
 /* Toast flash (login/error): entra da destra, esce a destra – sotto la barra di ricerca */
 @keyframes toast-slide-in-right {
   from {

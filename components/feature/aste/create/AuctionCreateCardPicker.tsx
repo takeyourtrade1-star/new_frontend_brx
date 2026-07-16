@@ -107,14 +107,7 @@ export function AuctionCreateCardPicker({
   const { t } = useTranslation();
   const { selectedLang } = useLanguage();
   const user = useAuthStore((s) => s.user);
-  // FE-REV-018 (pattern): selector puro; fallback localStorage in useMemo, non dentro il selector Zustand.
-  const accessTokenFromStore = useAuthStore((s) => s.accessToken);
-  const accessToken = useMemo(
-    () =>
-      accessTokenFromStore ??
-      (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null),
-    [accessTokenFromStore]
-  );
+  const accessToken = useAuthStore((s) => s.accessToken);
 
   const [searchGame, setSearchGame] = useState<AuctionGame>('mtg');
   const [query, setQuery] = useState('');

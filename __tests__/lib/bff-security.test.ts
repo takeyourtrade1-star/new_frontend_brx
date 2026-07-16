@@ -203,6 +203,36 @@ describe('/api/notifications — sicurezza', () => {
       expect.objectContaining({ method: 'GET' }),
     );
   });
+
+  it('protegge anche la modifica di una notifica globale', async () => {
+    const { PATCH } = await import('@/app/api/notifications/[...path]/route');
+    const req = makeRequest('/api/notifications/a%3A42/read', { method: 'PATCH' });
+    const ctx = { params: Promise.resolve({ path: ['a:42', 'read'] }) };
+    const res = await PATCH(req, ctx);
+    expect(res.status).toBe(401);
+    expect(res.headers.get('cache-control')).toMatch(/no-store/);
+  });
+
+  it('inoltra al backend gli identificativi tipizzati senza perderli', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: { id: 'a:42', marked: true } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { PATCH } = await import('@/app/api/notifications/[...path]/route');
+    const req = makeRequest('/api/notifications/a%3A42/read', {
+      method: 'PATCH',
+      cookie: VALID_COOKIE,
+    });
+    const ctx = { params: Promise.resolve({ path: ['a:42', 'read'] }) };
+    const res = await PATCH(req, ctx);
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://auction-api.test/notifications/a:42/read',
+      expect.objectContaining({ method: 'PATCH' }),
+    );
+  });
 });
 
 // ─── /api/saved-auctions ─────────────────────────────────────────────────────

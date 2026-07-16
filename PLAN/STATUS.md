@@ -20,6 +20,7 @@ Questo file dice all'agente *quali piani sono già stati eseguiti* senza dover l
 | 14 | Backend Scambi | **Implementazione e hardening deployati** (2026-07-15: sync, marketplace e auction sul tag `trade-hardening-final-20260715-0030`; saga/recovery, email outbox, privacy, rate limit S2S, Redis loopback, container non-root, pool DB limitati e scheduler privato verificati. EventBridge duplicato disabilitato; costo fisso aggiuntivo EUR 0/mese. Restano solo collaudo completo a due utenti e reconciler durante uno scambio attivo) |
 | 15 | Backend registrazione e verifica email | **Originale** (piano scritto 2026-07-13, non ancora eseguito) |
 | 16 | Asso Vision e inventario rapido | **In corso** (2026-07-14: prima verticale frontend/BFF completata — capture continua, una recognition per carta, review IndexedDB, costo protetto; pendono mapping `blueprint_id`, batch inventario e modello edge compatto) |
+| 19 | Rollout sicuro CardTrader in produzione | **Da eseguire** (implementazione e verifiche locali completate; restano preparazione release, backup, staging, migrazioni, deploy passivo, canary, apertura progressiva e monitoraggio) |
 
 ## Legenda
 

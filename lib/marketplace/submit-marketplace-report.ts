@@ -12,7 +12,10 @@ export async function submitMarketplaceReport(payload: MarketplaceReportPayload)
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      idempotencyKey: crypto.randomUUID(),
+    }),
     cache: 'no-store',
   });
 
