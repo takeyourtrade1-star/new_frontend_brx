@@ -8,6 +8,7 @@ import {
   CircleDollarSign, ShieldCheck,
   ArrowRightLeft, Scale, Package, TrendingUp, X, Mail,
   CheckCircle2, ArrowLeft, BellRing, Users,
+  ArrowRight, ScanLine,
 } from 'lucide-react';
 import { getCdnImageUrl } from '@/lib/config';
 import { TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
@@ -559,6 +560,38 @@ export function LandingWelcome() {
                 </div>
               </Link>
             </div>
+
+            <Link
+              href="/scanner"
+              aria-label={t('landing.assoVision.aria')}
+              className="bento-entry group relative mt-4 flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-[#FF7300]/25 bg-[#1D3160]/75 px-4 py-3.5 shadow-[0_12px_35px_-22px_rgba(255,115,0,0.8)] backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-[#FF7300]/45 hover:bg-[#1D3160]/90 sm:gap-4 sm:px-5"
+              style={{ animationDelay: '260ms' }}
+            >
+              <span
+                aria-hidden
+                className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#FFB066] via-[#FF7300] to-[#E65300]"
+              />
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#FF7300]/25 bg-[#FF7300]/15 text-[#FF9A47] transition-transform duration-300 group-hover:scale-105 sm:h-12 sm:w-12">
+                <ScanLine className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2} />
+              </span>
+
+              <span className="min-w-0 flex-1">
+                <span className="block text-[9px] font-bold uppercase tracking-[0.18em] text-[#FF9A47]">
+                  {t('landing.assoVision.eyebrow')}
+                </span>
+                <span className="mt-0.5 block text-sm font-black text-white sm:text-base">
+                  {t('landing.assoVision.title')}
+                </span>
+                <span className="mt-0.5 hidden text-xs leading-relaxed text-white/55 sm:block">
+                  {t('landing.assoVision.body')}
+                </span>
+              </span>
+
+              <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#FF7300] px-3 py-2 text-[10px] font-black uppercase tracking-wide text-[#1A0F08] transition-colors group-hover:bg-[#FF8A2B] sm:px-4 sm:text-[11px]">
+                {t('landing.assoVision.cta')}
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </Link>
 
           </div>
         </section>
