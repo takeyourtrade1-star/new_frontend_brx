@@ -204,9 +204,12 @@ export function NotificationBell() {
               Nessuna notifica.
             </div>
           ) : (
-            <ul className="max-h-[24rem] divide-y divide-gray-100 overflow-y-auto">
+            <ul className="max-h-[24rem] divide-y divide-gray-300 overflow-y-auto">
               {items.map((n) => {
                 const href = getDeepLink(n);
+                const typeLabel = TYPE_LABEL[n.type] ?? n.type;
+                const showTypeLabel =
+                  typeLabel.trim().localeCompare(n.title.trim(), undefined, { sensitivity: 'base' }) !== 0;
                 const Inner = (
                   <div
                     className={cn(
@@ -215,10 +218,12 @@ export function NotificationBell() {
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#FF7300]">
-                        {TYPE_LABEL[n.type] ?? n.type}
-                      </span>
-                      <span className="text-[10px] text-gray-500">{formatRelative(n.created_at, intlLocale)}</span>
+                      {showTypeLabel ? (
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-[#FF7300]">
+                          {typeLabel}
+                        </span>
+                      ) : null}
+                      <span className="ml-auto text-[10px] text-gray-500">{formatRelative(n.created_at, intlLocale)}</span>
                     </div>
                     <span className="line-clamp-2 text-sm font-semibold text-gray-900">{n.title}</span>
                     <span className="line-clamp-2 text-xs text-gray-600">{n.body}</span>
