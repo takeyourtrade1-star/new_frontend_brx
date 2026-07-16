@@ -1,7 +1,7 @@
 # Piano 19 — Rollout sicuro CardTrader in produzione
 
 > Stato: **in esecuzione, un passo alla volta**.
-> Fasi 1, 2 e 3 completate. Fase 4 pronta ma non ancora avviata.
+> Fasi 1, 2, 3 e 4 completate. Fase 5 pronta in sola lettura.
 
 ## Obiettivo
 
@@ -29,10 +29,10 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 
 ### Esito locale del 2026-07-16
 
-- Sync: commit `7bbbe2c`; 42 test verdi, Ruff e Compose verdi.
+- Sync: commit base `7bbbe2c` e correzione deploy `23d1ecb`; test isolati, Ruff e Compose verdi.
 - Marketplace: commit base `f6e6455` e correzione deploy `c79abb3`; test, Ruff e Compose verdi.
 - Frontend: commit `8aec798`; typecheck, lint, i18n, 285 test e build verdi.
-- Tag immagine previsto sync: `cardtrader-sync-20260716-7bbbe2c`; rollback codice: `c0720c4`.
+- Tag immagine sync: `cardtrader-sync-20260716-23d1ecb`; rollback codice: `c0720c4`.
 - Tag immagine previsto marketplace: `cardtrader-marketplace-20260716-c79abb3`; rollback codice: `3670068`.
 - Frontend: release `8aec798`; rollback codice: `7cd6dba`.
 - Migrazioni provate solo su PostgreSQL locale usa-e-getta: catena marketplace fino alla `011` e migrazione sync applicata due volte.
@@ -100,13 +100,26 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 
 ## Fase 4 — Deploy passivo in produzione
 
-- [ ] Impostare `CARDTRADER_WRITES_ENABLED=false`.
-- [ ] Applicare le migrazioni nell'ordine già provato in staging.
-- [ ] Rilasciare marketplace, sync, worker e frontend.
-- [ ] Verificare healthcheck, code, log, endpoint e versione effettivamente attiva.
-- [ ] Provare il kill switch senza effettuare scritture reali.
+- [x] Impostare `CARDTRADER_WRITES_ENABLED=false`.
+- [x] Applicare le migrazioni nell'ordine già provato in staging.
+- [x] Rilasciare marketplace, sync, worker e frontend.
+- [x] Verificare healthcheck, code, log, endpoint e versione effettivamente attiva.
+- [x] Provare il kill switch senza effettuare scritture reali.
 
-**Gate:** servizi sani e zero scritture verso CardTrader.
+**Gate:** superato; servizi sani e zero scritture verso CardTrader.
+
+### Esito produzione passiva del 2026-07-16
+
+- Marketplace aggiornato alla migrazione `011_listing_quantity_check` con immagine `cardtrader-marketplace-20260716-c79abb3`.
+- Sync API e worker aggiornati all'immagine `cardtrader-sync-20260716-23d1ecb`; la migrazione SQL è risultata idempotente.
+- Il vecchio worker Marketplace è stato rimosso; l'outbox è gestito solo dal worker Sync.
+- Il frontend CardTrader `8aec798` era già incluso nel `main` live `1e56c84`; build Amplify `504` riuscita.
+- Kill switch verificato dentro API Sync, worker Sync e Marketplace: sempre bloccante.
+- Coda REAL, outbox e webhook inbox: `0`. Nessun traceback o errore critico nei log del deploy.
+- Policy Sync: `5 demo`, tutte con scritture disattivate. Marketplace: `5 demo`, `1 partial`, tutte con scritture disattivate.
+- Quantità negative inventario e listing: `0`. Le quantità riservate restano separate da quelle disponibili come previsto dall'escrow.
+- Database principale e i due snapshot risultano ancora `available`; nessun database, snapshot o volume è stato eliminato.
+- La scansione ECR segnala CVE critiche nei pacchetti base Debian `glibc` e `perl-base`. Nessuna scrittura reale viene aperta finché il rischio non è ridotto o formalmente accettato.
 
 ## Fase 5 — Collaudo in sola lettura
 
@@ -118,6 +131,12 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 - [ ] Verificare REAL con kill switch attivo: scritture bloccate correttamente.
 
 **Gate:** due export completi consecutivi coerenti e nessun drift inspiegato.
+
+### Blocco prima del canary reale
+
+- [ ] Ridurre i pacchetti runtime e rivalutare le CVE delle immagini base.
+- [ ] Rieseguire la scansione ECR e documentare le sole eccezioni residue.
+- [ ] Non avviare la Fase 6 finché questo blocco non è chiuso.
 
 ## Fase 6 — Canary reale controllato
 
