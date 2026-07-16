@@ -23,7 +23,7 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 - [x] Separare le modifiche CardTrader da quelle non collegate.
 - [x] Creare un commit dedicato per frontend, sync e marketplace.
 - [x] Rieseguire tutte le suite, lint, typecheck e build sulle revisioni da rilasciare.
-- [ ] Salvare hash dei commit, tag immagini e versione precedente per il rollback.
+- [x] Salvare hash dei commit, tag immagini e versione precedente per il rollback.
 
 **Gate:** tre revisioni pulite, riproducibili e tutte verdi.
 
@@ -32,9 +32,11 @@ Ogni fase ha un controllo finale: se non passa, ci si ferma e si torna allo stat
 - Sync: commit `7bbbe2c`; 42 test verdi, Ruff e Compose verdi.
 - Marketplace: commit `f6e6455`; 19 test verdi, Ruff e Compose verdi.
 - Frontend: commit `8aec798`; typecheck, lint, i18n, 285 test e build verdi.
+- Tag immagine previsto sync: `cardtrader-sync-20260716-7bbbe2c`; rollback codice: `c0720c4`.
+- Tag immagine previsto marketplace: `cardtrader-marketplace-20260716-f6e6455`; rollback codice: `3670068`.
+- Frontend: release `8aec798`; rollback codice: `7cd6dba`.
 - Migrazioni provate solo su PostgreSQL locale usa-e-getta: catena marketplace fino alla `011` e migrazione sync applicata due volte.
 - Nessun push, deploy, accesso al database di produzione o scrittura reale CardTrader.
-- Restano da definire tag delle immagini e revisioni esatte di rollback prima del deploy.
 
 ## Fase 2 — Backup e fotografia della produzione
 
