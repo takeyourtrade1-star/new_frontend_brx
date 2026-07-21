@@ -2317,6 +2317,8 @@ export const en = {
   'search.thAuction': 'AUCTION',
   'search.thTrades': 'TRADES',
   'search.noResults': 'No results. Try different filters or search terms.',
+  'search.showSimilar': 'Show similar results',
+  'search.similarResults': 'Similar results',
   'search.noImage': 'No img',
   'search.fromPrice': 'FROM – €',
   'search.prevPage': 'Previous page',

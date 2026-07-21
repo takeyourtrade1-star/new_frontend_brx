@@ -2308,6 +2308,8 @@ export const de: Record<MessageKey, string> = {
   'search.thAuction': 'AUKTION',
   'search.thTrades': 'TAUSCH',
   'search.noResults': 'Keine Ergebnisse. Filter oder Suchbegriff ändern.',
+  'search.showSimilar': 'Ähnliche Ergebnisse anzeigen',
+  'search.similarResults': 'Ähnliche Ergebnisse',
   'search.noImage': 'Kein Bild',
   'search.fromPrice': 'AB – €',
   'search.prevPage': 'Vorherige Seite',

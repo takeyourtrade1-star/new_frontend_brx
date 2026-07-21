@@ -2309,6 +2309,8 @@ export const fr: Record<MessageKey, string> = {
   'search.thAuction': 'ENCHÈRE',
   'search.thTrades': 'ÉCHANGES',
   'search.noResults': 'Aucun résultat. Modifiez filtres ou recherche.',
+  'search.showSimilar': 'Afficher les résultats similaires',
+  'search.similarResults': 'Résultats similaires',
   'search.noImage': 'Pas d’img',
   'search.fromPrice': 'À PARTIR DE – €',
   'search.prevPage': 'Page précédente',

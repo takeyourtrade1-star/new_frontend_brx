@@ -16,7 +16,12 @@ export const FRONTEND_TO_DB_SLUG: Record<string, string> = {
 };
 
 /** Costruisce URL pagina risultati; game in query = slug DB (per /api/search e Meilisearch). */
-export function buildSearchUrl(q: string, game?: GameSlug | null, categoryKey?: CategoryKey | null): string {
+export function buildSearchUrl(
+  q: string,
+  game?: GameSlug | null,
+  categoryKey?: CategoryKey | null,
+  exactMode = false,
+): string {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
   if (game) {
@@ -26,6 +31,9 @@ export function buildSearchUrl(q: string, game?: GameSlug | null, categoryKey?: 
   const normalizedCategory = normalizeCategoryKey(categoryKey);
   if (normalizedCategory && normalizedCategory !== 'all') {
     params.set('category_key', normalizedCategory);
+  }
+  if (exactMode && q.trim()) {
+    params.set('exact_mode', 'true');
   }
   return `/search?${params.toString()}`;
 }
@@ -63,7 +71,8 @@ export function searchResultsPath(
   game?: GameSlug | null,
   categoryKey?: CategoryKey | null,
   sellFlowActive = false,
+  exactMode = false,
 ): string {
-  const url = buildSearchUrl(q, game, categoryKey);
+  const url = buildSearchUrl(q, game, categoryKey, exactMode);
   return sellFlowActive ? withSellFlow(url) : url;
 }

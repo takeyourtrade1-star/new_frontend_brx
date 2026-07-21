@@ -18,6 +18,8 @@ export interface SearchParams {
   page?: number;
   limit?: number;
   sort?: string;
+  exact_mode?: boolean;
+  show_similar?: boolean;
 }
 
 function toSearchUrl(params: SearchParams): string {
@@ -33,6 +35,8 @@ function toSearchUrl(params: SearchParams): string {
   if (params.page != null) sp.set('page', String(params.page));
   if (params.limit != null) sp.set('limit', String(params.limit));
   if (params.sort) sp.set('sort', params.sort);
+  if (params.exact_mode) sp.set('exact_mode', 'true');
+  if (params.show_similar) sp.set('show_similar', 'true');
   return `/api/search?${sp.toString()}`;
 }
 

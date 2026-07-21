@@ -60,7 +60,7 @@ export function SearchResultsDropdown({
 }) {
   const router = useRouter();
   const { query, isSearchStalled } = useSearchBox();
-  const { hits } = useHits();
+  const { hits } = useHits<CardSearchHit>();
   const [inlinePreview, setInlinePreview] = useState<{
     url: string;
     name: string;
@@ -124,6 +124,10 @@ export function SearchResultsDropdown({
   };
 
   const hasHits = hits.length > 0;
+  const queryNorm = (query ?? '').trim().toLowerCase();
+  const hasExactMatch = Boolean(queryNorm) && hits.some(
+    (hit) => (hit.name ?? '').trim().toLowerCase() === queryNorm
+  );
   const previewColumnRect = categoryColumnRef.current?.getBoundingClientRect();
   const inlinePreviewLayout =
     inlinePreview && previewColumnRect
@@ -179,7 +183,9 @@ export function SearchResultsDropdown({
               if (!q) return;
               const active = document.activeElement;
               if (active instanceof HTMLElement) active.blur();
-              router.push(searchResultsPath(q, gameSlug, productCategory, sellFlowActive));
+              router.push(
+                searchResultsPath(q, gameSlug, productCategory, sellFlowActive, hasExactMatch)
+              );
               onSelect();
             }}
             className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] hover:bg-[#EEEEEE] transition-colors"

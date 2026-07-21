@@ -2308,6 +2308,8 @@ export const pt: Record<MessageKey, string> = {
   'search.thAuction': 'LEILÃO',
   'search.thTrades': 'TROCAS',
   'search.noResults': 'Sem resultados. Altere filtros ou termos.',
+  'search.showSimilar': 'Mostrar resultados semelhantes',
+  'search.similarResults': 'Resultados semelhantes',
   'search.noImage': 'Sem img',
   'search.fromPrice': 'DESDE – €',
   'search.prevPage': 'Página anterior',

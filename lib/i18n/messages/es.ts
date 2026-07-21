@@ -2308,6 +2308,8 @@ export const es: Record<MessageKey, string> = {
   'search.thAuction': 'SUBASTA',
   'search.thTrades': 'INTERCAMBIOS',
   'search.noResults': 'Sin resultados. Prueba otros filtros o términos.',
+  'search.showSimilar': 'Mostrar resultados similares',
+  'search.similarResults': 'Resultados similares',
   'search.noImage': 'Sin img',
   'search.fromPrice': 'DESDE – €',
   'search.prevPage': 'Página anterior',

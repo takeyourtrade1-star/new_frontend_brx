@@ -2321,6 +2321,8 @@ export const it: Record<MessageKey, string> = {
   'search.thAuction': 'ASTA',
   'search.thTrades': 'SCAMBI',
   'search.noResults': 'Nessun risultato. Prova a cambiare filtri o termine di ricerca.',
+  'search.showSimilar': 'Mostra risultati simili',
+  'search.similarResults': 'Risultati simili',
   'search.noImage': 'No img',
   'search.fromPrice': 'DA – €',
   'search.prevPage': 'Pagina precedente',

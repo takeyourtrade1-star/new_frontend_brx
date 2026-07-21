@@ -97,6 +97,11 @@ export function normalizeSort(raw: string | null | undefined): string {
   return ALLOWED_SORTS.has(value) ? value : 'name_asc';
 }
 
+/** Booleano: accetta solo la stringa letterale "true". */
+export function normalizeBoolean(raw: string | null | undefined): boolean {
+  return raw?.trim() === 'true';
+}
+
 /**
  * Parsa una lista "1,2,3" di category_id: solo interi positivi, deduplicati,
  * troncata a MAX_CATEGORY_IDS per evitare filtri enormi (`IN [...]`).

@@ -60,6 +60,16 @@ describe('Search request normalizations', () => {
     });
   });
 
+  describe('normalizeBoolean', () => {
+    it('accepts only the literal true value', () => {
+      expect(searchUtils.normalizeBoolean('true')).toBe(true);
+      expect(searchUtils.normalizeBoolean(' true ')).toBe(true);
+      expect(searchUtils.normalizeBoolean('TRUE')).toBe(false);
+      expect(searchUtils.normalizeBoolean('1')).toBe(false);
+      expect(searchUtils.normalizeBoolean(null)).toBe(false);
+    });
+  });
+
   describe('normalizeCategoryIds', () => {
     it('filters, deduplicates, and limits category IDs', () => {
       const raw = '1,2,2,3,invalid,9999999,10';
@@ -109,6 +119,76 @@ describe('Route: GET /api/search', () => {
     expect(data.total).toBe(1);
     expect(data.page).toBe(1);
     expect(data.limit).toBe(10);
+    expect(data).not.toHaveProperty('hasExactMatch');
+    expect(data).not.toHaveProperty('exactHits');
+    expect(data).not.toHaveProperty('similarHits');
+  });
+
+  it('returns only additive exact-match metadata when exact mode is active', async () => {
+    const mockHits = [
+      { id: 'mtg_1', name: 'Black Lotus', game_slug: 'mtg', category_id: 1, set_name: 'Alpha' },
+      { id: 'mtg_2', name: ' black lotus ', game_slug: 'mtg', category_id: 1, set_name: 'Beta' },
+      { id: 'mtg_3', name: 'Blacker Lotus', game_slug: 'mtg', category_id: 1, set_name: 'Custom' },
+    ];
+    vi.mocked(searchUtils.fetchMeiliWithTimeout).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ hits: mockHits, estimatedTotalHits: mockHits.length }),
+    } as Response);
+
+    const req = new NextRequest(
+      'http://localhost:3000/api/search?q=BLACK%20LOTUS&exact_mode=true'
+    );
+    const res = await searchGET(req);
+    const data = await res.json();
+
+    expect(data.hits).toEqual(mockHits);
+    expect(data.hasExactMatch).toBe(true);
+    expect(data.exactHits).toEqual(mockHits.slice(0, 2));
+    expect(data).not.toHaveProperty('similarHits');
+  });
+
+  it('returns fuzzy hits separately only when show_similar is active', async () => {
+    const exactHit = { id: 'mtg_1', name: 'Black Lotus' };
+    const fuzzyHit = { id: 'mtg_2', name: 'Blacker Lotus' };
+    vi.mocked(searchUtils.fetchMeiliWithTimeout).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ hits: [exactHit, fuzzyHit], estimatedTotalHits: 2 }),
+    } as Response);
+
+    const req = new NextRequest(
+      'http://localhost:3000/api/search?q=Black%20Lotus&exact_mode=true&show_similar=true'
+    );
+    const res = await searchGET(req);
+    const data = await res.json();
+
+    expect(data.hasExactMatch).toBe(true);
+    expect(data.exactHits).toEqual([exactHit]);
+    expect(data.similarHits).toEqual([fuzzyHit]);
+  });
+
+  it('keeps the full hit list usable when exact mode finds no exact name', async () => {
+    const mockHits = [
+      { id: 'mtg_1', name: 'Black Lotus' },
+      { id: 'mtg_2', name: 'Blacker Lotus' },
+    ];
+    vi.mocked(searchUtils.fetchMeiliWithTimeout).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ hits: mockHits, estimatedTotalHits: 2 }),
+    } as Response);
+
+    const req = new NextRequest(
+      'http://localhost:3000/api/search?q=Black%20Lot&exact_mode=true'
+    );
+    const res = await searchGET(req);
+    const data = await res.json();
+
+    expect(data.hits).toEqual(mockHits);
+    expect(data.hasExactMatch).toBe(false);
+    expect(data.exactHits).toEqual([]);
+    expect(data).not.toHaveProperty('similarHits');
   });
 
   it('falls back to search without sort if Meilisearch returns 400', async () => {

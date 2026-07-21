@@ -112,6 +112,8 @@ export function SearchResults({
     hasMounted ? t(key, vars) : getMessage(DEFAULT_LOCALE, key, vars);
   const searchParams = useSearchParams();
   const q = (searchParams.get('q') ?? initialQuery ?? '').trim();
+  const isExactMode = searchParams.get('exact_mode') === 'true';
+  const [showSimilar, setShowSimilar] = useState(false);
   const game = searchParams.get('game') ?? initialGame ?? '';
   const setFilter = searchParams.get('set') ?? '';
   const categoryIdLegacy = searchParams.get('category_id') ?? '';
@@ -163,12 +165,18 @@ export function SearchResults({
     page: pageParam,
     limit: 20,
     sort: sortParam,
+    exact_mode: isExactMode,
+    show_similar: isExactMode && showSimilar,
   });
   const error = queryError
     ? queryError instanceof Error
       ? queryError.message
       : t('search.httpError', { status: 0 })
     : null;
+
+  useEffect(() => {
+    setShowSimilar(false);
+  }, [q, isExactMode]);
 
   // Garantiamo che non resti uno "scroll lock" sporco da route precedenti.
   useEffect(() => {
@@ -196,7 +204,9 @@ export function SearchResults({
   }, [viewMode]);
 
   const total = data?.total ?? 0;
-  const hits = data?.hits ?? [];
+  const hasExactResult = isExactMode && data?.hasExactMatch === true;
+  const primaryHits = hasExactResult ? (data.exactHits ?? []) : (data?.hits ?? []);
+  const similarHits = hasExactResult && showSimilar ? (data?.similarHits ?? []) : [];
   const currentPage = data?.page ?? 1;
   const totalPages = data?.totalPages ?? 1;
 
@@ -256,6 +266,82 @@ export function SearchResults({
     document.documentElement.style.overflow = 'auto';
   }, [imagePreviewModalOpen]);
 
+  const renderHits = (resultHits: SearchHit[]) => {
+    if (viewMode === 'list') {
+      return (
+        <SearchResultsTable
+          hits={resultHits}
+          selectedLang={selectedLang}
+          gameSlug={gameSlug}
+          t={t}
+          editionVariant="icon"
+          onImagePreviewOpenChange={setImagePreviewModalOpen}
+          buildProductHref={sellFlow ? productHrefBuilder : undefined}
+        />
+      );
+    }
+
+    return (
+      <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {resultHits.map((hit) => {
+          const imgUrl = getCardImageUrl(hit.image ?? null);
+          const { primary, secondary } = getDisplayNames(hit, selectedLang);
+          const setName = hit.set_name ?? '';
+          const setPageGame = resolveSetPageGameSlug(hit.game_slug, gameSlug);
+          const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
+          return (
+            <div
+              key={hit.id}
+              className="group relative border border-gray-200 bg-white p-3 hover:border-[#FF7300] hover:shadow-sm transition-all"
+            >
+              <Link href={productHrefBuilder(hit.id)} className="block">
+                <div className="relative aspect-[63/88] overflow-hidden bg-gray-100 mb-2">
+                  {imgUrl ? (
+                    <Image
+                      src={imgUrl}
+                      alt={primary}
+                      fill
+                      className="object-contain group-hover:scale-105 transition-transform"
+                      sizes="(max-width:640px) 50vw, 20vw"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                      {t('search.noImage')}
+                    </div>
+                  )}
+                </div>
+                <p className="font-medium text-gray-900 text-sm line-clamp-2">{primary}</p>
+                {secondary && (
+                  <p className="text-xs text-gray-500 line-clamp-1">{secondary}</p>
+                )}
+                {setName && (
+                  <p className="text-[11px] text-gray-400 line-clamp-1 mt-0.5" title={setName}>{setName}</p>
+                )}
+                <p className="text-[#FF7300] font-semibold text-sm mt-1">{t('search.fromPrice')}</p>
+              </Link>
+              {setPageHref && (setName || hit.set_code) && (
+                <Link
+                  href={setPageHref}
+                  title={setName}
+                  aria-label={setName ? `Set: ${setName}` : 'Set'}
+                  className="absolute top-3 right-3 flex items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  <SetIconBadge
+                    setIconUri={hit.set_icon_uri}
+                    setCode={hit.set_code}
+                    setName={setName}
+                    gameSlug={hit.game_slug}
+                    imageClassName="h-9 w-9 object-contain"
+                  />
+                </Link>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <RarityLegendProvider>
     <section className="pb-12" style={{ backgroundColor: '#F5F4F0' }}>
@@ -273,7 +359,7 @@ export function SearchResults({
         </h1>
         <div className="mb-6" /> */}
 
-        {!loading && !error && hits.length > 0 && (
+        {!loading && !error && primaryHits.length > 0 && (
           <SearchResultsToolbar
             className="mb-3"
             total={total}
@@ -288,7 +374,7 @@ export function SearchResults({
 
         {/* Contenuto: lista o griglia */}
         <div className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm search-results-card">
-          {!loading && !error && hits.length === 0 && (
+          {!loading && !error && primaryHits.length === 0 && (
             <div className="px-4 py-2 border-b border-gray-100 bg-white md:hidden">
               <p className="text-xs font-semibold text-gray-700">
                 <strong className="tabular-nums">{total}</strong> {t('search.results')}
@@ -303,78 +389,31 @@ export function SearchResults({
           {loading && (
             <div className="p-12 text-center text-gray-500">{t('search.loading')}</div>
           )}
-          {!loading && !error && hits.length === 0 && (
+          {!loading && !error && primaryHits.length === 0 && (
             <div className="p-12 text-center text-gray-500">{t('search.noResults')}</div>
           )}
-          {!loading && !error && hits.length > 0 && viewMode === 'list' && (
-            <SearchResultsTable
-              hits={hits}
-              selectedLang={selectedLang}
-              gameSlug={gameSlug}
-              t={t}
-              editionVariant="icon"
-              onImagePreviewOpenChange={setImagePreviewModalOpen}
-              buildProductHref={sellFlow ? productHrefBuilder : undefined}
-            />
-          )}
-          {!loading && !error && hits.length > 0 && viewMode === 'grid' && (
-            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {hits.map((hit) => {
-                const imgUrl = getCardImageUrl(hit.image ?? null);
-                const { primary, secondary } = getDisplayNames(hit, selectedLang);
-                const setName = hit.set_name ?? '';
-                const setPageGame = resolveSetPageGameSlug(hit.game_slug, gameSlug);
-                const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
-                return (
-                  <div
-                    key={hit.id}
-                    className="group relative border border-gray-200 bg-white p-3 hover:border-[#FF7300] hover:shadow-sm transition-all"
-                  >
-                    <Link href={productHrefBuilder(hit.id)} className="block">
-                      <div className="relative aspect-[63/88] overflow-hidden bg-gray-100 mb-2">
-                        {imgUrl ? (
-                          <Image
-                            src={imgUrl}
-                            alt={primary}
-                            fill
-                            className="object-contain group-hover:scale-105 transition-transform"
-                            sizes="(max-width:640px) 50vw, 20vw"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                            {t('search.noImage')}
-                          </div>
-                        )}
-                      </div>
-                      <p className="font-medium text-gray-900 text-sm line-clamp-2">{primary}</p>
-                      {secondary && (
-                        <p className="text-xs text-gray-500 line-clamp-1">{secondary}</p>
-                      )}
-                      {setName && (
-                        <p className="text-[11px] text-gray-400 line-clamp-1 mt-0.5" title={setName}>{setName}</p>
-                      )}
-                      <p className="text-[#FF7300] font-semibold text-sm mt-1">{t('search.fromPrice')}</p>
-                    </Link>
-                    {setPageHref && (setName || hit.set_code) && (
-                      <Link
-                        href={setPageHref}
-                        title={setName}
-                        aria-label={setName ? `Set: ${setName}` : 'Set'}
-                        className="absolute top-3 right-3 flex items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
-                      >
-                        <SetIconBadge
-                          setIconUri={hit.set_icon_uri}
-                          setCode={hit.set_code}
-                          setName={setName}
-                          gameSlug={hit.game_slug}
-                          imageClassName="h-9 w-9 object-contain"
-                        />
-                      </Link>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+          {!loading && !error && primaryHits.length > 0 && renderHits(primaryHits)}
+
+          {!loading && !error && hasExactResult && !showSimilar &&
+            (data?.similarHits === undefined || data.similarHits.length > 0) && (
+              <div className="flex justify-center border-t border-gray-100 px-4 py-6">
+                <button
+                  type="button"
+                  onClick={() => setShowSimilar(true)}
+                  className="rounded-lg border border-gray-300 px-6 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  {t('search.showSimilar')}
+                </button>
+              </div>
+            )}
+
+          {!loading && !error && hasExactResult && showSimilar && similarHits.length > 0 && (
+            <>
+              <h2 className="border-t border-gray-100 px-4 pb-1 pt-6 text-sm font-medium text-gray-500">
+                {t('search.similarResults')}
+              </h2>
+              {renderHits(similarHits)}
+            </>
           )}
 
           {/* Paginazione */}

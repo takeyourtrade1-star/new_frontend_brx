@@ -1,6 +1,6 @@
 /**
  * API Route: ricerca su Meilisearch (server-side, niente CORS, niente chiavi nel browser).
- * GET /api/search?q=...&game=mtg&set=...&category_id=...&category_ids=1,2,3&page=1&limit=20&sort=...
+ * GET /api/search?q=...&game=mtg&set=...&category_id=...&category_ids=1,2,3&page=1&limit=20&sort=...&exact_mode=true&show_similar=true
  *
  * Le credenziali Meilisearch arrivano da getMeilisearchServerConfig() (variabili
  * server-only: MEILISEARCH_URL / MEILISEARCH_API_KEY / MEILISEARCH_INDEX — mai
@@ -18,6 +18,7 @@ import {
   MeiliFetchError,
   escapeMeiliFilterValue,
   fetchMeiliWithTimeout,
+  normalizeBoolean,
   normalizeCategoryId,
   normalizeCategoryIds,
   normalizeGameSlug,
@@ -58,6 +59,10 @@ export interface SearchApiResponse {
   page: number;
   limit: number;
   totalPages: number;
+  /** Campi addizionali presenti solo quando exact_mode=true e la query non è vuota. */
+  hasExactMatch?: boolean;
+  exactHits?: SearchHit[];
+  similarHits?: SearchHit[];
 }
 
 const SEARCH_ATTRIBUTES_TO_RETRIEVE = [
@@ -139,6 +144,8 @@ export async function GET(request: NextRequest) {
   const page = normalizePage(searchParams.get('page'));
   const limit = normalizeLimit(searchParams.get('limit'));
   const sortBy = normalizeSort(searchParams.get('sort'));
+  const exactMode = normalizeBoolean(searchParams.get('exact_mode'));
+  const showSimilar = normalizeBoolean(searchParams.get('show_similar'));
 
   const offset = (page - 1) * limit;
   const filterParts = buildFilter(game, set, categoryId, categoryIds);
@@ -187,6 +194,17 @@ export async function GET(request: NextRequest) {
     const total =
       typeof data.estimatedTotalHits === 'number' ? data.estimatedTotalHits : hits.length;
     const totalPages = Math.ceil(total / limit) || 1;
+    const qNorm = q.trim().toLowerCase();
+
+    let exactHits: SearchHit[] | undefined;
+    let similarHits: SearchHit[] | undefined;
+    let hasExactMatch: boolean | undefined;
+
+    if (exactMode && qNorm) {
+      exactHits = hits.filter((hit) => hit.name.trim().toLowerCase() === qNorm);
+      similarHits = hits.filter((hit) => hit.name.trim().toLowerCase() !== qNorm);
+      hasExactMatch = exactHits.length > 0;
+    }
 
     const response: SearchApiResponse = {
       hits,
@@ -194,6 +212,11 @@ export async function GET(request: NextRequest) {
       page,
       limit,
       totalPages,
+      ...(exactMode && {
+        hasExactMatch,
+        exactHits,
+        similarHits: showSimilar ? similarHits : undefined,
+      }),
     };
 
     return NextResponse.json(response, {
