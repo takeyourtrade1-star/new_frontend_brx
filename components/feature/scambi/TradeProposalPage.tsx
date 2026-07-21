@@ -4,11 +4,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  ArrowLeftRight,
   ArrowRight,
   Check,
   Loader2,
   LockKeyhole,
+  MapPin,
+  Search,
   Send,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -23,7 +27,7 @@ import {
   type TradeProposalContext,
 } from '@/lib/scambi/trade-proposal-context';
 import type { TradeAddress, TradeItemInput } from '@/types/trade';
-import { ScambiShell, TradeCardThumb, scambiGlass } from './ScambiShell';
+import { ScambiShell, TradeCardThumb, scambiGlass, scambiGlassLight } from './ScambiShell';
 
 type ProposalStep = 'cards' | 'address' | 'review';
 type StepDirection = 'forward' | 'backward';
@@ -95,7 +99,13 @@ function ItemPicker({ title, empty, items, selected, locked, onChange }: {
   onChange: (next: Record<string, number>) => void;
 }) {
   const { t } = useTranslation();
+  const [filter, setFilter] = useState('');
   const selectedCount = Object.values(selected).reduce((sum, quantity) => sum + quantity, 0);
+  const visibleItems = useMemo(() => {
+    const query = filter.trim().toLocaleLowerCase();
+    if (!query) return items;
+    return items.filter((item) => `${item.name} ${item.setName ?? ''}`.toLocaleLowerCase().includes(query));
+  }, [filter, items]);
   const toggle = (item: PickerItem) => {
     if (locked?.has(item.id)) return;
     const next = { ...selected };
@@ -104,18 +114,33 @@ function ItemPicker({ title, empty, items, selected, locked, onChange }: {
   };
 
   return (
-    <section className="overflow-hidden rounded-[1.3rem] border border-white/10 bg-[#09152E]/28 backdrop-blur-lg">
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-white">{title}</h2>
-          <p className="mt-0.5 text-[11px] font-semibold text-white/40">{t('trades.availableCount', { count: items.length })}</p>
+    <section className="overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#08152D]/72 shadow-[0_16px_40px_rgba(3,9,24,0.16)] backdrop-blur-lg">
+      <div className="border-b border-white/10 px-4 py-4 sm:px-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-black tracking-wide text-white">{title}</h2>
+            <p className="mt-0.5 text-[11px] font-semibold text-white/40">{t('trades.availableCount', { count: items.length })}</p>
+          </div>
+          <span className={cn(
+            'rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide',
+            selectedCount ? 'bg-[#FF7300] text-white' : 'bg-white/10 text-white/40',
+          )} aria-live="polite" aria-atomic="true">
+            {t('trades.selectedCount', { count: selectedCount })}
+          </span>
         </div>
-        <span className={cn(
-          'rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide',
-          selectedCount ? 'bg-[#FF7300] text-white' : 'bg-white/10 text-white/40',
-        )} aria-live="polite" aria-atomic="true">
-          {t('trades.selectedCount', { count: selectedCount })}
-        </span>
+        {items.length > 5 && (
+          <label className="relative mt-3 block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" aria-hidden />
+            <span className="sr-only">{t('trades.filterCards')}</span>
+            <input
+              type="search"
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+              placeholder={t('trades.filterCards')}
+              className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.07] pl-9 pr-3 text-sm font-semibold text-white outline-none transition focus:border-orange-300/50 focus:bg-white/[0.1] focus:ring-2 focus:ring-orange-400/10 placeholder:text-white/30"
+            />
+          </label>
+        )}
       </div>
 
       {items.length === 0 ? (
@@ -123,8 +148,8 @@ function ItemPicker({ title, empty, items, selected, locked, onChange }: {
           <p className="max-w-xs text-sm font-semibold text-white/45">{empty}</p>
         </div>
       ) : (
-        <div className="max-h-[430px] space-y-2 overflow-y-auto p-3 sm:p-4">
-          {items.map((item) => {
+        <div className="max-h-[470px] space-y-2 overflow-y-auto p-3 sm:p-4">
+          {visibleItems.map((item) => {
             const quantity = selected[item.id] ?? 0;
             const isSelected = quantity > 0;
             const isLocked = Boolean(locked?.has(item.id));
@@ -184,9 +209,90 @@ function ItemPicker({ title, empty, items, selected, locked, onChange }: {
               </div>
             );
           })}
+          {visibleItems.length === 0 && (
+            <div className="flex min-h-40 items-center justify-center px-5 text-center text-sm font-semibold text-white/45">
+              {t('trades.noCardsMatch')}
+            </div>
+          )}
         </div>
       )}
     </section>
+  );
+}
+
+function ProposalSummaryRail({
+  partner,
+  offeredItems,
+  requestedItems,
+  offered,
+  requested,
+  address,
+  validAddress,
+}: {
+  partner: string;
+  offeredItems: PickerItem[];
+  requestedItems: PickerItem[];
+  offered: Record<string, number>;
+  requested: Record<string, number>;
+  address: TradeAddress;
+  validAddress: boolean;
+}) {
+  const { t } = useTranslation();
+  const group = (label: string, items: PickerItem[], quantities: Record<string, number>) => (
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
+        <span className="text-xs font-black text-[#1D3160]">
+          {items.reduce((sum, item) => sum + (quantities[item.id] ?? 0), 0)}
+        </span>
+      </div>
+      {items.length ? (
+        <div className="mt-2 flex items-center">
+          <div className="flex -space-x-3">
+            {items.slice(0, 4).map((item) => (
+              <TradeCardThumb key={item.id} image={item.image} name={item.name} className="h-12 w-[35px] ring-2 ring-white" />
+            ))}
+          </div>
+          {items.length > 4 && <span className="ml-2 text-xs font-black text-slate-400">+{items.length - 4}</span>}
+        </div>
+      ) : (
+        <div className="mt-2 h-12 rounded-xl border border-dashed border-slate-200 bg-slate-50" />
+      )}
+    </div>
+  );
+
+  return (
+    <aside className={cn(scambiGlassLight, 'sticky top-5 rounded-[1.5rem] p-5')} aria-label={t('trades.proposalSummary')}>
+      <div className="border-b border-slate-100 pb-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#FF7300]">{t('trades.proposalSummary')}</p>
+        <p className="mt-1.5 truncate text-lg font-black text-[#162A55]">{partner}</p>
+      </div>
+      <div className="space-y-5 py-5">
+        {group(t('trades.youOffer'), offeredItems, offered)}
+        <div className="flex items-center gap-3" aria-hidden>
+          <span className="h-px flex-1 bg-slate-100" />
+          <ArrowLeftRight className="h-4 w-4 text-[#FF7300]" />
+          <span className="h-px flex-1 bg-slate-100" />
+        </div>
+        {group(t('trades.youReceive'), requestedItems, requested)}
+      </div>
+      <div className={cn(
+        'flex items-start gap-3 rounded-xl border p-3',
+        validAddress ? 'border-emerald-100 bg-emerald-50 text-emerald-800' : 'border-slate-100 bg-slate-50 text-slate-500',
+      )}>
+        <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-wide">{t('trades.yourShippingAddress')}</p>
+          <p className="mt-0.5 truncate text-xs font-semibold">
+            {validAddress ? `${address.city}, ${address.country}` : t('trades.addressMissing')}
+          </p>
+        </div>
+      </div>
+      <p className="mt-4 flex items-start gap-2 text-[11px] leading-relaxed text-slate-400">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden />
+        {t('trades.directOnly')}
+      </p>
+    </aside>
   );
 }
 
@@ -412,16 +518,16 @@ export function TradeProposalPage() {
 
   return (
     <ScambiShell>
-      <div className="container-content mx-auto max-w-6xl pb-20 pt-6 md:pt-8">
+      <div className="container-content mx-auto max-w-7xl pb-20 pt-6 md:pt-9">
         <button type="button" onClick={() => router.back()} className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-white/60 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40">
           <ArrowLeft className="h-4 w-4" /> {t('trades.back')}
         </button>
 
-        <section className={cn(scambiGlass, 'animate-in overflow-hidden rounded-[1.75rem] fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none')}>
-          <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-end lg:justify-between">
+        <section className={cn(scambiGlass, 'animate-in overflow-hidden rounded-[1.8rem] fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none')}>
+          <div className="flex flex-col gap-6 p-5 sm:p-7 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-xs font-bold text-white/55">{t('trades.withUser', { user: ctx.seller.name })}</p>
-              <h1 className="mt-2 text-2xl font-black uppercase tracking-tight text-white sm:text-3xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-200/70">{t('trades.withUser', { user: ctx.seller.name })}</p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">
                 {isCounter ? t('trades.counterTitle') : t('trades.proposeTitle')}
               </h1>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/65">{t('trades.proposalIntro')}</p>
@@ -463,7 +569,7 @@ export function TradeProposalPage() {
             </nav>
           </div>
 
-          <div className="border-t border-white/10 bg-[#071226]/14 p-4 sm:p-6">
+          <div className="border-t border-white/10 bg-[#050E20]/36 p-4 sm:p-6 lg:p-7">
             {(inventory.loading || publicCollection.isLoading) && (
               <div className="mb-4 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] p-3 text-sm text-white/60" role="status">
                 <Loader2 className="h-4 w-4 animate-spin text-[#FF8A26]" aria-hidden /> {t('trades.loadingInventory')}
@@ -485,7 +591,8 @@ export function TradeProposalPage() {
               </div>
             )}
 
-            <div ref={stepPanelRef} tabIndex={-1} className="outline-none">
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_330px]">
+            <div ref={stepPanelRef} tabIndex={-1} className="min-w-0 outline-none">
               {step === 'cards' && (
               <div className={cn('animate-in fade-in duration-300 motion-reduce:animate-none', stepMotionClass)}>
                 <div className="relative grid gap-4 md:grid-cols-2">
@@ -505,7 +612,7 @@ export function TradeProposalPage() {
                     type="button"
                     disabled={!steps[0].ready}
                     onClick={() => goToStep('address')}
-                    className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-xs font-black uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8A26]/60 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30 disabled:shadow-none motion-reduce:transform-none"
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF8A26] to-[#FF7300] px-5 py-3 text-xs font-black uppercase tracking-wide text-white shadow-lg shadow-orange-950/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8A26]/60 disabled:cursor-not-allowed disabled:bg-none disabled:bg-white/10 disabled:text-white/30 disabled:shadow-none motion-reduce:transform-none"
                   >
                     {t('trades.continue')} <ArrowRight className="h-4 w-4" />
                   </button>
@@ -515,7 +622,7 @@ export function TradeProposalPage() {
 
               {step === 'address' && (
               <form
-                className={cn('mx-auto max-w-3xl animate-in fade-in duration-300 motion-reduce:animate-none', stepMotionClass)}
+                className={cn('animate-in rounded-[1.4rem] border border-white/10 bg-[#08152D]/60 p-5 fade-in duration-300 motion-reduce:animate-none sm:p-6', stepMotionClass)}
                 onSubmit={(event) => {
                   event.preventDefault();
                   if (validAddress) goToStep('review');
@@ -560,7 +667,7 @@ export function TradeProposalPage() {
 
               {step === 'review' && (
               <form
-                className={cn('mx-auto max-w-4xl animate-in fade-in duration-300 motion-reduce:animate-none', stepMotionClass)}
+                className={cn('animate-in fade-in duration-300 motion-reduce:animate-none', stepMotionClass)}
                 onSubmit={(event) => {
                   event.preventDefault();
                   void submit();
@@ -623,6 +730,18 @@ export function TradeProposalPage() {
                 </div>
               </form>
               )}
+            </div>
+            <div className="hidden lg:block">
+              <ProposalSummaryRail
+                partner={ctx.seller.name}
+                offeredItems={selectedOfferedItems}
+                requestedItems={selectedRequestedItems}
+                offered={offered}
+                requested={requested}
+                address={address}
+                validAddress={validAddress}
+              />
+            </div>
             </div>
           </div>
         </section>
