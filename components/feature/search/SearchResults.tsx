@@ -207,6 +207,7 @@ export function SearchResults({
   const hasExactResult = isExactMode && data?.hasExactMatch === true;
   const primaryHits = hasExactResult ? (data.exactHits ?? []) : (data?.hits ?? []);
   const similarHits = hasExactResult && showSimilar ? (data?.similarHits ?? []) : [];
+  const visibleTotal = hasExactResult && !showSimilar ? primaryHits.length : total;
   const currentPage = data?.page ?? 1;
   const totalPages = data?.totalPages ?? 1;
 
@@ -362,7 +363,7 @@ export function SearchResults({
         {!loading && !error && primaryHits.length > 0 && (
           <SearchResultsToolbar
             className="mb-3"
-            total={total}
+            total={visibleTotal}
             sortParam={sortParam}
             sortOptions={sortOptions}
             viewMode={viewMode}
@@ -395,7 +396,7 @@ export function SearchResults({
           {!loading && !error && primaryHits.length > 0 && renderHits(primaryHits)}
 
           {!loading && !error && hasExactResult && !showSimilar &&
-            (data?.similarHits === undefined || data.similarHits.length > 0) && (
+            data?.hasSimilarMatch === true && (
               <div className="flex justify-center border-t border-gray-100 px-4 py-6">
                 <button
                   type="button"
@@ -417,7 +418,7 @@ export function SearchResults({
           )}
 
           {/* Paginazione */}
-          {!loading && !error && totalPages > 1 && (
+          {!loading && !error && totalPages > 1 && (!hasExactResult || showSimilar) && (
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}

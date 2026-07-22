@@ -120,6 +120,7 @@ describe('Route: GET /api/search', () => {
     expect(data.page).toBe(1);
     expect(data.limit).toBe(10);
     expect(data).not.toHaveProperty('hasExactMatch');
+    expect(data).not.toHaveProperty('hasSimilarMatch');
     expect(data).not.toHaveProperty('exactHits');
     expect(data).not.toHaveProperty('similarHits');
   });
@@ -144,6 +145,7 @@ describe('Route: GET /api/search', () => {
 
     expect(data.hits).toEqual(mockHits);
     expect(data.hasExactMatch).toBe(true);
+    expect(data.hasSimilarMatch).toBe(true);
     expect(data.exactHits).toEqual(mockHits.slice(0, 2));
     expect(data).not.toHaveProperty('similarHits');
   });
@@ -164,6 +166,7 @@ describe('Route: GET /api/search', () => {
     const data = await res.json();
 
     expect(data.hasExactMatch).toBe(true);
+    expect(data.hasSimilarMatch).toBe(true);
     expect(data.exactHits).toEqual([exactHit]);
     expect(data.similarHits).toEqual([fuzzyHit]);
   });
@@ -187,7 +190,31 @@ describe('Route: GET /api/search', () => {
 
     expect(data.hits).toEqual(mockHits);
     expect(data.hasExactMatch).toBe(false);
+    expect(data.hasSimilarMatch).toBe(true);
     expect(data.exactHits).toEqual([]);
+    expect(data).not.toHaveProperty('similarHits');
+  });
+
+  it('reports when the current result page has no similar names', async () => {
+    const exactHits = [
+      { id: 'mtg_1', name: 'Black Lotus' },
+      { id: 'mtg_2', name: ' black lotus ' },
+    ];
+    vi.mocked(searchUtils.fetchMeiliWithTimeout).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ hits: exactHits, estimatedTotalHits: exactHits.length }),
+    } as Response);
+
+    const req = new NextRequest(
+      'http://localhost:3000/api/search?q=Black%20Lotus&exact_mode=true'
+    );
+    const res = await searchGET(req);
+    const data = await res.json();
+
+    expect(data.hasExactMatch).toBe(true);
+    expect(data.hasSimilarMatch).toBe(false);
+    expect(data.exactHits).toEqual(exactHits);
     expect(data).not.toHaveProperty('similarHits');
   });
 

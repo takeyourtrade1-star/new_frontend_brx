@@ -61,6 +61,7 @@ export interface SearchApiResponse {
   totalPages: number;
   /** Campi addizionali presenti solo quando exact_mode=true e la query non è vuota. */
   hasExactMatch?: boolean;
+  hasSimilarMatch?: boolean;
   exactHits?: SearchHit[];
   similarHits?: SearchHit[];
 }
@@ -199,11 +200,13 @@ export async function GET(request: NextRequest) {
     let exactHits: SearchHit[] | undefined;
     let similarHits: SearchHit[] | undefined;
     let hasExactMatch: boolean | undefined;
+    let hasSimilarMatch: boolean | undefined;
 
     if (exactMode && qNorm) {
       exactHits = hits.filter((hit) => hit.name.trim().toLowerCase() === qNorm);
       similarHits = hits.filter((hit) => hit.name.trim().toLowerCase() !== qNorm);
       hasExactMatch = exactHits.length > 0;
+      hasSimilarMatch = similarHits.length > 0;
     }
 
     const response: SearchApiResponse = {
@@ -214,6 +217,7 @@ export async function GET(request: NextRequest) {
       totalPages,
       ...(exactMode && {
         hasExactMatch,
+        hasSimilarMatch,
         exactHits,
         similarHits: showSimilar ? similarHits : undefined,
       }),
