@@ -7,6 +7,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  buildTrustedDeviceRequestCookie,
+  getSetCookieHeaders,
+  getTrustedDeviceAuthPolicy,
+  MFA_TRUST_COOKIE,
+  parseTrustedDeviceSetCookies,
+  serializeTrustedDeviceCookie,
+} from '@/lib/auth/trusted-device-cookie';
 
 export const dynamic = 'force-dynamic';
 
@@ -133,11 +141,23 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
 
   const auth = request.headers.get('authorization') || request.headers.get('Authorization');
   const idempotencyKey = request.headers.get('idempotency-key');
+  const authPath = `/api/auth/${path}`;
+  const trustedDevicePolicy = getTrustedDeviceAuthPolicy(authPath);
+  const trustedDeviceCookie = buildTrustedDeviceRequestCookie(
+    trustedDevicePolicy.forwardCookie
+      ? request.cookies.get(MFA_TRUST_COOKIE)?.value
+      : undefined
+  );
+  const userAgent = trustedDevicePolicy.forwardUserAgent
+    ? request.headers.get('user-agent')
+    : null;
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
     ...(auth ? { Authorization: auth } : {}),
     ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+    ...(trustedDeviceCookie ? { Cookie: trustedDeviceCookie } : {}),
+    ...(userAgent ? { 'User-Agent': userAgent } : {}),
   };
   const isInternalUsersPath =
     pathSegments[0] === 'users' ||
@@ -171,12 +191,14 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     const responseHeaders = new Headers();
     responseHeaders.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
 
-    // 2. Inoltriamo i Cookie dal backend al browser!
-    const setCookies = res.headers.getSetCookie();
-    if (setCookies && setCookies.length > 0) {
-      for (const cookie of setCookies) {
-        responseHeaders.append('Set-Cookie', cookie);
-      }
+    const trustedDeviceUpdate = trustedDevicePolicy.acceptSetCookie
+      ? parseTrustedDeviceSetCookies(getSetCookieHeaders(res.headers))
+      : null;
+    if (trustedDeviceUpdate) {
+      responseHeaders.append(
+        'Set-Cookie',
+        serializeTrustedDeviceCookie(trustedDeviceUpdate)
+      );
     }
 
     const accessToken = extractAccessToken(data);

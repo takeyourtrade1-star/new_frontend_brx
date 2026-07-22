@@ -20,11 +20,6 @@ import { config } from '../config';
 import { isTournamentsTransitionPath } from '@/lib/config/tournaments';
 import { tokenManager } from './refresh-token';
 
-const DEVICE_TRUST_CRITICAL_PATHS = new Set([
-  '/api/auth/login',
-  '/api/auth/verify-mfa',
-]);
-
 /**
  * Endpoint auth raggiungibili da utenti non autenticati: un 401 qui significa
  * credenziali errate, non token scaduto. Il response interceptor NON deve
@@ -92,7 +87,9 @@ class AuthApiClient {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      withCredentials: false, // Disabilita cookies per CORS
+      // Nel browser il base URL e' same-origin (/api/auth/*): consente al BFF
+      // di ricevere il cookie HttpOnly trusted-device senza esporlo a JavaScript.
+      withCredentials: true,
     });
 
     this.setupInterceptors();
@@ -101,41 +98,6 @@ class AuthApiClient {
   private isAnonymousAuthRequest(url?: string): boolean {
     if (!url) return false;
     return ANONYMOUS_AUTH_PATHS.some((path) => url.includes(path));
-  }
-
-  private shouldTryDirectCredentialedCall(normalizedUrl: string): boolean {
-    void normalizedUrl;
-    return false;
-  }
-
-  private async tryDirectCredentialedPost<T = unknown>(
-    normalizedUrl: string,
-    data?: unknown
-  ): Promise<T | undefined> {
-    if (!this.shouldTryDirectCredentialedCall(normalizedUrl)) {
-      return undefined;
-    }
-
-    try {
-      const response = await axios.post<T>(
-        `${config.api.baseURL}${normalizedUrl}`,
-        data,
-        {
-          timeout: config.api.timeout,
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          withCredentials: true,
-        }
-      );
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        throw error;
-      }
-      return undefined;
-    }
   }
 
   private setupInterceptors() {
@@ -265,12 +227,6 @@ class AuthApiClient {
   ): Promise<T> {
     // Normalizza l'URL per evitare slash doppi
     const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
-
-    const directCredentialedResponse =
-      await this.tryDirectCredentialedPost<T>(normalizedUrl, data);
-    if (directCredentialedResponse !== undefined) {
-      return directCredentialedResponse;
-    }
 
     const response = await this.instance.post<T>(normalizedUrl, data, requestConfig);
     return response.data;
