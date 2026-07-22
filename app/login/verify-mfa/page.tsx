@@ -342,7 +342,7 @@ export default function VerifyMFAPage() {
 
               disabled={isPending}
 
-              className="mt-0.5 border-black/20 data-[state=checked]:bg-global-bg-start data-[state=checked]:border-global-bg-start"
+              className="mt-0.5 flex items-center justify-center border-black/20 peer-checked:border-global-bg-start peer-checked:bg-global-bg-start [&>svg]:block"
 
             />
 
@@ -409,5 +409,4 @@ export default function VerifyMFAPage() {
   );
 
 }
-
 
