@@ -1,6 +1,7 @@
 /**
  * SSO bridge — legge il refresh token HttpOnly (Domain=.ebartex.com) e
- * restituisce i token al client per sincronizzare localStorage sul marketplace.
+ * ruota la sessione cookie-first e restituisce al client soltanto l'access token
+ * effimero, mantenendo il refresh token esclusivamente HttpOnly.
  * Usato quando l'utente è già loggato su tornei.ebartex.com nello stesso browser.
  */
 
@@ -20,6 +21,7 @@ const REFRESH_COOKIE_NAME = 'ebartex_refresh_token';
 const DEFAULT_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24;
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30;
 const AUTH_COOKIE_DOMAIN = process.env.AUTH_COOKIE_DOMAIN || '';
+const AUTH_BRIDGE_TIMEOUT_MS = 15_000;
 
 function buildAuthCookie(name: string, value: string, maxAge: number, isSecure: boolean): string {
   const domain = AUTH_COOKIE_DOMAIN ? `; Domain=${AUTH_COOKIE_DOMAIN}` : '';
@@ -78,6 +80,8 @@ export async function GET(request: NextRequest) {
     request.headers.get('x-forwarded-proto') === 'https';
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), AUTH_BRIDGE_TIMEOUT_MS);
     const res = await fetch(`${AUTH_API_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: {
@@ -86,7 +90,8 @@ export async function GET(request: NextRequest) {
       },
       body: JSON.stringify({ refresh_token: refreshToken }),
       cache: 'no-store',
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -112,13 +117,23 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.json(
-      { access_token: accessToken, refresh_token: newRefreshToken, expires_in: maxAge },
+      { access_token: accessToken, expires_in: maxAge },
       { status: 200, headers: responseHeaders }
     );
   } catch (err) {
+    const timedOut = err instanceof Error && err.name === 'AbortError';
     return NextResponse.json(
-      { detail: err instanceof Error ? err.message : 'Bridge failed' },
-      { status: 502 }
+      {
+        detail: timedOut
+          ? 'Authentication service timed out'
+          : 'Authentication service unavailable',
+      },
+      {
+        status: timedOut ? 504 : 502,
+        headers: {
+          'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
+        },
+      }
     );
   }
 }

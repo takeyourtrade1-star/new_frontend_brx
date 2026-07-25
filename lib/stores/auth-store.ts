@@ -30,16 +30,18 @@ import {
   saveMfaPreAuthToken,
 } from '@/lib/auth/mfa-session';
 
-function clearLegacyStoredAccessToken(): void {
+function clearLegacyStoredTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(config.auth.tokenKey);
+  localStorage.removeItem(config.auth.refreshTokenKey);
 
   const persistedAuth = localStorage.getItem('ebartex-auth');
   if (!persistedAuth) return;
   try {
     const parsed = JSON.parse(persistedAuth) as { state?: Record<string, unknown> };
-    if (!parsed.state || !('accessToken' in parsed.state)) return;
+    if (!parsed.state) return;
     delete parsed.state.accessToken;
+    delete parsed.state.refreshToken;
     localStorage.setItem('ebartex-auth', JSON.stringify(parsed));
   } catch {
     // Lo storage corrotto verrà gestito dal middleware Zustand.
@@ -109,73 +111,32 @@ export const useAuthStore = create<AuthState>()(
       registrationFieldErrors: null,
       sessionExpired: false,
 
-      // Initialize auth: refresh proattivo se c'è refresh_token, poi valida con /api/auth/me
+      // Initialize auth: il bridge ruota il cookie HttpOnly e restituisce solo
+      // l'access token effimero, poi /me valida la sessione.
       initializeAuth: async () => {
-        // Elimina eventuali access token lasciati da versioni precedenti.
-        clearLegacyStoredAccessToken();
+        // Elimina eventuali token leggibili lasciati da versioni precedenti.
+        clearLegacyStoredTokens();
         if (typeof window !== 'undefined' && isTournamentsTransitionPath()) {
           return;
         }
 
         let accessToken: string | null = null;
-        let refreshToken =
-          typeof window !== 'undefined'
-            ? localStorage.getItem(config.auth.refreshTokenKey)
-            : null;
         // SSO: sessione da tornei.ebartex.com (cookie parent-domain) → stato in memoria
-        if (!refreshToken && typeof window !== 'undefined') {
+        if (typeof window !== 'undefined') {
           try {
             const bridgeRes = await fetch('/api/auth/bridge', { credentials: 'same-origin' });
             if (bridgeRes.ok) {
               const bridgeData = await bridgeRes.json().catch(() => ({}));
               const bridgedAccess =
                 (bridgeData?.access_token ?? bridgeData?.data?.access_token) as string | undefined;
-              const bridgedRefresh =
-                (bridgeData?.refresh_token ?? bridgeData?.data?.refresh_token) as string | undefined;
-              if (bridgedAccess && bridgedRefresh) {
-                authApi.setToken(bridgedAccess, bridgedRefresh);
-                localStorage.setItem(config.auth.refreshTokenKey, bridgedRefresh);
+              if (bridgedAccess) {
+                authApi.setToken(bridgedAccess);
                 set({ accessToken: bridgedAccess, isAuthenticated: true, sessionExpired: false });
                 accessToken = bridgedAccess;
-                refreshToken = bridgedRefresh;
               }
             }
           } catch {
             // Nessuna sessione condivisa — utente ospite
-          }
-        }
-
-        // Se c'è refresh_token, rinnoviamo subito l'access token (anche dopo F5 o token scaduto)
-        if (refreshToken && typeof window !== 'undefined') {
-          try {
-            const refreshRes = await fetch('/api/auth/refresh', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-              body: JSON.stringify({ refresh_token: refreshToken }),
-              credentials: 'same-origin',
-            });
-            const refreshData = await refreshRes.json().catch(() => ({}));
-            const newAccess =
-              (refreshData?.data?.access_token ?? refreshData?.access_token) as string | undefined;
-            const newRefresh =
-              (refreshData?.data?.refresh_token ?? refreshData?.refresh_token) as string | undefined;
-            if (newAccess && refreshRes.ok) {
-              authApi.setToken(newAccess, newRefresh);
-              set({ accessToken: newAccess, isAuthenticated: true, sessionExpired: false });
-              accessToken = newAccess;
-            } else if (refreshToken) {
-              // refresh_token presente ma risposta non ok (scaduto/revocato):
-              // logout silenzioso + toast d'errore, NON il flash "Disconnessione
-              // avvenuta con successo" (l'utente non ha chiesto il logout).
-              await get().logout({ silent: true });
-              set({
-                sessionExpired: true,
-                authError: 'La sessione è scaduta. Accedi di nuovo.',
-              });
-              return;
-            }
-          } catch {
-            // errore di rete: proseguiamo, /me con token vecchio potrebbe far scattare refresh in interceptor
           }
         }
 
@@ -209,11 +170,7 @@ export const useAuthStore = create<AuthState>()(
               }
             }
           } catch {
-            if (!refreshToken) {
-              await get().logout({ silent: true });
-            } else {
-              set({ user: null, accessToken: null, isAuthenticated: false, sessionExpired: false });
-            }
+            await get().logout({ silent: true });
           }
         } else {
           set({
@@ -336,14 +293,12 @@ export const useAuthStore = create<AuthState>()(
           if (
             response &&
             typeof response === 'object' &&
-            'access_token' in response &&
-            'refresh_token' in response
+            'access_token' in response
           ) {
-            const { access_token, refresh_token } = response as TokenResponse;
+            const { access_token } = response as TokenResponse;
 
-            if (access_token && refresh_token) {
-              // Salva entrambi i token
-              authApi.setToken(access_token, refresh_token);
+            if (access_token) {
+              authApi.setToken(access_token);
 
               // Set authenticated immediately, fetch user in background
               set({
@@ -400,11 +355,10 @@ export const useAuthStore = create<AuthState>()(
             data
           )) as TokenResponse;
 
-          const { access_token, refresh_token } = response;
+          const { access_token } = response;
 
-          if (access_token && refresh_token) {
-            // Salva entrambi i token
-            authApi.setToken(access_token, refresh_token);
+          if (access_token) {
+            authApi.setToken(access_token);
 
             // Fetch user from /me endpoint
             let normalized: User | null = null;
@@ -472,9 +426,9 @@ export const useAuthStore = create<AuthState>()(
           }
 
           // Se la registrazione restituisce token (auto-login), gestiscili
-          if ('access_token' in response && 'refresh_token' in response) {
-            const { access_token, refresh_token } = response;
-            authApi.setToken(access_token, refresh_token);
+          if ('access_token' in response) {
+            const { access_token } = response;
+            authApi.setToken(access_token);
 
             // Fetch user
             let normalized: User | null = null;
@@ -529,17 +483,11 @@ export const useAuthStore = create<AuthState>()(
       // Logout
       logout: async (opts) => {
         const accessToken = get().accessToken;
-        const refreshToken =
-          typeof window !== 'undefined'
-            ? localStorage.getItem(config.auth.refreshTokenKey)
-            : null;
 
         // Chiama l'endpoint di logout per invalidare la sessione sul server
-        if (accessToken && refreshToken) {
+        if (accessToken || get().isAuthenticated) {
           try {
-            await authApi.post('/api/auth/logout', {
-              refresh_token: refreshToken,
-            });
+            await authApi.post('/api/auth/logout', {});
           } catch (error) {
             // Anche se il logout fallisce, procediamo con la pulizia client-side
           }
@@ -547,6 +495,7 @@ export const useAuthStore = create<AuthState>()(
 
         // Pulisci i token e lo stato (anche se il logout API è fallito)
         authApi.clearToken();
+        clearLegacyStoredTokens();
         stopProactiveRefresh();
         clearMfaPreAuthToken();
 
@@ -623,6 +572,9 @@ export const useAuthStore = create<AuthState>()(
       // Set token
       setToken: (accessToken: string, refreshToken?: string) => {
         authApi.setToken(accessToken, refreshToken);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(config.auth.refreshTokenKey);
+        }
         set({ accessToken: accessToken, isAuthenticated: true });
       },
 
@@ -716,13 +668,12 @@ export const useAuthStore = create<AuthState>()(
           if (
             response &&
             typeof response === 'object' &&
-            'access_token' in response &&
-            'refresh_token' in response
+            'access_token' in response
           ) {
-            const { access_token, refresh_token } = response as TokenResponse;
+            const { access_token } = response as TokenResponse;
 
-            if (access_token && refresh_token) {
-              authApi.setToken(access_token, refresh_token);
+            if (access_token) {
+              authApi.setToken(access_token);
 
               let normalized: User | null = null;
               try {

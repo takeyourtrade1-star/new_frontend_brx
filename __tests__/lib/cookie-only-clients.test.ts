@@ -60,13 +60,14 @@ describe('client BFF con cookie HttpOnly', () => {
     );
   });
 
-  it('auth conserva l\'access token solo in memoria', () => {
+  it('auth conserva l\'access token solo in memoria e rimuove refresh token legacy', () => {
     localStorage.removeItem('ebartex_access_token');
+    localStorage.setItem('ebartex_refresh_token', 'refresh-preesistente');
 
     authApi.setToken('access-in-memoria', 'refresh-legacy');
 
     expect(authApi.getToken()).toBe('access-in-memoria');
     expect(localStorage.getItem('ebartex_access_token')).toBeNull();
-    expect(localStorage.getItem('ebartex_refresh_token')).toBe('refresh-legacy');
+    expect(localStorage.getItem('ebartex_refresh_token')).toBeNull();
   });
 });

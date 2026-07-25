@@ -23,6 +23,7 @@ describe('auth verification BFF', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     delete process.env.NEXT_PUBLIC_AUTH_API_URL;
+    delete process.env.AUTH_INTERNAL_API_TOKEN;
   });
 
   it('forwards verify-email/code without requiring a session', async () => {
@@ -214,6 +215,142 @@ describe('auth verification BFF', () => {
     });
 
     expect(response.headers.getSetCookie()).toContain(rotatedTrustCookie);
+    const body = await response.json();
+    expect(body.access_token).toBe('access');
+    expect(body.refresh_token).toBeUndefined();
+  });
+
+  it('refreshes from the HttpOnly cookie, ignores the browser body and redacts refresh_token', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: 'rotated-access',
+          refresh_token: 'rotated-refresh',
+          token_type: 'bearer',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+
+    const request = postRequest(
+      '/api/auth/refresh',
+      { refresh_token: 'attacker-controlled-body-token' },
+      { cookie: 'ebartex_refresh_token=http-only-cookie-token' }
+    );
+    const response = await POST(request, {
+      params: Promise.resolve({ path: ['refresh'] }),
+    });
+
+    expect(response.status).toBe(200);
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(init.body).toBe(
+      JSON.stringify({ refresh_token: 'http-only-cookie-token' })
+    );
+    const body = await response.json();
+    expect(body).toMatchObject({ access_token: 'rotated-access' });
+    expect(body.refresh_token).toBeUndefined();
+    expect(
+      response.headers
+        .getSetCookie()
+        .some((cookie) =>
+          cookie.includes('ebartex_refresh_token=rotated-refresh')
+        )
+    ).toBe(true);
+  });
+
+  it('rejects refresh without the HttpOnly cookie before contacting auth', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+
+    const response = await POST(
+      postRequest('/api/auth/refresh', { refresh_token: 'legacy-js-token' }),
+      { params: Promise.resolve({ path: ['refresh'] }) }
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get('cache-control')).toMatch(/no-store/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('blocks the internal contacts route even when an internal token env exists', async () => {
+    process.env.AUTH_INTERNAL_API_TOKEN = 'must-never-be-forwarded';
+    vi.resetModules();
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { GET } = await import('@/app/api/auth/[...path]/route');
+    const request = new NextRequest(
+      'http://localhost:3000/api/auth/users/internal/contact?ids=00000000-0000-0000-0000-000000000001'
+    );
+
+    const response = await GET(request, {
+      params: Promise.resolve({ path: ['users', 'internal', 'contact'] }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+    delete process.env.AUTH_INTERNAL_API_TOKEN;
+  });
+
+  it('allows only the exact public user resolver without an internal token', async () => {
+    process.env.AUTH_INTERNAL_API_TOKEN = 'must-never-be-forwarded';
+    vi.resetModules();
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ success: true, data: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { GET } = await import('@/app/api/auth/[...path]/route');
+    const request = new NextRequest(
+      'http://localhost:3000/api/auth/users/public?ids=00000000-0000-0000-0000-000000000001'
+    );
+
+    const response = await GET(request, {
+      params: Promise.resolve({ path: ['users', 'public'] }),
+    });
+
+    expect(response.status).toBe(200);
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(init.headers).not.toHaveProperty('X-Internal-Token');
+    delete process.env.AUTH_INTERNAL_API_TOKEN;
+  });
+
+  it('blocks unlisted descendants of a public username route', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { GET } = await import('@/app/api/auth/[...path]/route');
+    const request = new NextRequest(
+      'http://localhost:3000/api/auth/users/alice/private'
+    );
+
+    const response = await GET(request, {
+      params: Promise.resolve({ path: ['users', 'alice', 'private'] }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized auth bodies before contacting the upstream service', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+    const request = postRequest('/api/auth/register', {
+      email: 'test@example.com',
+      padding: 'x'.repeat(129 * 1024),
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ path: ['register'] }),
+    });
+
+    expect(response.status).toBe(413);
+    expect(response.headers.get('cache-control')).toMatch(/no-store/);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('propagates la cancellazione del cookie trusted-device', async () => {

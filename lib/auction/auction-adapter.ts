@@ -9,6 +9,7 @@
 
 import type { AuctionAPI, BidAPI } from '@/types/auction';
 import { resolveAuctionSetMetadata } from '@/lib/auction/auction-set-metadata';
+import { getSafeBuyNowUrl } from '@/lib/auction/safe-buy-now-url';
 
 export type AuctionGame = 'mtg' | 'lorcana' | 'pokemon' | 'op' | 'ygo' | 'other';
 
@@ -112,7 +113,7 @@ export function apiToAuctionUI(
     videoUrl: a.video_url,
     buyNowEnabled: a.buy_now_enabled,
     buyNowPrice: a.buy_now_price != null ? asNumber(a.buy_now_price) : null,
-    buyNowUrl: a.buy_now_url,
+    buyNowUrl: getSafeBuyNowUrl(a.buy_now_url),
     winnerId: a.winner_id ?? null,
     reserveNotReachedMessage: a.reserve_not_reached_message ?? null,
     createdByUserId: a.created_by_user_id ?? null,

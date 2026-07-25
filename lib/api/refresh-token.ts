@@ -17,7 +17,6 @@ import { config } from '@/lib/config';
 
 export interface RefreshResult {
   accessToken: string;
-  refreshToken: string;
 }
 
 /**
@@ -66,36 +65,32 @@ class TokenManager {
 
   private async performRefresh(): Promise<RefreshResult | null> {
     if (typeof window === 'undefined') return null;
-    const storedRefreshToken = localStorage.getItem(config.auth.refreshTokenKey);
-    if (!storedRefreshToken) return null;
+    localStorage.removeItem(config.auth.refreshTokenKey);
 
     try {
       const res = await fetch('/api/auth/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ refresh_token: storedRefreshToken }),
+        body: JSON.stringify({}),
         credentials: 'same-origin',
       });
       const data = await res.json().catch(() => ({}));
       const accessToken = (data?.data?.access_token ?? data?.access_token) as string | undefined;
-      const newRefreshToken = (data?.data?.refresh_token ?? data?.refresh_token) as string | undefined;
 
-      if (accessToken && newRefreshToken && res.ok) {
-        localStorage.setItem(config.auth.refreshTokenKey, newRefreshToken);
-
+      if (accessToken && res.ok) {
         // Update auth-client in-memory cache (dynamic import avoids circular dep)
         try {
           const { authApi } = await import('./auth-client');
-          authApi.setToken(accessToken, newRefreshToken);
+          authApi.setToken(accessToken);
         } catch { /* SSR or import error */ }
 
         // Update Zustand auth store
         try {
           const { useAuthStore } = await import('../stores/auth-store');
-          useAuthStore.getState().setToken(accessToken, newRefreshToken);
+          useAuthStore.getState().setToken(accessToken);
         } catch { /* SSR or import error */ }
 
-        return { accessToken, refreshToken: newRefreshToken };
+        return { accessToken };
       }
       return null;
     } catch {
@@ -111,8 +106,6 @@ export const tokenManager = new TokenManager();
 let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 /** Invalidates in-flight reschedules when stop/start is called (prevents zombie loops). */
 let proactiveRefreshGeneration = 0;
-/** Backoff between retries when a refresh fails or keeps returning near-expiry tokens. */
-const REFRESH_RETRY_DELAY_MS = 60_000;
 
 function scheduleProactiveRefresh(delayMs: number, accessToken: string): void {
   proactiveRefreshTimer = setTimeout(() => {
@@ -156,12 +149,9 @@ export function startProactiveRefresh(accessToken?: string | null): void {
           startProactiveRefresh(newToken);
           return;
         }
-        // Refresh fallito o token ancora prossimo alla scadenza: senza backoff
-        // questo ramo rientrerebbe subito in msUntilRefresh <= 0 → loop.
-        // Riprova solo se esiste ancora un refresh token da spendere.
-        if (localStorage.getItem(config.auth.refreshTokenKey)) {
-          scheduleProactiveRefresh(REFRESH_RETRY_DELAY_MS, newToken ?? token);
-        }
+        // Refresh fallito o token ancora prossimo alla scadenza: non creare un
+        // loop su un cookie revocato. La prossima richiesta protetta gestirà il
+        // 401 tramite l'interceptor e il logout fail-closed.
       });
       return;
     }
@@ -190,9 +180,6 @@ export function stopProactiveRefresh(): void {
 export async function refreshAccessToken(): Promise<RefreshResult | null> {
   if (typeof window === 'undefined') return null;
   const newToken = await tokenManager.ensureFreshToken();
-  if (newToken) {
-    const newRefreshToken = localStorage.getItem(config.auth.refreshTokenKey) ?? '';
-    return { accessToken: newToken, refreshToken: newRefreshToken };
-  }
+  if (newToken) return { accessToken: newToken };
   return null;
 }

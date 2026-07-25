@@ -4,6 +4,7 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { HelpCircle, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { minNextBidEur, parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
+import { getSafeBuyNowUrl } from '@/lib/auction/safe-buy-now-url';
 import { usePlaceBid } from '@/lib/hooks/use-auctions';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { formatEur } from '@/lib/utils';
@@ -251,6 +252,7 @@ export function AuctionBidPanel({
   const { t } = useTranslation();
   const placeBidMutation = usePlaceBid(auctionId);
   const minBid = useMemo(() => minNextBidEur(currentBidEur), [currentBidEur]);
+  const safeBuyNowUrl = useMemo(() => getSafeBuyNowUrl(buyNowUrl), [buyNowUrl]);
 
   // FE-REV-013: ref sempre aggiornate alle callback del parent, così `executeBid` non
   // cattura versioni stale quando il parent passa funzioni inline ricreate a ogni render.
@@ -503,9 +505,10 @@ export function AuctionBidPanel({
             {t('auctions.bidPanel.maxBid')}
           </button>
           {buyNowEnabled && buyNowPrice != null && (
-            buyNowUrl ? (
+            safeBuyNowUrl ? (
               <a
-                href={buyNowUrl}
+                href={safeBuyNowUrl}
+                rel="noopener noreferrer"
                 className="inline-flex min-h-[40px] w-full flex-1 items-center justify-center rounded-lg border border-[#1D3160] bg-[#1D3160] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#15264b] sm:min-h-0"
                 title={`${t('auctions.buyNowButton')} · ${fmtEur(buyNowPrice)}`}
               >

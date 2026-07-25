@@ -177,13 +177,12 @@ class AuthApiClient {
     }
   }
 
-  /**
-   * Imposta i token (access + refresh) per le richieste successive
-   */
-  setToken(accessToken: string, refreshToken?: string) {
+  /** Imposta l'access token effimero per le richieste successive. */
+  setToken(accessToken: string, _legacyRefreshToken?: string) {
     this.token = accessToken;
-    if (refreshToken) {
-      this.setStoredRefreshToken(refreshToken);
+    if (typeof window !== 'undefined') {
+      // Migrazione dalle versioni che esponevano il refresh token a JavaScript.
+      localStorage.removeItem(config.auth.refreshTokenKey);
     }
   }
 
@@ -204,17 +203,6 @@ class AuthApiClient {
       localStorage.removeItem(config.auth.refreshTokenKey);
       localStorage.removeItem(config.auth.userKey);
     }
-  }
-
-  // Il refresh token resta nel flusso legacy; l'access token è solo in memoria.
-  private getStoredRefreshToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(config.auth.refreshTokenKey);
-  }
-
-  private setStoredRefreshToken(token: string): void {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(config.auth.refreshTokenKey, token);
   }
 
   /**

@@ -68,7 +68,6 @@ describe('auth-store', () => {
       const post = vi.mocked(authApi.post);
       post.mockResolvedValue({
         access_token: 'access_123',
-        refresh_token: 'refresh_123',
       });
       vi.mocked(fetchMe).mockResolvedValue(mockUser);
 
@@ -131,7 +130,6 @@ describe('auth-store', () => {
       const post = vi.mocked(authApi.post);
       post.mockResolvedValue({
         access_token: 'access_mfa',
-        refresh_token: 'refresh_mfa',
       });
       vi.mocked(fetchMe).mockResolvedValue(mockUser);
 
@@ -284,18 +282,27 @@ describe('auth-store', () => {
       expect(localStorage.getItem('ebartex_access_token')).toBeNull();
     });
 
-    it('ripulisce i token access legacy durante l\'inizializzazione', async () => {
+    it('ripulisce access e refresh token legacy durante l\'inizializzazione', async () => {
       localStorage.setItem('ebartex_access_token', 'legacy-diretto');
+      localStorage.setItem('ebartex_refresh_token', 'legacy-refresh');
       localStorage.setItem(
         'ebartex-auth',
-        JSON.stringify({ state: { accessToken: 'legacy-zustand', isAuthenticated: true } }),
+        JSON.stringify({
+          state: {
+            accessToken: 'legacy-zustand',
+            refreshToken: 'legacy-zustand-refresh',
+            isAuthenticated: true,
+          },
+        }),
       );
 
       await useAuthStore.getState().initializeAuth();
 
       expect(localStorage.getItem('ebartex_access_token')).toBeNull();
+      expect(localStorage.getItem('ebartex_refresh_token')).toBeNull();
       const persisted = JSON.parse(localStorage.getItem('ebartex-auth')!);
       expect(persisted.state.accessToken).toBeUndefined();
+      expect(persisted.state.refreshToken).toBeUndefined();
     });
 
 
@@ -363,7 +370,6 @@ describe('auth-store', () => {
     it('verifyLoginCode con token diretti → autenticato, flash, utente caricato', async () => {
       vi.mocked(authApi.verifyLoginCode).mockResolvedValue({
         access_token: 'access_code',
-        refresh_token: 'refresh_code',
         token_type: 'bearer',
       });
       vi.mocked(fetchMe).mockResolvedValue(mockUser);

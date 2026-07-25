@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getForwardedAuthorization } from '@/app/api/_lib/forwarded-authorization';
 import {
   buildTrustedDeviceRequestCookie,
   getSetCookieHeaders,
@@ -17,6 +18,7 @@ import {
 } from '@/lib/auth/trusted-device-cookie';
 
 export const dynamic = 'force-dynamic';
+const MAX_AUTH_BODY_BYTES = 128 * 1024;
 
 const AUTH_API_URL = (
   process.env.NEXT_PUBLIC_AUTH_API_URL ||
@@ -24,30 +26,38 @@ const AUTH_API_URL = (
   process.env.VITE_AWS_AUTH_URL ||
   ''
 ).replace(/\/+$/, '');
-const INTERNAL_AUTH_USERS_TOKEN =
-  process.env.AUTH_INTERNAL_API_TOKEN ||
-  process.env.INTERNAL_API_TOKEN ||
-  '';
 
-const ALLOWED_AUTH_PATHS = [
-  'login',
-  'login/code/request',
-  'login/code/verify',
-  'register',
-  'refresh',
-  'me',
-  'logout',
-  'verify-mfa',
-  'mfa/enable',
-  'mfa/verify',
-  'mfa/disable',
-  'mfa/status',
-  'password/reset',
-  'password/reset/confirm',
-  'verify-email',
-  'resend-verification',
-  'users',
-];
+type AllowedMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+
+const EXACT_AUTH_ROUTES: Readonly<Record<string, readonly AllowedMethod[]>> = {
+  login: ['POST'],
+  'login/code/request': ['POST'],
+  'login/code/verify': ['POST'],
+  register: ['POST'],
+  refresh: ['POST'],
+  me: ['GET'],
+  logout: ['POST'],
+  'username-available': ['GET'],
+  'change-password': ['POST'],
+  'verify-mfa': ['POST'],
+  'mfa/enable': ['POST'],
+  'mfa/verify': ['POST'],
+  'mfa/disable': ['POST'],
+  'mfa/status': ['GET'],
+  'password/reset': ['POST'],
+  'password/reset/request': ['POST'],
+  'password/reset/verify-code': ['POST'],
+  'password/reset/confirm': ['POST'],
+  'password/reset/confirm-init': ['POST'],
+  'password/reset/confirm-final': ['POST'],
+  'verify-email': ['POST'],
+  'verify-email/code': ['POST'],
+  'verify-email/token': ['POST'],
+  'resend-verification': ['POST'],
+};
+const PUBLIC_USER_EXACT_ROUTES = new Set(['users/public', 'users/search']);
+const PUBLIC_USERNAME_RE = /^[A-Za-z0-9_.-]{1,50}$/;
+const RESERVED_USER_SEGMENTS = new Set(['internal', 'public', 'search']);
 
 const AUTH_COOKIE_NAME = 'ebartex_access_token';
 const DEFAULT_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24; // 24h
@@ -59,11 +69,23 @@ const REFRESH_COOKIE_NAME = 'ebartex_refresh_token';
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30; // 30 giorni
 const AUTH_COOKIE_DOMAIN = process.env.AUTH_COOKIE_DOMAIN || '';
 
-function isAllowedPath(segments: string[]): boolean {
+function isAllowedPath(segments: string[], method: string): boolean {
   const joined = segments.join('/');
-  return ALLOWED_AUTH_PATHS.some(
-    (allowed) => joined === allowed || joined.startsWith(`${allowed}/`) || joined.startsWith(`${allowed}?`)
-  );
+  const exactMethods = EXACT_AUTH_ROUTES[joined];
+  if (exactMethods?.includes(method as AllowedMethod)) return true;
+  if (method !== 'GET') return false;
+  if (PUBLIC_USER_EXACT_ROUTES.has(joined)) return true;
+
+  if (segments[0] !== 'users') return false;
+  const username = segments[1];
+  if (
+    !username ||
+    RESERVED_USER_SEGMENTS.has(username.toLowerCase()) ||
+    !PUBLIC_USERNAME_RE.test(username)
+  ) {
+    return false;
+  }
+  return segments.length === 2 || (segments.length === 3 && segments[2] === 'collection');
 }
 
 function extractAccessToken(payload: unknown): string | undefined {
@@ -90,6 +112,59 @@ function extractRefreshToken(payload: unknown): string | undefined {
   if (!nested || typeof nested !== 'object') return undefined;
   const nestedToken = (nested as Record<string, unknown>).refresh_token;
   return typeof nestedToken === 'string' && nestedToken.length > 0 ? nestedToken : undefined;
+}
+
+function redactRefreshTokens(payload: unknown): unknown {
+  if (Array.isArray(payload)) return payload.map(redactRefreshTokens);
+  if (!payload || typeof payload !== 'object') return payload;
+
+  return Object.fromEntries(
+    Object.entries(payload as Record<string, unknown>)
+      .filter(([key]) => key !== 'refresh_token')
+      .map(([key, value]) => [key, redactRefreshTokens(value)])
+  );
+}
+
+async function readRequestBodyWithLimit(
+  request: NextRequest
+): Promise<{ body?: string; tooLarge: boolean }> {
+  const declaredLength = Number(request.headers.get('content-length'));
+  if (
+    Number.isFinite(declaredLength) &&
+    declaredLength > MAX_AUTH_BODY_BYTES
+  ) {
+    return { tooLarge: true };
+  }
+  if (!request.body) return { body: undefined, tooLarge: false };
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_AUTH_BODY_BYTES) {
+        await reader.cancel();
+        return { tooLarge: true };
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const merged = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return {
+    body: totalBytes > 0 ? new TextDecoder().decode(merged) : undefined,
+    tooLarge: false,
+  };
 }
 
 /** Cookie auth con Domain parent opzionale (SSO) — stesso formato usato dal sito tornei. */
@@ -124,7 +199,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     );
   }
 
-  if (!isAllowedPath(pathSegments)) {
+  if (!isAllowedPath(pathSegments, request.method)) {
     return NextResponse.json(
       { detail: 'Not found' },
       { status: 404 }
@@ -139,7 +214,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     url.searchParams.set(key, value);
   });
 
-  const auth = request.headers.get('authorization') || request.headers.get('Authorization');
+  const auth = getForwardedAuthorization(request);
   const idempotencyKey = request.headers.get('idempotency-key');
   const authPath = `/api/auth/${path}`;
   const trustedDevicePolicy = getTrustedDeviceAuthPolicy(authPath);
@@ -159,17 +234,42 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     ...(trustedDeviceCookie ? { Cookie: trustedDeviceCookie } : {}),
     ...(userAgent ? { 'User-Agent': userAgent } : {}),
   };
-  const isInternalUsersPath =
-    pathSegments[0] === 'users' ||
-    (pathSegments.length > 1 && pathSegments[0] === 'users');
-  if (isInternalUsersPath && INTERNAL_AUTH_USERS_TOKEN) {
-    headers['X-Internal-Token'] = INTERNAL_AUTH_USERS_TOKEN;
-  }
-
   let body: string | undefined;
   if (request.method !== 'GET' && request.method !== 'HEAD') {
-    body = await request.text();
-    if (body) headers['Content-Type'] = request.headers.get('content-type') || 'application/json';
+    if (path === 'refresh' || path === 'logout') {
+      const refreshToken = request.cookies.get(REFRESH_COOKIE_NAME)?.value;
+      if (!refreshToken) {
+        return NextResponse.json(
+          { detail: 'No refresh session' },
+          {
+            status: 401,
+            headers: {
+              'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
+            },
+          }
+        );
+      }
+      body = JSON.stringify({ refresh_token: refreshToken });
+      headers['Content-Type'] = 'application/json';
+    } else {
+      const bodyResult = await readRequestBodyWithLimit(request);
+      if (bodyResult.tooLarge) {
+        return NextResponse.json(
+          { detail: 'Request body too large' },
+          {
+            status: 413,
+            headers: {
+              'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
+            },
+          }
+        );
+      }
+      body = bodyResult.body;
+      if (body) {
+        headers['Content-Type'] =
+          request.headers.get('content-type') || 'application/json';
+      }
+    }
   }
 
   try {
@@ -235,7 +335,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
       );
     }
 
-    return NextResponse.json(data, {
+    return NextResponse.json(redactRefreshTokens(data), {
       status: res.status,
       headers: responseHeaders,
     });

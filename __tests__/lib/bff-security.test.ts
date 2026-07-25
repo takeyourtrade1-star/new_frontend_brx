@@ -474,6 +474,7 @@ describe('/api/auth/bridge — sicurezza', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.access_token).toBe('new_access_token');
+    expect(body.refresh_token).toBeUndefined();
     const setCookie = res.headers.get('set-cookie');
     expect(setCookie).toBeTruthy();
     expect(setCookie).toMatch(/ebartex_access_token=new_access_token/);
@@ -498,6 +499,23 @@ describe('/api/auth/bridge — sicurezza', () => {
     const req = makeRequest('/api/auth/bridge', { cookie: VALID_REFRESH_COOKIE });
     const res = await GET(req);
     expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({
+      detail: 'Authentication service unavailable',
+    });
+  });
+
+  it('risponde 504 generico su timeout dal backend auth', async () => {
+    const timeoutError = new Error('upstream details must not leak');
+    timeoutError.name = 'AbortError';
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(timeoutError));
+    const { GET } = await import('@/app/api/auth/bridge/route');
+    const req = makeRequest('/api/auth/bridge', { cookie: VALID_REFRESH_COOKIE });
+    const res = await GET(req);
+
+    expect(res.status).toBe(504);
+    expect(await res.json()).toEqual({
+      detail: 'Authentication service timed out',
+    });
   });
 });
 

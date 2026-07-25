@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  ArrowLeftRight,
   ArrowRight,
   Check,
   Loader2,
   LockKeyhole,
   Send,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -186,6 +188,143 @@ function ItemPicker({ title, empty, items, selected, locked, onChange }: {
           })}
         </div>
       )}
+    </section>
+  );
+}
+
+function TradeTableSide({
+  items,
+  selected,
+  label,
+  side,
+}: {
+  items: PickerItem[];
+  selected: Record<string, number>;
+  label: string;
+  side: 'offered' | 'requested';
+}) {
+  const { t } = useTranslation();
+  const visibleItems = items.slice(0, 5);
+  const totalCards = items.reduce((sum, item) => sum + (selected[item.id] ?? 0), 0);
+
+  return (
+    <div className="relative h-full min-w-0">
+      <div className={cn(
+        'absolute inset-x-8 bottom-5 flex items-center gap-3',
+        side === 'requested' && 'flex-row-reverse text-right',
+      )}>
+        <span className={cn(
+          'h-px flex-1',
+          side === 'offered' ? 'bg-gradient-to-r from-transparent to-sky-200/35' : 'bg-gradient-to-l from-transparent to-orange-200/40',
+        )} aria-hidden />
+        <div>
+          <p className={cn(
+            'text-[10px] font-black uppercase tracking-[0.16em]',
+            side === 'offered' ? 'text-sky-100/75' : 'text-orange-100/80',
+          )}>{label}</p>
+          <p className="mt-0.5 text-xs font-black text-white/90">{t('trades.cardsCount', { count: totalCards })}</p>
+        </div>
+      </div>
+
+      <div className="absolute inset-x-5 bottom-16 top-12">
+        {visibleItems.length === 0 ? (
+          <div className="absolute inset-0 flex items-center justify-center gap-3" aria-hidden>
+            {[-1, 0, 1].map((slot) => (
+              <span
+                key={slot}
+                className="block h-[102px] w-[72px] rounded-xl border border-dashed border-white/15 bg-black/5 shadow-inner"
+                style={{ transform: `rotate(${slot * 5}deg) translateY(${Math.abs(slot) * 5}px)` }}
+              />
+            ))}
+          </div>
+        ) : visibleItems.map((item, index) => {
+          const centerOffset = index - (visibleItems.length - 1) / 2;
+          const rotation = centerOffset * (side === 'offered' ? 6 : -6);
+          return (
+            <div
+              key={item.id}
+              className="absolute bottom-1 left-1/2 origin-bottom"
+              style={{
+                zIndex: index + 1,
+                transform: `translateX(calc(-50% + ${centerOffset * 48}px)) rotate(${rotation}deg) translateY(${Math.abs(centerOffset) * 5}px)`,
+              }}
+            >
+              <div className="group/card relative transition-transform duration-200 hover:-translate-y-3 hover:scale-105 motion-reduce:transform-none" title={item.name}>
+                <TradeCardThumb
+                  image={item.image}
+                  name={item.name}
+                  className="h-[112px] w-20 rounded-xl border-white/70 shadow-[0_14px_28px_rgba(0,0,0,0.38)] ring-1 ring-black/20"
+                />
+                <span className={cn(
+                  'absolute -right-2 -top-2 flex h-7 min-w-7 items-center justify-center rounded-full border-2 border-white px-1.5 text-[10px] font-black text-white shadow-lg',
+                  side === 'offered' ? 'bg-[#1D5E9A]' : 'bg-[#FF7300]',
+                )}>
+                  ×{selected[item.id] ?? 0}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        {items.length > visibleItems.length && (
+          <span className={cn(
+            'absolute bottom-3 rounded-full border border-white/15 bg-black/25 px-2.5 py-1 text-[10px] font-black text-white/80 backdrop-blur-sm',
+            side === 'offered' ? 'right-2' : 'left-2',
+          )}>+{items.length - visibleItems.length}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TradeProposalTable({
+  offeredItems,
+  requestedItems,
+  offered,
+  requested,
+}: {
+  offeredItems: PickerItem[];
+  requestedItems: PickerItem[];
+  offered: Record<string, number>;
+  requested: Record<string, number>;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <section
+      className="relative mb-5 hidden h-[286px] overflow-hidden rounded-[1.75rem] border border-[#C08A57]/45 bg-[#25130D] p-2 shadow-[0_24px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12)] lg:block"
+      aria-label={t('trades.tableAria')}
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-45 [background-image:repeating-linear-gradient(8deg,transparent_0,transparent_7px,rgba(255,255,255,.035)_8px,transparent_9px)]" aria-hidden />
+      <div className="relative h-full overflow-hidden rounded-[1.35rem] border border-emerald-100/15 bg-[radial-gradient(ellipse_at_center,rgba(39,121,107,.9)_0%,rgba(16,77,72,.96)_48%,rgba(7,45,45,1)_100%)] shadow-[inset_0_0_55px_rgba(0,0,0,.42)]">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.9)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.9)_1px,transparent_1px)] [background-size:24px_24px]" aria-hidden />
+        <div className="pointer-events-none absolute inset-x-8 top-5 flex items-start justify-between" aria-hidden>
+          <div>
+            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-white/85">
+              <Sparkles className="h-3.5 w-3.5 text-orange-300" /> {t('trades.tableTitle')}
+            </p>
+            <p className="mt-1 text-[10px] font-semibold text-white/40">{t('trades.tableHint')}</p>
+          </div>
+        </div>
+
+        <div className="absolute inset-y-14 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/18 to-transparent" aria-hidden />
+        <div className="absolute left-1/2 top-1/2 z-20 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#071E22]/80 text-orange-200 shadow-[0_8px_25px_rgba(0,0,0,.32)] backdrop-blur-md" aria-hidden>
+          <ArrowLeftRight className="h-5 w-5" />
+        </div>
+
+        <div className="grid h-full grid-cols-2">
+          <TradeTableSide items={offeredItems} selected={offered} label={t('trades.youOffer')} side="offered" />
+          <TradeTableSide items={requestedItems} selected={requested} label={t('trades.youReceive')} side="requested" />
+        </div>
+
+        {[[18, 18], [82, 18], [18, 82], [82, 82]].map(([left, top]) => (
+          <span
+            key={`${left}-${top}`}
+            className="pointer-events-none absolute h-2 w-2 rounded-full border border-white/15 bg-black/25 shadow-inner"
+            style={{ left: `${left}%`, top: `${top}%` }}
+            aria-hidden
+          />
+        ))}
+      </div>
     </section>
   );
 }
@@ -488,6 +627,12 @@ export function TradeProposalPage() {
             <div ref={stepPanelRef} tabIndex={-1} className="outline-none">
               {step === 'cards' && (
               <div className={cn('animate-in fade-in duration-300 motion-reduce:animate-none', stepMotionClass)}>
+                <TradeProposalTable
+                  offeredItems={selectedOfferedItems}
+                  requestedItems={selectedRequestedItems}
+                  offered={offered}
+                  requested={requested}
+                />
                 <div className="relative grid gap-4 md:grid-cols-2">
                   <ItemPicker title={t('trades.chooseOffered')} empty={t('trades.noTradableInventory')} items={myItems} selected={offered} onChange={setOffered} />
                   <span

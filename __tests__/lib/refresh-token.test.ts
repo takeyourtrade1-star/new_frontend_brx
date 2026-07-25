@@ -6,7 +6,6 @@ import {
   stopProactiveRefresh,
   refreshAccessToken,
 } from '@/lib/api/refresh-token';
-import { config } from '@/lib/config';
 
 // La dynamic import dentro performRefresh risolve verso questi mock (vi.mock
 // intercetta per id risolto, indipendentemente dallo specifier relativo/alias).
@@ -20,10 +19,10 @@ function makeJwt(expSecondsFromNow: number): string {
   return `header.${btoa(JSON.stringify(payload))}.sig`;
 }
 
-function okRefreshResponse(access: string, refresh: string) {
+function okRefreshResponse(access: string) {
   return {
     ok: true,
-    json: async () => ({ access_token: access, refresh_token: refresh }),
+    json: async () => ({ access_token: access }),
   } as unknown as Response;
 }
 
@@ -60,31 +59,39 @@ describe('refresh-token', () => {
   });
 
   describe('tokenManager.ensureFreshToken', () => {
-    it('senza refresh_token in storage ritorna null e non chiama fetch', async () => {
-      const fetchMock = vi.fn();
+    it('senza cookie valido lascia decidere al BFF e ritorna null sul 401', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ detail: 'No refresh session' }),
+      } as unknown as Response);
       vi.stubGlobal('fetch', fetchMock);
 
       const token = await tokenManager.ensureFreshToken();
 
       expect(token).toBeNull();
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/auth/refresh',
+        expect.objectContaining({
+          body: '{}',
+          credentials: 'same-origin',
+        })
+      );
     });
 
-    it('refresh riuscito: persiste solo il refresh token e ritorna il nuovo access token', async () => {
-      localStorage.setItem(config.auth.refreshTokenKey, 'old_refresh');
-      const fetchMock = vi.fn().mockResolvedValue(okRefreshResponse('new_access', 'new_refresh'));
+    it('refresh riuscito: ritorna il nuovo access token senza scrivere token nello storage', async () => {
+      localStorage.setItem('ebartex_refresh_token', 'legacy_refresh');
+      const fetchMock = vi.fn().mockResolvedValue(okRefreshResponse('new_access'));
       vi.stubGlobal('fetch', fetchMock);
 
       const token = await tokenManager.ensureFreshToken();
 
       expect(token).toBe('new_access');
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(localStorage.getItem(config.auth.tokenKey)).toBeNull();
-      expect(localStorage.getItem(config.auth.refreshTokenKey)).toBe('new_refresh');
+      expect(localStorage.getItem('ebartex_access_token')).toBeNull();
+      expect(localStorage.getItem('ebartex_refresh_token')).toBeNull();
     });
 
     it('refresh fallito (res non ok) ritorna null e non tocca lo storage', async () => {
-      localStorage.setItem(config.auth.refreshTokenKey, 'old_refresh');
       const fetchMock = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => ({}),
@@ -94,11 +101,10 @@ describe('refresh-token', () => {
       const token = await tokenManager.ensureFreshToken();
 
       expect(token).toBeNull();
-      expect(localStorage.getItem(config.auth.tokenKey)).toBeNull();
+      expect(localStorage.getItem('ebartex_access_token')).toBeNull();
     });
 
     it('chiamate concorrenti condividono un solo refresh in volo', async () => {
-      localStorage.setItem(config.auth.refreshTokenKey, 'old_refresh');
       let resolveFetch: (r: Response) => void = () => {};
       const fetchMock = vi.fn().mockImplementation(
         () => new Promise<Response>((resolve) => { resolveFetch = resolve; }),
@@ -108,7 +114,7 @@ describe('refresh-token', () => {
       const p1 = tokenManager.ensureFreshToken();
       const p2 = tokenManager.ensureFreshToken();
       // sblocca l'unica fetch in volo
-      resolveFetch(okRefreshResponse('shared_access', 'shared_refresh'));
+      resolveFetch(okRefreshResponse('shared_access'));
 
       const [t1, t2] = await Promise.all([p1, p2]);
       expect(t1).toBe('shared_access');
@@ -118,17 +124,15 @@ describe('refresh-token', () => {
   });
 
   describe('refreshAccessToken (wrapper retro-compat)', () => {
-    it('ritorna { accessToken, refreshToken } su successo', async () => {
-      localStorage.setItem(config.auth.refreshTokenKey, 'old_refresh');
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okRefreshResponse('a2', 'r2')));
+    it('ritorna soltanto { accessToken } su successo', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okRefreshResponse('a2')));
 
       const result = await refreshAccessToken();
 
-      expect(result).toEqual({ accessToken: 'a2', refreshToken: 'r2' });
+      expect(result).toEqual({ accessToken: 'a2' });
     });
 
     it('ritorna null su fallimento', async () => {
-      localStorage.setItem(config.auth.refreshTokenKey, 'old_refresh');
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) } as unknown as Response));
 
       expect(await refreshAccessToken()).toBeNull();
@@ -138,9 +142,8 @@ describe('refresh-token', () => {
   describe('startProactiveRefresh / stopProactiveRefresh', () => {
     it('rinnova immediatamente se il token è già prossimo alla scadenza', async () => {
       const accessToken = makeJwt(60); // entro il buffer
-      localStorage.setItem(config.auth.refreshTokenKey, 'r');
       // Il nuovo token è un JWT lontano: il re-schedule imposta un timer, non rilancia fetch.
-      const fetchMock = vi.fn().mockResolvedValue(okRefreshResponse(makeJwt(60 * 60), 'nr'));
+      const fetchMock = vi.fn().mockResolvedValue(okRefreshResponse(makeJwt(60 * 60)));
       vi.stubGlobal('fetch', fetchMock);
 
       startProactiveRefresh(accessToken);
@@ -151,7 +154,6 @@ describe('refresh-token', () => {
 
     it('refresh fallito con token in scadenza: una sola fetch, poi backoff (niente loop)', async () => {
       const accessToken = makeJwt(60); // entro il buffer
-      localStorage.setItem(config.auth.refreshTokenKey, 'r');
       const fetchMock = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => ({}),
@@ -170,8 +172,7 @@ describe('refresh-token', () => {
 
     it('non rinnova subito se il token è lontano dalla scadenza', async () => {
       const accessToken = makeJwt(60 * 60);
-      localStorage.setItem(config.auth.refreshTokenKey, 'r');
-      const fetchMock = vi.fn().mockResolvedValue(okRefreshResponse('na', 'nr'));
+      const fetchMock = vi.fn().mockResolvedValue(okRefreshResponse('na'));
       vi.stubGlobal('fetch', fetchMock);
 
       startProactiveRefresh(accessToken);

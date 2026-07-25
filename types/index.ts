@@ -213,7 +213,8 @@ export interface MFADisableData {
 
 export interface TokenResponse {
   access_token: string;
-  refresh_token: string;
+  /** Server-only: the BFF stores it in an HttpOnly cookie and redacts it from browser responses. */
+  refresh_token?: string;
   token_type: string;
 }
 
