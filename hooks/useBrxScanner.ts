@@ -35,7 +35,6 @@ export interface UseBrxScannerOptions {
   hintConfidenceMin?: number;
   captureIntervalMs?: number;
   apiBaseUrl?: string;
-  countdownSeconds?: number;
   requestTimeoutMs?: number;
   /** fast = CNN only (live scan); auto = server may skip ORB when confident. */
   scanMode?: 'auto' | 'fast' | 'full';
@@ -57,7 +56,6 @@ export interface UseBrxScannerReturn {
   hint: ScanResult | null;
   isBusy: boolean;
   errorMessage: string | null;
-  countdown: number;
   debug: DebugInfo;
   /** ONNX edge pipeline status. */
   modelStatus: ModelStatus;
@@ -94,7 +92,6 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     hintConfidenceMin: rawHint = BALANCED.hintDefault,
     captureIntervalMs = BALANCED.captureIntervalMs,
     apiBaseUrl = '/api/scanner',
-    countdownSeconds = 3,
     requestTimeoutMs = BALANCED.requestTimeoutMs,
     scanMode = 'auto',
     voteWindow = BALANCED.voteWindow,
@@ -140,12 +137,11 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     tensorBufferRef,
   } = useOnnxSession({ apiBaseUrl });
 
-  // Scan loop: ONNX + legacy pipelines, dedup, voting, hint gating, countdown.
+  // Scan loop: cattura locale, ONNX/server, dedup, voting e hint gating.
   const {
     result,
     hint,
     isBusy,
-    countdown,
     debug,
     beginScan,
     startScanLoop,
@@ -168,7 +164,6 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     voteRequired,
     maxInflight,
     captureIntervalMs,
-    countdownSeconds,
     effectiveConf,
     effectiveHint,
     continuous,
@@ -260,7 +255,6 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     hint,
     isBusy,
     errorMessage,
-    countdown,
     debug,
     modelStatus,
     modelProgress,

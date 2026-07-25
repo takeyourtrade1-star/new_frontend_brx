@@ -3,6 +3,17 @@ export type ScannerBudgetMode = 'edge_primary' | 'server_fallback_limited' | 'ed
 const FALLBACK_BRX_MATCH_URL = 'http://15.160.8.178:8005';
 export const MAX_EDGE_MODEL_BYTES = 15 * 1024 * 1024;
 
+/**
+ * Il client interrompe ogni richiesta di riconoscimento dopo 3,2 secondi.
+ * Il BFF deve terminare prima per avere il tempo di restituire un 504 utile
+ * invece di continuare a consumare compute dopo che il browser ha rinunciato.
+ */
+export const SCANNER_TIMEOUTS = {
+  clientRequestMs: 3_200,
+  recognitionUpstreamMs: 2_800,
+  modelUpstreamMs: 60_000,
+} as const;
+
 export function getBrxMatchBaseUrl(): string {
   return (process.env.BRX_MATCH_API_URL || FALLBACK_BRX_MATCH_URL).replace(/\/+$/, '');
 }

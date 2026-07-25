@@ -93,7 +93,14 @@ export interface ScanSession {
 export interface DebugInfo {
   framesSent: number;
   lastStatus: string | null;
+  /** Tempo end-to-end nel browser, dalla cattura al risultato disponibile. */
   lastLatencyMs: number;
+  /** Tempo dichiarato dal matcher, esclusi upload e BFF. */
+  lastBackendLatencyMs: number;
+  /** Tempo totale trascorso nel BFF, letto da Server-Timing. */
+  lastBffLatencyMs: number;
+  /** Tempo di estrazione/compressione JPEG sul dispositivo. */
+  lastEncodeLatencyMs: number;
   lastError: string | null;
   lastOutcome: 'matched' | 'not_matched' | 'pending' | null;
   lastMethod: string | null;

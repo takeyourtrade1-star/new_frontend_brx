@@ -10,7 +10,10 @@ export const BALANCED = {
   /** Commit / hint floors (hook may raise user values to these mins). */
   confFloor: 0.8,
   hintConfFloor: 0.72,
-  confDefault: 0.82,
+  // Il backend ha già applicato la propria soglia `matched`: 0.80 evita un
+  // secondo round-trip per candidati validi tra 80% e 82%, che finiscono
+  // comunque in review e non vengono pubblicati automaticamente.
+  confDefault: 0.8,
   hintDefault: 0.75,
 
   /** Instant match — solo letture molto sicure. */

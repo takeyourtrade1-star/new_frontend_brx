@@ -2,21 +2,32 @@
 
 import { useCallback, useRef, useState } from 'react';
 
-import { BALANCED, shouldRunOrbVerify } from '@/lib/scanner/balancedProfile';
 import {
+  BALANCED,
+  hintStreakRequired,
+  shouldCommitTurboMatch,
+  shouldRunOrbVerify,
+} from '@/lib/scanner/balancedProfile';
+import {
+  advanceAutoCapture,
   ANALYSIS_HEIGHT,
   ANALYSIS_WIDTH,
   analyseFrame,
   CAPTURE_THRESHOLDS,
+  createAutoCaptureState,
+  exposureInvariantFrameDifference,
   frameDifference,
   getCardCropRect,
+  type AutoCaptureState,
   type FrameSample,
 } from '@/lib/scanner/capture-analysis';
 import { captureFrame224, imageDataToTensor, vectorSearchJson } from '@/lib/scanner/preprocess';
+import {
+  parseScannerServerTiming,
+  type ScannerServerTimings,
+} from '@/lib/scanner/server-timing';
 
 import type { DebugInfo, ScannerState, ScanResult } from './scanner-types';
-
-type CapturePhase = 'seeking' | 'stabilizing' | 'processing' | 'awaiting_removal';
 
 interface VectorCandidate {
   meta_idx: number;
@@ -30,6 +41,13 @@ interface VectorCandidate {
   scryfall_id?: string;
   collector_number?: string;
   blueprint_id?: number;
+}
+
+interface RecognitionOutcome {
+  result: ScanResult;
+  margin: number;
+  authoritative: boolean;
+  serverTimings: ScannerServerTimings;
 }
 
 function toRecognitionCandidate(candidate: VectorCandidate) {
@@ -65,6 +83,16 @@ function buildSearchUrl(cardName: string, setName: string): string {
   return `/search?q=${encodeURIComponent(query)}&game=mtg&category_key=singles`;
 }
 
+function recognitionKey(result: ScanResult): string {
+  if (result.scryfall_id) return `scryfall:${result.scryfall_id}`;
+  if (result.blueprint_id !== undefined) return `blueprint:${result.blueprint_id}`;
+  return [
+    result.card_name.trim().toLowerCase(),
+    result.set_code.trim().toLowerCase(),
+    result.collector_number?.trim().toLowerCase() ?? '',
+  ].join(':');
+}
+
 export interface UseScanLoopParams {
   videoRef: React.RefObject<HTMLVideoElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -80,7 +108,6 @@ export interface UseScanLoopParams {
   voteRequired: number;
   maxInflight: number;
   captureIntervalMs: number;
-  countdownSeconds: number;
   effectiveConf: number;
   effectiveHint: number;
   continuous: boolean;
@@ -93,7 +120,6 @@ export interface UseScanLoopReturn {
   result: ScanResult | null;
   hint: ScanResult | null;
   isBusy: boolean;
-  countdown: number;
   debug: DebugInfo;
   beginScan: () => void;
   startScanLoop: () => void;
@@ -114,8 +140,12 @@ export function useScanLoop({
   apiBaseUrl,
   scanMode,
   requestTimeoutMs,
+  voteWindow,
+  voteRequired,
   maxInflight,
+  captureIntervalMs,
   effectiveConf,
+  effectiveHint,
   continuous,
   onMatch,
   onNoMatch,
@@ -128,24 +158,29 @@ export function useScanLoop({
     framesSent: 0,
     lastStatus: null,
     lastLatencyMs: -1,
+    lastBackendLatencyMs: -1,
+    lastBffLatencyMs: -1,
+    lastEncodeLatencyMs: -1,
     lastError: null,
     lastOutcome: null,
     lastMethod: null,
   });
 
   const activeRef = useRef(false);
-  const phaseRef = useRef<CapturePhase>('seeking');
+  const captureStateRef = useRef<AutoCaptureState>(createAutoCaptureState());
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const capturedFlashRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hintStaleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllersRef = useRef<Set<AbortController>>(new Set());
   const inflightRef = useRef(0);
+  const cardEpochRef = useRef(0);
   const latestCaptureIdRef = useRef<string | null>(null);
   const previousSampleRef = useRef<FrameSample | null>(null);
   const capturedPixelsRef = useRef<Uint8Array | null>(null);
-  const stableFramesRef = useRef(0);
-  const removalFramesRef = useRef(0);
-  const captureAtRef = useRef(0);
   const manualCaptureRef = useRef(false);
+  const recentNamesRef = useRef<string[]>([]);
+  const hintStreakRef = useRef<{ name: string; count: number }>({ name: '', count: 0 });
+  const lastHintKeyRef = useRef('');
   const analysisCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const analysisContextRef = useRef<CanvasRenderingContext2D | null>(null);
   const captureCountRef = useRef(0);
@@ -160,10 +195,45 @@ export function useScanLoop({
     timerRef.current = null;
   }, []);
 
-  const schedule = useCallback((callback: () => void) => {
+  const schedule = useCallback((
+    callback: () => void,
+    delayMs: number = CAPTURE_THRESHOLDS.tickMs,
+  ) => {
     clearTimer();
-    timerRef.current = setTimeout(callback, CAPTURE_THRESHOLDS.tickMs);
+    timerRef.current = setTimeout(callback, delayMs);
   }, [clearTimer]);
+
+  const clearHintStale = useCallback(() => {
+    if (hintStaleRef.current) clearTimeout(hintStaleRef.current);
+    hintStaleRef.current = null;
+  }, []);
+
+  const clearRecognitionState = useCallback(() => {
+    clearHintStale();
+    recentNamesRef.current = [];
+    hintStreakRef.current = { name: '', count: 0 };
+    lastHintKeyRef.current = '';
+    setHint(null);
+  }, [clearHintStale]);
+
+  const applyHint = useCallback((scanResult: ScanResult) => {
+    const key = scanResult.card_name.trim().toLocaleLowerCase();
+    if (!key || scanResult.confidence < effectiveHint) return;
+    if (hintStreakRef.current.name === key) {
+      hintStreakRef.current.count++;
+    } else {
+      hintStreakRef.current = { name: key, count: 1 };
+    }
+    if (hintStreakRef.current.count < hintStreakRequired(scanResult.confidence)) return;
+
+    const hintKey = `${key}:${Math.round(scanResult.confidence * 100)}`;
+    if (hintKey !== lastHintKeyRef.current) {
+      lastHintKeyRef.current = hintKey;
+      setHint(scanResult);
+    }
+    clearHintStale();
+    hintStaleRef.current = setTimeout(() => setHint(null), BALANCED.hintStaleMs);
+  }, [clearHintStale, effectiveHint]);
 
   const captureAnalysisSample = useCallback((): FrameSample | null => {
     const video = videoRef.current;
@@ -215,7 +285,9 @@ export function useScanLoop({
         video.clientWidth,
         video.clientHeight,
       );
-      const width = 448;
+      // 384 px mantiene testo/set leggibili per il matcher ma riduce il
+      // payload di circa il 20–25% rispetto al vecchio crop da 448 px.
+      const width = 384;
       const height = Math.round(width * 7 / 5);
       canvas.width = width;
       canvas.height = height;
@@ -244,7 +316,7 @@ export function useScanLoop({
   const recognizeWithVector = useCallback(async (
     captureId: string,
     captureBlobPromise: Promise<Blob | null>,
-  ): Promise<ScanResult | null> => {
+  ): Promise<RecognitionOutcome | null> => {
     const video = videoRef.current;
     const onnxCanvas = onnxCanvasRef.current;
     const context = onnxCtxRef.current;
@@ -259,6 +331,9 @@ export function useScanLoop({
       headers: { 'Content-Type': 'application/json', 'X-Request-ID': captureId },
       body: vectorSearchJson(vector, BALANCED.searchTopK),
     });
+    const serverTimings = parseScannerServerTiming(
+      response.headers.get('server-timing'),
+    );
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = (await response.json()) as { candidates?: VectorCandidate[]; latency_ms?: number };
     const candidates = data.candidates ?? [];
@@ -299,20 +374,25 @@ export function useScanLoop({
     }
 
     return {
-      capture_id: captureId,
-      card_name: top1.card_name,
-      set_name: top1.set_name,
-      set_code: top1.set_code,
-      image_uri: top1.image_uri ?? null,
-      confidence,
-      method,
-      search_url: top1.search_url || buildSearchUrl(top1.card_name, top1.set_name),
-      search_query: top1.search_query || `${top1.card_name} ${top1.set_name}`.trim(),
-      latency_ms: data.latency_ms ?? 0,
-      scryfall_id: top1.scryfall_id,
-      blueprint_id: top1.blueprint_id,
-      collector_number: top1.collector_number,
-      candidates: candidates.slice(0, BALANCED.searchTopK).map(toRecognitionCandidate),
+      margin,
+      authoritative: false,
+      serverTimings,
+      result: {
+        capture_id: captureId,
+        card_name: top1.card_name,
+        set_name: top1.set_name,
+        set_code: top1.set_code,
+        image_uri: top1.image_uri ?? null,
+        confidence,
+        method,
+        search_url: top1.search_url || buildSearchUrl(top1.card_name, top1.set_name),
+        search_query: top1.search_query || `${top1.card_name} ${top1.set_name}`.trim(),
+        latency_ms: data.latency_ms ?? 0,
+        scryfall_id: top1.scryfall_id,
+        blueprint_id: top1.blueprint_id,
+        collector_number: top1.collector_number,
+        candidates: candidates.slice(0, BALANCED.searchTopK).map(toRecognitionCandidate),
+      },
     };
   }, [
     apiBaseUrl,
@@ -327,13 +407,16 @@ export function useScanLoop({
   const recognizeWithServer = useCallback(async (
     captureId: string,
     blob: Blob | null,
-  ): Promise<ScanResult | null> => {
+  ): Promise<RecognitionOutcome | null> => {
     if (!blob) return null;
     const formData = new FormData();
     formData.append('image', blob, 'card.jpg');
     const response = await fetchWithTimeout(
       `${apiBaseUrl}/scan?mode=${encodeURIComponent(scanMode)}`,
       { method: 'POST', body: formData, headers: { 'X-Request-ID': captureId } },
+    );
+    const serverTimings = parseScannerServerTiming(
+      response.headers.get('server-timing'),
     );
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = (await response.json()) as Record<string, unknown>;
@@ -351,56 +434,78 @@ export function useScanLoop({
           );
         })
       : [];
+    const confidence = typeof data.confidence === 'number' ? data.confidence : 0;
+    const runnerUp = alternatives.find((candidate) =>
+      candidate.card_name !== data.card_name ||
+      candidate.set_code !== data.set_code ||
+      candidate.collector_number !== data.collector_number
+    );
     return {
-      capture_id: captureId,
-      card_name: data.card_name,
-      set_name: setName,
-      set_code: typeof data.set_code === 'string' ? data.set_code : '',
-      image_uri: typeof data.image_uri === 'string' ? data.image_uri : null,
-      confidence: typeof data.confidence === 'number' ? data.confidence : 0,
-      method: typeof data.method === 'string' ? data.method : 'server',
-      search_url:
-        typeof data.search_url === 'string' && data.search_url
-          ? data.search_url
-          : buildSearchUrl(data.card_name, setName),
-      search_query:
-        typeof data.search_query === 'string' ? data.search_query : `${data.card_name} ${setName}`.trim(),
-      latency_ms: typeof data.latency_ms === 'number' ? data.latency_ms : 0,
-      scryfall_id: typeof data.scryfall_id === 'string' ? data.scryfall_id : undefined,
-      collector_number:
-        typeof data.collector_number === 'string' ? data.collector_number : undefined,
-      candidates: alternatives.slice(0, BALANCED.searchTopK).map(toRecognitionCandidate),
+      margin: runnerUp ? confidence - runnerUp.confidence : 1,
+      authoritative: data.matched === true,
+      serverTimings,
+      result: {
+        capture_id: captureId,
+        card_name: data.card_name,
+        set_name: setName,
+        set_code: typeof data.set_code === 'string' ? data.set_code : '',
+        image_uri: typeof data.image_uri === 'string' ? data.image_uri : null,
+        confidence,
+        method: typeof data.method === 'string' ? data.method : 'server',
+        search_url:
+          typeof data.search_url === 'string' && data.search_url
+            ? data.search_url
+            : buildSearchUrl(data.card_name, setName),
+        search_query:
+          typeof data.search_query === 'string' ? data.search_query : `${data.card_name} ${setName}`.trim(),
+        latency_ms: typeof data.latency_ms === 'number' ? data.latency_ms : 0,
+        scryfall_id: typeof data.scryfall_id === 'string' ? data.scryfall_id : undefined,
+        collector_number:
+          typeof data.collector_number === 'string' ? data.collector_number : undefined,
+        candidates: alternatives.slice(0, BALANCED.searchTopK).map(toRecognitionCandidate),
+      },
     };
   }, [apiBaseUrl, fetchWithTimeout, scanMode]);
 
-  const finishCapture = useCallback((sample: FrameSample) => {
+  const commitCapture = useCallback((sample: FrameSample, capturedAtMs: number) => {
     capturedPixelsRef.current = sample.grayscale.slice();
-    captureAtRef.current = Date.now();
-    stableFramesRef.current = 0;
-    removalFramesRef.current = 0;
+    captureStateRef.current = {
+      phase: 'awaiting_removal',
+      stableFrames: 0,
+      removalFrames: 0,
+      removalObserved: false,
+      // Parte dal commit, non dall'inizio della richiesta: evita che una
+      // risposta lenta riarmi istantaneamente su un frame transitorio.
+      lastCaptureAtMs: Math.max(capturedAtMs, Date.now()),
+    };
     manualCaptureRef.current = false;
-    phaseRef.current = 'awaiting_removal';
   }, []);
 
   const recognize = useCallback(async (sample: FrameSample) => {
-    if (!activeRef.current || inflightRef.current >= maxInflight) return;
+    const turboReady = isTurboReady();
+    // In continuo ogni carta viene bloccata subito in awaiting_removal: le
+    // richieste concorrenti appartengono quindi a carte fisiche diverse. Nella
+    // modale singola manteniamo invece una sola lettura per volta.
+    const inflightLimit = continuous ? Math.max(1, maxInflight) : 1;
+    if (
+      !activeRef.current ||
+      captureStateRef.current.phase === 'awaiting_removal' ||
+      inflightRef.current >= inflightLimit
+    ) return;
     const captureId = createCaptureId();
     const capturedAtMs = Date.now();
+    const cardEpoch = cardEpochRef.current;
     latestCaptureIdRef.current = captureId;
     if (continuous) {
-      // Blocca subito il fotogramma e lascia il loop libero di rilevare la rimozione:
-      // embedding e ricerca proseguono senza fermare la carta successiva.
-      finishCapture(sample);
+      // La cattura e la recognition sono due lane indipendenti: l'utente può
+      // già rimuovere la carta mentre JPEG/upload/matcher proseguono.
+      commitCapture(sample, capturedAtMs);
       setScannerState('awaiting_removal');
-    } else {
-      phaseRef.current = 'processing';
-      setScannerState('processing');
     }
     inflightRef.current++;
     setIsBusy(true);
-    setHint(null);
+    if (!continuous) setScannerState('processing');
     const startedAt = performance.now();
-    let holdMatchedResult = false;
     captureCountRef.current++;
     setDebug((current) => ({
       ...current,
@@ -412,102 +517,179 @@ export function useScanLoop({
     try {
       // La compressione del crop procede in parallelo al riconoscimento edge.
       // Il Blob resta locale e viene usato anche per il fallback server, senza duplicare il lavoro.
-      const captureBlobPromise = captureCardBlob();
-      const scanResult = isTurboReady()
+      const encodeStartedAt = performance.now();
+      let encodeLatencyMs = -1;
+      const captureBlobPromise = captureCardBlob().then((blob) => {
+        encodeLatencyMs = Math.round(performance.now() - encodeStartedAt);
+        return blob;
+      });
+      const recognition = turboReady
         ? await recognizeWithVector(captureId, captureBlobPromise)
         : await recognizeWithServer(captureId, await captureBlobPromise);
-      if (!activeRef.current) return;
+      if (
+        !activeRef.current ||
+        cardEpochRef.current !== cardEpoch
+      ) return;
       const elapsed = Math.round(performance.now() - startedAt);
-      if (scanResult) {
+      if (recognition) {
+        const scanResult = recognition.result;
         const captureBlob = await captureBlobPromise;
         if (captureBlob) scanResult.capture_blob = captureBlob;
         scanResult.captured_at_ms = capturedAtMs;
-        const outcome = scanResult.confidence >= effectiveConf ? 'matched' : 'not_matched';
         const isLatestCapture = latestCaptureIdRef.current === captureId;
-        const shouldShowCapture = isLatestCapture && (
-          !continuous || phaseRef.current === 'awaiting_removal'
-        );
-        if (shouldShowCapture) setResult(scanResult);
-        setDebug((current) => ({
-          ...current,
-          lastStatus: '200',
-          lastLatencyMs: scanResult.latency_ms || elapsed,
-          lastError: null,
-          lastOutcome: outcome,
-          lastMethod: scanResult.method,
-        }));
-        onMatchRef.current?.(scanResult);
-        if (shouldShowCapture) setScannerState('matched');
-        holdMatchedResult = !continuous;
-        if (continuous && shouldShowCapture) {
-          if (capturedFlashRef.current) clearTimeout(capturedFlashRef.current);
-          capturedFlashRef.current = setTimeout(() => {
-            if (activeRef.current && phaseRef.current === 'awaiting_removal') {
-              setScannerState('awaiting_removal');
-            }
-          }, 350);
+        if (!continuous || isLatestCapture) applyHint(scanResult);
+        const confidenceAccepted = scanResult.confidence >= effectiveConf;
+        if (continuous) {
+          setDebug((current) => ({
+            ...current,
+            lastStatus: '200',
+            lastLatencyMs: elapsed,
+            lastBackendLatencyMs: Math.round(scanResult.latency_ms),
+            lastBffLatencyMs: Math.round(
+              recognition.serverTimings.bff_total ?? -1,
+            ),
+            lastEncodeLatencyMs: encodeLatencyMs,
+            lastError: null,
+            lastOutcome: confidenceAccepted ? 'matched' : 'not_matched',
+            lastMethod: scanResult.method,
+          }));
+          // Nel batch conserviamo anche un candidato incerto: la review locale
+          // esiste apposta per correggerlo senza rallentare la camera.
+          onMatchRef.current?.(scanResult);
+          if (
+            isLatestCapture &&
+            (captureStateRef.current as AutoCaptureState).phase === 'awaiting_removal'
+          ) {
+            setResult(scanResult);
+            setScannerState('matched');
+            if (capturedFlashRef.current) clearTimeout(capturedFlashRef.current);
+            capturedFlashRef.current = setTimeout(() => {
+              if (
+                activeRef.current &&
+                captureStateRef.current.phase === 'awaiting_removal'
+              ) {
+                setScannerState('awaiting_removal');
+              }
+            }, 350);
+          }
+          return;
         }
-      } else {
-        const isLatestCapture = latestCaptureIdRef.current === captureId;
-        const shouldShowCapture = isLatestCapture && (
-          !continuous || phaseRef.current === 'awaiting_removal'
-        );
+
+        const key = recognitionKey(scanResult);
+        const voteBuffer = recentNamesRef.current;
+        voteBuffer.push(key);
+        const safeVoteWindow = Math.max(1, Math.round(voteWindow));
+        while (voteBuffer.length > safeVoteWindow) voteBuffer.shift();
+        const voteHits = voteBuffer.filter((candidateKey) => candidateKey === key).length;
+        const shouldCommit =
+          (recognition.authoritative && scanResult.confidence >= effectiveConf) ||
+          shouldCommitTurboMatch({
+            finalConfidence: scanResult.confidence,
+            margin: recognition.margin,
+            voteHits,
+            effectiveConf,
+            voteRequired: Math.min(
+              safeVoteWindow,
+              Math.max(1, Math.round(voteRequired)),
+            ),
+          });
         setDebug((current) => ({
           ...current,
           lastStatus: '200',
           lastLatencyMs: elapsed,
+          lastBackendLatencyMs: Math.round(scanResult.latency_ms),
+          lastBffLatencyMs: Math.round(
+            recognition.serverTimings.bff_total ?? -1,
+          ),
+          lastEncodeLatencyMs: encodeLatencyMs,
+          lastError: null,
+          lastOutcome: shouldCommit ? 'matched' : 'not_matched',
+          lastMethod: scanResult.method,
+        }));
+
+        if (shouldCommit) {
+          cardEpochRef.current++;
+          clearRecognitionState();
+          commitCapture(sample, capturedAtMs);
+          setResult(scanResult);
+          setScannerState('matched');
+          onMatchRef.current?.(scanResult);
+          if (!continuous) {
+            activeRef.current = false;
+            clearTimer();
+          } else {
+            if (capturedFlashRef.current) clearTimeout(capturedFlashRef.current);
+            capturedFlashRef.current = setTimeout(() => {
+              if (
+                activeRef.current &&
+                captureStateRef.current.phase === 'awaiting_removal'
+              ) {
+                setScannerState('awaiting_removal');
+              }
+            }, 350);
+          }
+        } else if (inflightRef.current <= 1) {
+          setScannerState('stabilizing');
+        }
+      } else {
+        setDebug((current) => ({
+          ...current,
+          lastStatus: '200',
+          lastLatencyMs: elapsed,
+          lastBackendLatencyMs: -1,
+          lastBffLatencyMs: -1,
+          lastEncodeLatencyMs: encodeLatencyMs,
           lastError: null,
           lastOutcome: 'not_matched',
           lastMethod: isTurboReady() ? 'edge+faiss' : 'server',
         }));
         onNoMatchRef.current?.();
-        if (shouldShowCapture) setScannerState('awaiting_removal');
+        if (!continuous && inflightRef.current <= 1) setScannerState('stabilizing');
       }
     } catch (error) {
-      if (!activeRef.current) return;
+      if (!activeRef.current || cardEpochRef.current !== cardEpoch) return;
       const aborted = error instanceof DOMException && error.name === 'AbortError';
       setDebug((current) => ({
         ...current,
         lastStatus: aborted ? 'TIMEOUT' : 'ERROR',
         lastLatencyMs: Math.round(performance.now() - startedAt),
+        lastBackendLatencyMs: -1,
+        lastBffLatencyMs: -1,
+        lastEncodeLatencyMs: -1,
         lastError: aborted ? `TIMEOUT dopo ${requestTimeoutMs}ms` : String(error),
         lastOutcome: 'not_matched',
         lastMethod: null,
       }));
       onNoMatchRef.current?.();
-      if (
-        latestCaptureIdRef.current === captureId &&
-        (!continuous || phaseRef.current === 'awaiting_removal')
-      ) {
-        setScannerState('awaiting_removal');
-      }
     } finally {
       inflightRef.current = Math.max(0, inflightRef.current - 1);
       if (activeRef.current) {
-        if (continuous) {
-          setIsBusy(inflightRef.current > 0);
-        } else if (holdMatchedResult) {
-          setIsBusy(false);
-          activeRef.current = false;
-          clearTimer();
-        } else {
-          finishCapture(sample);
-          setIsBusy(false);
+        setIsBusy(inflightRef.current > 0);
+        if (
+          !continuous &&
+          inflightRef.current === 0 &&
+          cardEpochRef.current === cardEpoch
+        ) {
+          setScannerState('stabilizing');
         }
       }
     }
   }, [
+    applyHint,
+    clearRecognitionState,
     clearTimer,
     captureCardBlob,
+    commitCapture,
     continuous,
     effectiveConf,
-    finishCapture,
     isTurboReady,
     maxInflight,
     recognizeWithServer,
     recognizeWithVector,
     requestTimeoutMs,
     setScannerState,
+    voteRequired,
+    voteWindow,
   ]);
 
   const tickRef = useRef<() => void>(() => {});
@@ -521,74 +703,60 @@ export function useScanLoop({
 
     const previous = previousSampleRef.current;
     const motion = previous ? frameDifference(sample.grayscale, previous.grayscale) : 0;
+    const captured = capturedPixelsRef.current;
+    const changedFromCapture = captured
+      ? sample.quality.usable
+        ? exposureInvariantFrameDifference(sample.grayscale, captured)
+        : Math.max(
+            frameDifference(sample.grayscale, captured),
+            exposureInvariantFrameDifference(sample.grayscale, captured),
+          )
+      : null;
+    const decision = advanceAutoCapture(captureStateRef.current, {
+      nowMs: Date.now(),
+      usable: sample.quality.usable,
+      hasPreviousFrame: previous !== null,
+      motion,
+      changedFromCapture,
+      manualCapture: manualCaptureRef.current,
+      canCapture: continuous
+        ? inflightRef.current < Math.max(1, maxInflight)
+        : inflightRef.current === 0,
+      captureIntervalMs,
+    });
+    captureStateRef.current = decision.state;
     previousSampleRef.current = sample;
 
-    if (phaseRef.current === 'seeking') {
+    if (decision.action === 'capture') {
+      manualCaptureRef.current = false;
+      void recognize(sample);
+    } else if (decision.action === 'rearmed') {
+      capturedPixelsRef.current = null;
+      clearRecognitionState();
+      setResult(null);
       setScannerState('scanning');
-      if (manualCaptureRef.current || (previous && motion >= CAPTURE_THRESHOLDS.enterMotion)) {
-        phaseRef.current = 'stabilizing';
-        stableFramesRef.current = 0;
-        setScannerState('stabilizing');
-      }
-    } else if (phaseRef.current === 'stabilizing') {
-      if (manualCaptureRef.current) {
-        if (continuous) {
-          void recognize(sample);
-          schedule(() => tickRef.current());
-        } else {
-          void recognize(sample).finally(() => schedule(() => tickRef.current()));
-        }
-        return;
-      }
-      if (sample.quality.usable && motion <= CAPTURE_THRESHOLDS.stableMotion) {
-        stableFramesRef.current++;
-      } else {
-        stableFramesRef.current = 0;
-      }
-      if (stableFramesRef.current >= CAPTURE_THRESHOLDS.stableFrames) {
-        if (continuous) {
-          void recognize(sample);
-          schedule(() => tickRef.current());
-        } else {
-          void recognize(sample).finally(() => schedule(() => tickRef.current()));
-        }
-        return;
-      }
-    } else if (phaseRef.current === 'awaiting_removal') {
-      const captured = capturedPixelsRef.current;
-      const changed = captured ? frameDifference(sample.grayscale, captured) : 1;
-      if (
-        Date.now() - captureAtRef.current >= CAPTURE_THRESHOLDS.minimumCaptureGapMs &&
-        changed >= CAPTURE_THRESHOLDS.removalDifference
-      ) {
-        removalFramesRef.current++;
-      } else {
-        removalFramesRef.current = 0;
-      }
-      if (removalFramesRef.current >= CAPTURE_THRESHOLDS.removalFrames) {
-        phaseRef.current = 'seeking';
-        capturedPixelsRef.current = null;
-        previousSampleRef.current = sample;
-        removalFramesRef.current = 0;
-        setResult(null);
-        setScannerState('scanning');
-      }
+    } else if (
+      decision.state.phase === 'stabilizing' &&
+      inflightRef.current === 0
+    ) {
+      setScannerState('stabilizing');
+    } else if (decision.state.phase === 'seeking') {
+      setScannerState('scanning');
     }
 
     schedule(() => tickRef.current());
   };
 
   const resetCaptureState = useCallback(() => {
-    phaseRef.current = 'seeking';
+    cardEpochRef.current++;
+    captureStateRef.current = createAutoCaptureState();
     previousSampleRef.current = null;
     capturedPixelsRef.current = null;
-    stableFramesRef.current = 0;
-    removalFramesRef.current = 0;
     manualCaptureRef.current = false;
+    clearRecognitionState();
     setResult(null);
-    setHint(null);
     setIsBusy(false);
-  }, []);
+  }, [clearRecognitionState]);
 
   const beginScan = useCallback(() => {
     resetCaptureState();
@@ -596,6 +764,9 @@ export function useScanLoop({
       framesSent: 0,
       lastStatus: null,
       lastLatencyMs: -1,
+      lastBackendLatencyMs: -1,
+      lastBffLatencyMs: -1,
+      lastEncodeLatencyMs: -1,
       lastError: null,
       lastOutcome: null,
       lastMethod: null,
@@ -605,7 +776,7 @@ export function useScanLoop({
   const startScanLoop = useCallback(() => {
     clearTimer();
     activeRef.current = true;
-    schedule(() => tickRef.current());
+    schedule(() => tickRef.current(), 0);
   }, [clearTimer, schedule]);
 
   const stopLoop = useCallback(() => {
@@ -622,14 +793,16 @@ export function useScanLoop({
 
   const restartScan = useCallback(() => {
     resetCaptureState();
-    if (activeRef.current) schedule(() => tickRef.current());
+    if (activeRef.current) schedule(() => tickRef.current(), 0);
   }, [resetCaptureState, schedule]);
 
   const captureNow = useCallback(() => {
-    if (!activeRef.current || phaseRef.current === 'processing') return;
-    if (phaseRef.current === 'awaiting_removal') return;
+    if (!activeRef.current || captureStateRef.current.phase === 'awaiting_removal') return;
     manualCaptureRef.current = true;
-    phaseRef.current = 'stabilizing';
+    captureStateRef.current = {
+      ...captureStateRef.current,
+      phase: 'stabilizing',
+    };
     setScannerState('stabilizing');
   }, [setScannerState]);
 
@@ -639,7 +812,6 @@ export function useScanLoop({
     result,
     hint,
     isBusy,
-    countdown: 0,
     debug,
     beginScan,
     startScanLoop,

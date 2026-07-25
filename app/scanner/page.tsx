@@ -600,7 +600,10 @@ function DebugOverlay({ debug, state }: { debug: DebugInfo; state: string }) {
         <span>state: <b className="text-white">{state}</b></span>
         <span>frames: <b className="text-white">{debug.framesSent}</b></span>
         <span>http: <b className={statusColor}>{debug.lastStatus ?? '—'}</b></span>
-        <span>rtt: <b className="text-white">{debug.lastLatencyMs >= 0 ? `${debug.lastLatencyMs}ms` : '—'}</b></span>
+        <span>total: <b className="text-white">{debug.lastLatencyMs >= 0 ? `${debug.lastLatencyMs}ms` : '—'}</b></span>
+        <span>jpeg: <b className="text-white">{debug.lastEncodeLatencyMs >= 0 ? `${debug.lastEncodeLatencyMs}ms` : '—'}</b></span>
+        <span>bff: <b className="text-white">{debug.lastBffLatencyMs >= 0 ? `${debug.lastBffLatencyMs}ms` : '—'}</b></span>
+        <span>backend: <b className="text-white">{debug.lastBackendLatencyMs >= 0 ? `${debug.lastBackendLatencyMs}ms` : '—'}</b></span>
         <span>last: <b className="text-white">{debug.lastOutcome ?? '—'}</b></span>
         <span>method: <b className="text-white">{debug.lastMethod ?? '—'}</b></span>
       </div>
@@ -650,7 +653,9 @@ function ScannerPageInner() {
     autoOpenCamera: true,
     continuous: true,
     apiBaseUrl: '/api/scanner',
-    scanMode: 'auto',
+    // Il live scanner privilegia il retrieval rapido: i casi ambigui restano
+    // comunque nella review, senza pagare ORB nel percorso critico.
+    scanMode: 'fast',
     onMatch: handleMatch,
   });
 

@@ -22,15 +22,141 @@ export interface CardCropRect {
   height: number;
 }
 
+export type AutoCapturePhase = 'seeking' | 'stabilizing' | 'awaiting_removal';
+
+export interface AutoCaptureState {
+  phase: AutoCapturePhase;
+  stableFrames: number;
+  removalFrames: number;
+  /** Memorizza il passaggio della mano/lo spazio vuoto anche tra copie uguali. */
+  removalObserved: boolean;
+  lastCaptureAtMs: number | null;
+}
+
+export interface AutoCaptureInput {
+  nowMs: number;
+  usable: boolean;
+  hasPreviousFrame: boolean;
+  motion: number;
+  changedFromCapture: number | null;
+  manualCapture: boolean;
+  canCapture: boolean;
+  captureIntervalMs: number;
+}
+
+export type AutoCaptureAction = 'none' | 'capture' | 'rearmed';
+
 export const CAPTURE_THRESHOLDS = {
-  enterMotion: 0.045,
-  stableMotion: 0.018,
-  removalDifference: 0.075,
-  stableFrames: 3,
+  stableMotion: 0.022,
+  removalStableMotion: 0.028,
+  removalDifference: 0.06,
+  stableFrames: 2,
   removalFrames: 2,
-  tickMs: 120,
-  minimumCaptureGapMs: 650,
+  tickMs: 90,
+  minimumCaptureGapMs: 450,
 } as const;
+
+export function createAutoCaptureState(): AutoCaptureState {
+  return {
+    phase: 'seeking',
+    stableFrames: 0,
+    removalFrames: 0,
+    removalObserved: false,
+    lastCaptureAtMs: null,
+  };
+}
+
+/**
+ * Macchina a stati pura dell'auto-capture. La presenza è dedotta dalla qualità
+ * del crop: non richiede un movimento iniziale, quindi funziona anche quando la
+ * carta è già dentro la cornice all'avvio della camera.
+ */
+export function advanceAutoCapture(
+  state: AutoCaptureState,
+  input: AutoCaptureInput,
+): { state: AutoCaptureState; action: AutoCaptureAction } {
+  if (state.phase === 'awaiting_removal') {
+    const pastMinimumGap =
+      state.lastCaptureAtMs !== null &&
+      input.nowMs - state.lastCaptureAtMs >= CAPTURE_THRESHOLDS.minimumCaptureGapMs;
+    const sceneChanged =
+      input.changedFromCapture !== null &&
+      input.changedFromCapture >= CAPTURE_THRESHOLDS.removalDifference;
+    const removalObserved =
+      state.removalObserved || (pastMinimumGap && sceneChanged);
+    // Un frame non utilizzabile può essere semplicemente la mano in transito:
+    // registra il cambio scena, ma conta come conferma solo quando si è fermato.
+    const sceneSettled =
+      input.hasPreviousFrame && input.motion <= CAPTURE_THRESHOLDS.removalStableMotion;
+    const removalFrames =
+      pastMinimumGap && removalObserved && sceneSettled
+        ? state.removalFrames + 1
+        : 0;
+
+    if (removalFrames >= CAPTURE_THRESHOLDS.removalFrames) {
+      return {
+        state: createAutoCaptureState(),
+        action: 'rearmed',
+      };
+    }
+    return {
+      state: { ...state, removalFrames, removalObserved },
+      action: 'none',
+    };
+  }
+
+  const intervalElapsed =
+    state.lastCaptureAtMs === null ||
+    input.nowMs - state.lastCaptureAtMs >= Math.max(0, input.captureIntervalMs);
+
+  if (input.manualCapture && input.canCapture && intervalElapsed) {
+    return {
+      state: {
+        ...state,
+        phase: 'stabilizing',
+        stableFrames: 0,
+        lastCaptureAtMs: input.nowMs,
+      },
+      action: 'capture',
+    };
+  }
+
+  if (!input.usable) {
+    return {
+      state: { ...state, phase: 'seeking', stableFrames: 0 },
+      action: 'none',
+    };
+  }
+
+  // Un frame mosso ma ancora leggibile diventa il primo candidato della nuova
+  // sequenza; il frame seguente deve confermarne la stabilità.
+  const stableFrames =
+    input.hasPreviousFrame && input.motion <= CAPTURE_THRESHOLDS.stableMotion
+      ? state.stableFrames + 1
+      : 1;
+  const nextState: AutoCaptureState = {
+    ...state,
+    phase: 'stabilizing',
+    stableFrames,
+  };
+
+  if (
+    stableFrames >= CAPTURE_THRESHOLDS.stableFrames &&
+    input.canCapture &&
+    intervalElapsed
+  ) {
+    return {
+      state: {
+        ...nextState,
+        stableFrames: 0,
+        lastCaptureAtMs: input.nowMs,
+      },
+      action: 'capture',
+    };
+  }
+
+  return { state: nextState, action: 'none' };
+}
 
 /**
  * Converte la cornice CSS centrale nelle coordinate del video sorgente quando
@@ -133,4 +259,24 @@ export function frameDifference(a: Uint8Array, b: Uint8Array): number {
   let difference = 0;
   for (let i = 0; i < a.length; i++) difference += Math.abs(a[i] - b[i]);
   return difference / (a.length * 255);
+}
+
+/**
+ * Differenza strutturale che ignora uno spostamento uniforme dell'esposizione.
+ * Evita di interpretare l'auto-esposizione della camera come rimozione carta.
+ */
+export function exposureInvariantFrameDifference(a: Uint8Array, b: Uint8Array): number {
+  if (a.length !== b.length || a.length === 0) return 1;
+  let sumA = 0;
+  let sumB = 0;
+  for (let i = 0; i < a.length; i++) {
+    sumA += a[i];
+    sumB += b[i];
+  }
+  const meanDelta = (sumA - sumB) / a.length;
+  let difference = 0;
+  for (let i = 0; i < a.length; i++) {
+    difference += Math.abs(a[i] - b[i] - meanDelta);
+  }
+  return Math.min(1, difference / (a.length * 255));
 }

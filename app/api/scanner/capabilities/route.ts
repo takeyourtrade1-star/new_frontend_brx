@@ -7,6 +7,7 @@ import {
   getScannerEdgeModelBytes,
   isScannerEdgeEnabled,
   SCANNER_LIMITS,
+  SCANNER_TIMEOUTS,
 } from '@/app/api/scanner/_config';
 
 export const runtime = 'nodejs';
@@ -69,6 +70,11 @@ export async function GET() {
         requests_per_minute: SCANNER_LIMITS.requestsPerMinute,
         max_scan_bytes: SCANNER_LIMITS.maxScanBytes,
         max_verify_bytes: SCANNER_LIMITS.maxVerifyBytes,
+      },
+      timeouts: {
+        client_request_ms: SCANNER_TIMEOUTS.clientRequestMs,
+        recognition_upstream_ms: SCANNER_TIMEOUTS.recognitionUpstreamMs,
+        model_upstream_ms: SCANNER_TIMEOUTS.modelUpstreamMs,
       },
     },
     { headers: noStoreHeaders() },

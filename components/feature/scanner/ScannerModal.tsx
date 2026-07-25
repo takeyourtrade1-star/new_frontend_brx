@@ -459,7 +459,9 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
   } = useBrxScanner({
     autoOpenCamera: true,
     apiBaseUrl: '/api/scanner',
-    scanMode: 'auto',
+    // La modale deve rispondere subito; l'utente può rifiutare il candidato
+    // senza bloccare il primo risultato su una verifica ORB server-side.
+    scanMode: 'fast',
   });
 
   useEffect(() => {
