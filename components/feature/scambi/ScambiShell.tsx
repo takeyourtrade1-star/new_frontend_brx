@@ -7,15 +7,16 @@ import { cn } from '@/lib/utils';
 import { getCardImageUrl } from '@/lib/assets';
 
 export const scambiGlass =
-  'border border-white/15 bg-white/[0.075] shadow-[0_16px_48px_rgba(6,14,35,0.16)] backdrop-blur-xl backdrop-saturate-150';
+  'border border-white/12 bg-[#0B1935]/72 shadow-[0_24px_70px_rgba(3,9,24,0.28)] backdrop-blur-2xl backdrop-saturate-150';
 
 export const scambiGlassLight =
-  'border border-white/60 bg-white/[0.84] text-slate-900 shadow-[0_12px_36px_rgba(6,14,35,0.11)] backdrop-blur-xl backdrop-saturate-150';
+  'border border-white/70 bg-white/[0.94] text-slate-900 shadow-[0_18px_48px_rgba(3,9,24,0.14)] backdrop-blur-xl backdrop-saturate-150';
 
 export function ScambiShell({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('relative min-h-screen overflow-x-clip text-white', className)}>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_6%,rgba(255,115,0,0.10),transparent_28%),radial-gradient(circle_at_88%_20%,rgba(90,137,255,0.15),transparent_34%),linear-gradient(180deg,rgba(9,20,48,0.10),rgba(9,20,48,0.48))]" />
+    <div className={cn('relative min-h-screen overflow-x-clip bg-[#071226] text-white', className)}>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(255,115,0,0.18),transparent_28rem),radial-gradient(circle_at_92%_8%,rgba(74,111,219,0.22),transparent_32rem),linear-gradient(180deg,#0A1935_0%,#071226_45%,#050D1D_100%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
       <div className="relative">{children}</div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check, ExternalLink, Loader2, PackageCheck, ShieldAlert, Truck } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Check, ExternalLink, Loader2, PackageCheck, ShieldAlert, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -37,22 +37,29 @@ function statusKey(status: TradeStatus) {
   return `trades.status.${status}` as const;
 }
 
-function ItemList({ title, items, catalog }: {
+function ItemList({ title, items, catalog, tone }: {
   title: string;
   items: TradeItem[];
   catalog: Record<number, { name?: string; image?: string | null; set_name?: string }>;
+  tone: 'give' | 'receive';
 }) {
   const { t } = useTranslation();
   const cardCount = items.reduce((sum, item) => sum + item.quantity, 0);
   return (
-    <section className={cn(scambiGlassLight, 'overflow-hidden rounded-[1.4rem]')}>
+    <section className={cn(scambiGlassLight, 'overflow-hidden rounded-[1.5rem]')}>
       <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-4 sm:px-5">
-        <h2 className="text-sm font-black uppercase tracking-wide text-[#1D3160]">{title}</h2>
-        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-500">{t('trades.cardsCount', { count: cardCount })}</span>
+        <div className="flex items-center gap-2.5">
+          <span className={cn('h-8 w-1 rounded-full', tone === 'give' ? 'bg-[#1D3160]' : 'bg-[#FF7300]')} aria-hidden />
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{tone === 'give' ? t('trades.offered') : t('trades.requested')}</p>
+            <h2 className="mt-0.5 text-sm font-black text-[#1D3160]">{title}</h2>
+          </div>
+        </div>
+        <span className={cn('rounded-full px-2.5 py-1 text-[10px] font-black', tone === 'give' ? 'bg-slate-100 text-slate-500' : 'bg-orange-50 text-[#E86600]')}>{t('trades.cardsCount', { count: cardCount })}</span>
       </div>
       <div className="space-y-2">
         {items.map((item) => (
-          <div key={item.id} className="mx-3 flex items-center justify-between gap-3 rounded-xl border border-slate-200/60 bg-white/65 p-2.5 transition-colors duration-200 first:mt-3 last:mb-3 hover:bg-white/90 sm:mx-4">
+          <div key={item.id} className="mx-3 flex items-center justify-between gap-3 rounded-xl border border-slate-200/70 bg-slate-50/70 p-2.5 transition-colors duration-200 first:mt-3 last:mb-3 hover:border-orange-100 hover:bg-white sm:mx-4">
             <div className="flex min-w-0 items-center gap-3">
               <TradeCardThumb
                 image={catalog[item.blueprint_id]?.image}
@@ -66,7 +73,7 @@ function ItemList({ title, items, catalog }: {
                 <p className="truncate text-xs text-slate-400">{catalog[item.blueprint_id]?.set_name || `#${item.inventory_item_id ?? item.blueprint_id}`}</p>
               </div>
             </div>
-            <span className="shrink-0 rounded-full bg-[#1D3160] px-2.5 py-1 text-xs font-black text-white">
+            <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-xs font-black text-white', tone === 'give' ? 'bg-[#1D3160]' : 'bg-[#FF7300]')}>
               × {item.quantity}
             </span>
           </div>
@@ -300,27 +307,31 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
 
   return (
     <ScambiShell>
-      <div className="container-content mx-auto max-w-5xl pb-20 pt-6 md:pt-8">
+      <div className="container-content mx-auto max-w-6xl pb-20 pt-6 md:pt-9">
         <Link href="/scambi" className="mb-4 inline-flex items-center gap-2 rounded-lg text-sm font-bold text-white/60 outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-white/40">
           <ArrowLeft className="h-4 w-4" aria-hidden /> {t('trades.back')}
         </Link>
 
-        <header className={cn(scambiGlass, 'relative mb-4 animate-in overflow-hidden rounded-[1.75rem] p-5 text-white fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none sm:p-6')}>
+        <header className={cn(scambiGlass, 'relative mb-5 animate-in overflow-hidden rounded-[1.8rem] p-5 text-white fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none sm:p-7')}>
           {transitioning && <span className="scambi-busy-track absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-white/10" aria-hidden />}
-          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-xl">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">{t('trades.tradeNumber', { id: trade.id })}</p>
-              <h1 className="mt-2 text-2xl font-black uppercase tracking-tight sm:text-3xl">{t(statusKey(trade.status))}</h1>
-              <p className="mt-1.5 text-sm text-white/60">{otherName}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-200/70">{t('trades.tradeNumber', { id: trade.id })}</p>
+                <span className="h-1 w-1 rounded-full bg-white/25" aria-hidden />
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">{t('trades.withUser', { user: otherName })}</p>
+              </div>
+              <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{t(statusKey(trade.status))}</h1>
+              <p className="mt-2 text-sm text-white/55">{t('trades.exchangeSummary', { offered: offered.reduce((sum, item) => sum + item.quantity, 0), requested: requested.reduce((sum, item) => sum + item.quantity, 0) })}</p>
             </div>
 
-            <div className="flex items-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.045] p-1">
+            <div className="flex items-center overflow-hidden rounded-2xl border border-white/10 bg-black/10 p-1.5">
               {phaseLabels.map((label, index) => {
                 const done = index < activePhase;
                 const active = index === activePhase;
                 return (
-                  <div key={label} className={cn('flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 transition-colors sm:min-w-28', active && 'bg-white text-[#1D3160] shadow-sm')}>
-                    <span className={cn('flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-black', done ? 'bg-emerald-400 text-[#0D2B27]' : active ? 'bg-[#FF7300] text-white' : 'bg-white/10 text-white/35')}>
+                  <div key={label} className={cn('flex min-w-0 items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors sm:min-w-32', active && 'bg-white text-[#1D3160] shadow-md')}>
+                    <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-black', done ? 'bg-emerald-400 text-[#0D2B27]' : active ? 'bg-[#FF7300] text-white' : 'bg-white/10 text-white/35')}>
                       {done ? <Check className="h-3 w-3" strokeWidth={3} aria-hidden /> : `0${index + 1}`}
                     </span>
                     <span className={cn('hidden truncate text-[9px] font-black uppercase tracking-wide sm:block', active ? 'text-[#1D3160]' : 'text-white/50')}>{label}</span>
@@ -339,27 +350,47 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
               style={{ width: `${((activePhase + 1) / phaseLabels.length) * 100}%` }}
             />
           </div>
-          {trade.message && <p className="relative mt-4 break-words rounded-xl border border-white/10 bg-white/[0.055] p-3 text-sm leading-relaxed text-white/70">{trade.message}</p>}
+          {trade.message && <p className="relative mt-5 max-w-3xl break-words rounded-xl border border-white/10 bg-white/[0.055] p-3.5 text-sm leading-relaxed text-white/70">“{trade.message}”</p>}
         </header>
 
-        <div className="grid animate-in gap-4 fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none md:grid-cols-2">
-          <ItemList title={isProposer ? t('trades.youOffer') : t('trades.youReceive')} items={offered} catalog={catalog} />
-          <ItemList title={isProposer ? t('trades.youReceive') : t('trades.youOffer')} items={requested} catalog={catalog} />
+        <div className="relative grid animate-in items-start gap-3 fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none md:grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)]">
+          <ItemList
+            title={isProposer ? t('trades.youOffer') : t('trades.youReceive')}
+            items={offered}
+            catalog={catalog}
+            tone={isProposer ? 'give' : 'receive'}
+          />
+          <div className="z-10 flex h-11 w-11 items-center justify-center justify-self-center rounded-full border border-orange-200 bg-white text-[#FF7300] shadow-lg md:mt-10" aria-hidden>
+            <ArrowLeftRight className="h-5 w-5" />
+          </div>
+          <ItemList
+            title={isProposer ? t('trades.youReceive') : t('trades.youOffer')}
+            items={requested}
+            catalog={catalog}
+            tone={isProposer ? 'receive' : 'give'}
+          />
         </div>
 
         {trade.status === 'PROPOSED' && isReceiver && (
           <form
-            className={cn(scambiGlassLight, 'mt-4 animate-in rounded-[1.4rem] p-5 fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none')}
+            className={cn(scambiGlassLight, 'mt-5 animate-in rounded-[1.5rem] p-5 fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none sm:p-6')}
             onSubmit={(event) => {
               event.preventDefault();
               if (validAddress && !busy) void perform(() => accept.mutateAsync({ tradeId, address }));
             }}
           >
-            <h2 className="mb-4 text-sm font-black uppercase text-[#1D3160]">{t('trades.acceptTitle')}</h2>
+            <div className="mb-5 border-b border-slate-100 pb-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-600">{t('trades.status.PROPOSED')}</p>
+              <h2 className="mt-1 text-lg font-black text-[#1D3160]">{t('trades.acceptTitle')}</h2>
+              <p className="mt-1 text-xs text-slate-500">{t('trades.shippingNote')}</p>
+            </div>
             <AddressFields value={address} onChange={setAddress} />
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button type="submit" disabled={busy || !validAddress} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-black text-white shadow-md shadow-emerald-600/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 disabled:translate-y-0 disabled:opacity-40 motion-reduce:transform-none">
+            <div className="mt-5 flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center">
+              <button type="submit" disabled={busy || !validAddress} className="order-first rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white shadow-md shadow-emerald-600/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 disabled:translate-y-0 disabled:opacity-40 motion-reduce:transform-none sm:order-last sm:ml-auto">
                 {t('trades.accept')}
+              </button>
+              <button type="button" disabled={busy} onClick={startCounter} className="rounded-xl border border-[#1D3160]/15 bg-[#1D3160]/5 px-5 py-3 text-sm font-bold text-[#1D3160] transition-colors duration-200 hover:bg-[#1D3160]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D3160]/30 disabled:opacity-40">
+                {t('trades.counter')}
               </button>
               <button
                 type="button"
@@ -369,7 +400,7 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
                   else setConfirmAction('decline');
                 }}
                 className={cn(
-                  'rounded-xl border px-5 py-2.5 text-sm font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-40',
+                  'rounded-xl border px-5 py-3 text-sm font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-40',
                   confirmAction === 'decline' ? 'border-red-700 bg-red-700 text-white hover:bg-red-600' : 'border-red-200 bg-white text-red-700 hover:bg-red-50',
                 )}
               >
@@ -380,9 +411,6 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
                   {t('common.cancel')}
                 </button>
               )}
-              <button type="button" disabled={busy} onClick={startCounter} className="rounded-xl border border-[#1D3160]/20 bg-[#1D3160]/5 px-5 py-2.5 text-sm font-bold text-[#1D3160] transition-colors duration-200 hover:bg-[#1D3160]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D3160]/30 disabled:opacity-40">
-                {t('trades.counter')}
-              </button>
             </div>
           </form>
         )}
