@@ -355,10 +355,9 @@ export function SearchResults({
           className="mb-2 w-auto text-sm"
         />
 
-        {/* <h1 className="text-3xl md:text-4xl font-bold text-gray-900 uppercase tracking-wide mb-1">
+        <h1 className="sr-only">
           {tHydrationSafe('search.singles')}
         </h1>
-        <div className="mb-6" /> */}
 
         {!loading && !error && primaryHits.length > 0 && (
           <SearchResultsToolbar

@@ -787,24 +787,28 @@ export function LandingWelcome() {
             style={{ willChange: 'opacity' }}
           />
 
-          {/* Back button */}
-          <button
-            type="button"
-            onClick={handleCloseFullscreen}
-            className={`absolute left-6 top-6 z-50 flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-white/80 transition-all duration-300 hover:bg-white/20 hover:text-white backdrop-blur-md border border-white/20 ${isFullscreenClosing ? 'animate-landing-slide-up-exit' : 'animate-landing-slide-down'}`}
-            style={{ willChange: 'transform, opacity' }}
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Torna indietro</span>
-          </button>
+          {/* Controlli superiori: su viewport strette il badge va a capo senza
+              sovrapporsi al pulsante; quando c'è spazio restano ai due angoli. */}
+          <div className="relative z-50 ml-[max(1.5rem,env(safe-area-inset-left))] mr-[max(1.5rem,env(safe-area-inset-right))] mt-[max(1.5rem,env(safe-area-inset-top))] flex flex-wrap items-start gap-2">
+            {/* Back button */}
+            <button
+              type="button"
+              onClick={handleCloseFullscreen}
+              className={`flex max-w-full items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-white/80 transition-all duration-300 hover:bg-white/20 hover:text-white backdrop-blur-md border border-white/20 ${isFullscreenClosing ? 'animate-landing-slide-up-exit' : 'animate-landing-slide-down'}`}
+              style={{ willChange: 'transform, opacity' }}
+            >
+              <ArrowLeft className="h-5 w-5 shrink-0" />
+              <span className="min-w-0 break-words text-left text-sm font-medium">Torna indietro</span>
+            </button>
 
-          {/* Social proof */}
-          <div
-            className={`absolute right-6 top-6 z-10 flex items-center gap-2 rounded-full bg-[#FF7300]/90 px-4 py-2 text-white shadow-lg ${isFullscreenClosing ? 'animate-landing-slide-up-exit' : 'animate-landing-slide-down'}`}
-            style={{ willChange: 'transform, opacity', animationDelay: isFullscreenClosing ? '0ms' : '100ms' }}
-          >
-            <Users className="h-4 w-4" />
-            <span className="text-sm font-semibold">{fullscreenGame.waitlistCount.toLocaleString(intlLocale)} in lista d&apos;attesa</span>
+            {/* Social proof */}
+            <div
+              className={`ml-auto flex max-w-full items-center gap-2 rounded-full bg-[#FF7300]/90 px-4 py-2 text-white shadow-lg ${isFullscreenClosing ? 'animate-landing-slide-up-exit' : 'animate-landing-slide-down'}`}
+              style={{ willChange: 'transform, opacity', animationDelay: isFullscreenClosing ? '0ms' : '100ms' }}
+            >
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 break-words text-sm font-semibold">{fullscreenGame.waitlistCount.toLocaleString(intlLocale)} in lista d&apos;attesa</span>
+            </div>
           </div>
 
           {/* Content area */}

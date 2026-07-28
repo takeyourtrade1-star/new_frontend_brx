@@ -72,7 +72,7 @@ export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
         aria-hidden
       />
 
-      <div className="absolute inset-x-0 top-0 z-10 flex justify-center pt-16 sm:pt-20 md:pt-24 lg:pt-28 3xl:pt-32" aria-hidden>
+      <h1 className="absolute inset-x-0 top-0 z-10 flex justify-center pt-16 sm:pt-20 md:pt-24 lg:pt-28 3xl:pt-32">
         <Image
           src={logoSrc}
           alt={alt}
@@ -82,7 +82,7 @@ export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
           sizes="(max-width: 640px) 240px, (max-width: 768px) 256px, (max-width: 1024px) 288px, 320px"
           unoptimized
         />
-      </div>
+      </h1>
 
       {gameSlug !== 'mtg' && (
         <div className="absolute inset-x-0 z-20 flex justify-center px-4 top-[204px] sm:top-[232px] md:top-[268px] lg:top-[300px]">

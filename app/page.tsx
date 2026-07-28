@@ -15,6 +15,7 @@ export default function LandingPage() {
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header reserveSpace={true} />
       </Suspense>
+      <h1 className="sr-only">Ebartex</h1>
       <LandingWelcome />
       <LiveFeaturesPopup />
     </>

@@ -371,9 +371,9 @@ function ScannerToolbar({
       </div>
 
       <div className="flex flex-col items-center justify-center px-1">
-        <span className="font-display text-[1.05rem] font-bold uppercase tracking-[0.22em] text-white drop-shadow-sm sm:text-xl">
+        <h1 className="font-display text-[1.05rem] font-bold uppercase tracking-[0.22em] text-white drop-shadow-sm sm:text-xl">
           {t('scanner.title')}
-        </span>
+        </h1>
         <ModelStatusBadge status={modelStatus} />
       </div>
 

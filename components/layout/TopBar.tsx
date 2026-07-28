@@ -27,7 +27,7 @@ import { parseAuthError } from '@/lib/api/auth-error';
 import { useLogin } from '@/lib/hooks/use-auth';
 import { headerLoginSchema, type HeaderLoginValues } from '@/lib/validations/auth';
 import { getCdnImageUrl } from '@/lib/config';
-import { useGame } from '@/lib/contexts/GameContext';
+import { useHydrationSafeGame } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { LOCALE_TO_INTL } from '@/lib/i18n/locales';
 import type { UiLocale } from '@/lib/i18n/locales';
@@ -63,7 +63,7 @@ const HamburgerMenu = dynamic(
 export function TopBar() {
   const { t, locale } = useTranslation();
   const router = useRouter();
-  const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
+  const { selectedGame, setSelectedGame, gameDisplayName } = useHydrationSafeGame();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [acquistiMenuOpen, setAcquistiMenuOpen] = useState(false);
   const [vendiMenuOpen, setVendiMenuOpen] = useState(false);

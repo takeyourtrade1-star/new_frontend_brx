@@ -101,6 +101,31 @@ export function useGame() {
   return ctx;
 }
 
+/**
+ * Variante per consumer renderizzati anche dal server dentro boundary Suspense.
+ *
+ * Il provider ripristina la preferenza salvata dopo il proprio mount; un consumer
+ * che si idrata più tardi potrebbe quindi vedere subito il valore da localStorage
+ * mentre il suo HTML server contiene ancora il default MTG. Manteniamo il valore
+ * server-safe fino al mount del consumer stesso, poi applichiamo la preferenza.
+ */
+export function useHydrationSafeGame(): GameContextValue {
+  const game = useGame();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  return useMemo(
+    () => ({
+      ...game,
+      selectedGame: isMounted ? game.selectedGame : DEFAULT_GAME,
+    }),
+    [game, isMounted]
+  );
+}
+
 /** Path delle home gioco → slug (allineato a TopBar GAME_HOME_PATH). */
 export function gameSlugFromPathname(pathname: string | null): GameSlug | null {
   if (!pathname) return null;

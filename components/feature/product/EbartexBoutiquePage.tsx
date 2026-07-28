@@ -193,9 +193,9 @@ export function EbartexBoutiquePage() {
         </section>
 
         {/* Titolo sezione */}
-        <h2 className="text-2xl font-bold text-gray-900 uppercase tracking-tight mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 uppercase tracking-tight mb-6">
           La nostra Boutique
-        </h2>
+        </h1>
 
         {/* Griglia categorie — stesso stile homepage, non cliccabile */}
         <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 sm:gap-6 mb-14">
