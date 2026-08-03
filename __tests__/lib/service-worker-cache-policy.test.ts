@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  excludeBuildInfoFromPrecache,
   isLegacyPrivateRuntimeCache,
   mustBypassServiceWorkerCache,
 } from '@/lib/security/service-worker-cache-policy';
@@ -22,6 +23,7 @@ const match = (
 describe('service worker account-isolation cache policy', () => {
   it('bypasses every API and personalized Next transport', () => {
     expect(match('/api/search?q=card')).toBe(true);
+    expect(match('/build-info.json?v=123')).toBe(true);
     expect(match('/account', { mode: 'navigate' })).toBe(true);
     expect(match('/account', { destination: 'document' })).toBe(true);
     expect(match('/_next/data/build/account.json')).toBe(true);
@@ -33,6 +35,20 @@ describe('service worker account-isolation cache policy', () => {
 
   it('leaves immutable static assets eligible for default caching', () => {
     expect(match('/_next/static/chunks/app.js')).toBe(false);
+  });
+
+  it('removes mutable build metadata from every precache entry shape', () => {
+    expect(
+      excludeBuildInfoFromPrecache([
+        '/build-info.json',
+        { url: '/build-info.json?revision=old' },
+        { url: '/_next/static/chunks/app.js', revision: 'abc' },
+        '/offline',
+      ]),
+    ).toEqual([
+      { url: '/_next/static/chunks/app.js', revision: 'abc' },
+      '/offline',
+    ]);
   });
 
   it('recognizes private legacy runtime cache buckets for deletion', () => {

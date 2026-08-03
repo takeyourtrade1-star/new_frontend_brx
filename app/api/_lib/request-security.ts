@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveProductionAppOrigins } from '@/lib/production-app-origin';
 import { noStoreHeaders } from './proxy-response';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -20,13 +21,9 @@ function expectedOrigins(request: NextRequest): Set<string> {
     // Never derive the production trust boundary from Host/X-Forwarded-Host:
     // both are request metadata and can be attacker-controlled when an ingress
     // is misconfigured. APP_ORIGIN is an explicit deployment contract.
-    const configured = process.env.APP_ORIGIN;
-    const origin = configured ? normalizedOrigin(configured) : null;
-    if (origin?.startsWith('https://')) {
-      const hostname = new URL(origin).hostname;
-      if (hostname === 'ebartex.com' || hostname.endsWith('.ebartex.com')) {
-        origins.add(origin);
-      }
+    const productionOrigins = resolveProductionAppOrigins();
+    if (productionOrigins) {
+      for (const origin of productionOrigins.sameOriginOrigins) origins.add(origin);
     }
     return origins;
   }

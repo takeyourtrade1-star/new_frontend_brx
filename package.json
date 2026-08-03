@@ -30,7 +30,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@serwist/next": "^9.5.7",
     "@tanstack/react-query": "^5.50.0",
-    "axios": "^1.13.5",
+    "axios": "^1.18.0",
     "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
@@ -70,14 +70,14 @@
     "eslint-config-next": "15.5.22",
     "jsdom": "^29.0.2",
     "knip": "^6.18.0",
-    "postcss": "8.5.22",
+    "postcss": "8.5.23",
     "tailwindcss": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.5.0",
     "vitest": "^4.1.4"
   },
   "overrides": {
-    "postcss": "8.5.22",
+    "postcss": "8.5.23",
     "sharp": "0.35.0"
   }
 }

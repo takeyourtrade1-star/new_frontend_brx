@@ -70,6 +70,23 @@ describe('middleware CSP', () => {
     );
   });
 
+  it('usa il dominio canonico se APP_ORIGIN è assente senza fidarsi degli header', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('APP_ORIGIN', '');
+    const response = middleware(
+      new NextRequest('https://attacker.example/account/profilo', {
+        headers: {
+          host: 'attacker.example',
+          'x-forwarded-host': 'attacker.example',
+        },
+      }),
+    );
+
+    expect(response.headers.get('location')).toBe(
+      'https://www.ebartex.com/login?accesso=1&redirect=%2Faccount%2Fprofilo',
+    );
+  });
+
   it('fallisce chiuso in production se APP_ORIGIN non è valido', () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('APP_ORIGIN', 'https://attacker.example');

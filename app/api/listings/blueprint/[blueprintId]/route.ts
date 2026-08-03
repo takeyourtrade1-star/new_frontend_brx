@@ -6,11 +6,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
 import { publicCacheHeaders } from '@/app/api/_lib/proxy-response';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedSyncServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
+import { getSyncApiUrlEnv } from '@/lib/server-runtime-env';
 
-const SYNC_API_URL = trustedServiceOrigin(
-  process.env.SYNC_API_URL
+const SYNC_API_URL = trustedSyncServiceOrigin(
+  getSyncApiUrlEnv()
 );
 
 export async function GET(

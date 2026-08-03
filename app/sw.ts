@@ -2,6 +2,7 @@ import { defaultCache } from '@serwist/next/worker';
 import type { PrecacheEntry } from 'serwist';
 import { Serwist, NetworkOnly } from 'serwist';
 import {
+  excludeBuildInfoFromPrecache,
   isLegacyPrivateRuntimeCache,
   mustBypassServiceWorkerCache,
 } from '@/lib/security/service-worker-cache-policy';
@@ -11,7 +12,7 @@ const manifest = (
 ).__SW_MANIFEST;
 
 const serwist = new Serwist({
-  precacheEntries: manifest,
+  precacheEntries: excludeBuildInfoFromPrecache(manifest),
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,

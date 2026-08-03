@@ -1,13 +1,17 @@
 /**
  * Distributed fixed-window rate limiter for sensitive BFF routes.
  *
- * Production is fail-closed and requires a Redis-compatible REST endpoint. The
- * counter and its TTL are updated by one Lua script, so concurrent requests
- * across instances cannot exceed the configured quota through lost updates.
- * Development and tests intentionally keep a bounded in-memory fallback.
+ * A Redis-compatible REST endpoint is preferred in production. The counter and
+ * its TTL are updated by one Lua script, so concurrent requests across
+ * instances cannot exceed the configured quota through lost updates.
+ *
+ * Amplify currently has an explicit compatibility mode when *all* Redis
+ * settings are absent: a bounded, per-instance in-memory limiter keeps the BFF
+ * available until runtime secret injection is provisioned. Any partial/invalid
+ * Redis configuration, untrusted IP, or Redis failure still fails closed.
  */
 
-import { createHmac } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import { isIP } from 'node:net';
 import { NextRequest, NextResponse } from 'next/server';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
@@ -30,6 +34,7 @@ const MAX_TRACKED_KEYS = 5000;
 const DEFAULT_REDIS_TIMEOUT_MS = 1_500;
 const BACKEND_RETRY_AFTER_SEC = 5;
 const MAX_WINDOW_MS = 24 * 60 * 60_000;
+let productionMemoryWarningEmitted = false;
 
 /**
  * INCR and PEXPIRE must be one atomic operation. The PTTL repair also prevents
@@ -51,12 +56,30 @@ function localFallbackAllowed(): boolean {
 
 function normalizeIp(raw: string | undefined): string | null {
   if (!raw) return null;
-  let value = raw.trim().replace(/^"|"$/g, '');
+  let value = raw.trim();
+  const startsQuoted = value.startsWith('"');
+  const endsQuoted = value.endsWith('"');
+  if (startsQuoted !== endsQuoted) return null;
+  if (startsQuoted) value = value.slice(1, -1);
+
+  const validPort = (rawPort: string): boolean => {
+    if (!/^\d{1,5}$/.test(rawPort)) return false;
+    const port = Number(rawPort);
+    return port >= 1 && port <= 65_535;
+  };
+
   if (value.startsWith('[')) {
     const end = value.indexOf(']');
-    if (end > 1) value = value.slice(1, end);
-  } else if (/^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(value)) {
-    value = value.slice(0, value.lastIndexOf(':'));
+    if (end <= 1) return null;
+    const suffix = value.slice(end + 1);
+    if (suffix && (!suffix.startsWith(':') || !validPort(suffix.slice(1)))) return null;
+    value = value.slice(1, end);
+  } else {
+    const ipv4WithPort = value.match(/^(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})$/);
+    if (ipv4WithPort) {
+      if (!validPort(ipv4WithPort[2])) return null;
+      value = ipv4WithPort[1];
+    }
   }
   if (value.length > 64) return null;
   const version = isIP(value);
@@ -77,7 +100,9 @@ function normalizeIp(raw: string | undefined): string | null {
 
 function trustedProxyHops(): number | null {
   const raw = process.env.TRUSTED_PROXY_HOPS?.trim();
-  if (!raw) return localFallbackAllowed() ? 1 : null;
+  // CloudFront appends the viewer address to X-Forwarded-For. At the Amplify
+  // boundary the rightmost value is therefore the non-client-controlled one.
+  if (!raw) return 1;
   if (!/^[1-9]\d?$/.test(raw)) return null;
   const parsed = Number(raw);
   return parsed <= 10 ? parsed : null;
@@ -85,9 +110,9 @@ function trustedProxyHops(): number | null {
 
 /**
  * Returns an address only from infrastructure headers explicitly trusted by
- * configuration. Production must configure TRUSTED_CLIENT_IP_HEADER or
- * TRUSTED_PROXY_HOPS; arbitrary client-provided forwarding headers are never
- * used as a fallback.
+ * configuration. Amplify/CloudFront defaults to the validated rightmost
+ * X-Forwarded-For address; an explicitly configured single-value header or
+ * proxy-hop count overrides that platform default.
  */
 export function getRateLimitClientIp(request: NextRequest): string {
   const configuredHeader = process.env.TRUSTED_CLIENT_IP_HEADER?.trim().toLowerCase();
@@ -132,15 +157,23 @@ function parseBoundedInteger(raw: string | undefined, fallback: number, min: num
 function redisRestConfig(): RedisRestConfig | null {
   const dedicatedUrl = process.env.RATE_LIMIT_REDIS_REST_URL?.trim();
   const dedicatedToken = process.env.RATE_LIMIT_REDIS_REST_TOKEN?.trim();
-  const usesDedicatedConfig = Boolean(dedicatedUrl || dedicatedToken);
-  const url = usesDedicatedConfig
-    ? dedicatedUrl
-    : process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = usesDedicatedConfig
-    ? dedicatedToken
-    : process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  const hasDedicatedConfig = Boolean(dedicatedUrl || dedicatedToken);
+  const hasUpstashConfig = Boolean(upstashUrl || upstashToken);
 
-  if (!url && !token) return null;
+  if (hasDedicatedConfig && (!dedicatedUrl || !dedicatedToken)) {
+    throw new Error('Incomplete dedicated Redis REST configuration');
+  }
+  if (hasUpstashConfig && (!upstashUrl || !upstashToken)) {
+    throw new Error('Incomplete Upstash Redis REST configuration');
+  }
+  if (!hasDedicatedConfig && !hasUpstashConfig) return null;
+
+  // Dedicated settings win only after both pairs have been checked for
+  // completeness; a stray partial fallback pair is still a deployment error.
+  const url = dedicatedUrl || upstashUrl;
+  const token = dedicatedToken || upstashToken;
   if (!url || !token) throw new Error('Incomplete Redis REST configuration');
 
   const parsedUrl = new URL(url);
@@ -156,16 +189,20 @@ function redisRestConfig(): RedisRestConfig | null {
   if (parsedUrl.pathname !== '/' || (!localFallbackAllowed() && parsedUrl.port)) {
     throw new Error('Redis REST URL must be a bare standard-port origin');
   }
-  const configuredHosts = new Set(
-    (process.env.RATE_LIMIT_REDIS_ALLOWED_HOSTS || '')
-      .split(',')
-      .map((host) => host.trim().toLowerCase())
-      .filter((host) =>
-        /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(host),
-      ),
-  );
+  const configuredHosts = new Set<string>();
+  for (const configuredHost of (process.env.RATE_LIMIT_REDIS_ALLOWED_HOSTS || '').split(',')) {
+    const host = configuredHost.trim().toLowerCase();
+    if (!host) continue;
+    if (
+      !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(host)
+    ) {
+      throw new Error('Invalid Redis REST allowed hostname');
+    }
+    configuredHosts.add(host);
+  }
   const redisHost = parsedUrl.hostname.toLowerCase();
-  if (!localFallbackAllowed() && !configuredHosts.has(redisHost)) {
+  const isUpstashHost = redisHost !== 'upstash.io' && redisHost.endsWith('.upstash.io');
+  if (!localFallbackAllowed() && !isUpstashHost && !configuredHosts.has(redisHost)) {
     throw new Error('Redis REST hostname is not trusted');
   }
   if (!localFallbackAllowed() && (Buffer.byteLength(token, 'utf8') < 32 || token.length > 4096)) {
@@ -220,9 +257,19 @@ function privateRateKey(config: RedisRestConfig, scope: string, ip: string): str
 }
 
 function memoryRateKey(scope: string, ip: string): string {
-  const secret = process.env.RATE_LIMIT_KEY_SECRET || 'development-only-rate-limit-key-secret';
-  const digest = createHmac('sha256', secret).update(`ip\0${ip}`).digest('base64url');
+  // The compatibility store never exports keys outside this process. A
+  // one-way digest avoids retaining raw IPs without requiring a deploy secret.
+  const digest = createHash('sha256').update(`ip\0${ip}`).digest('base64url');
   return `memory:${scope}:${digest}`;
+}
+
+function warnProductionMemoryFallbackOnce(): void {
+  if (productionMemoryWarningEmitted) return;
+  productionMemoryWarningEmitted = true;
+  // Deliberately static: never include IPs, URLs, tokens, keys, or request data.
+  console.warn(
+    '[rate-limit] Redis non configurato: fallback temporaneo per-instance attivo.',
+  );
 }
 
 function checkMemoryRateLimit(ip: string, options: RateLimitOptions): RateLimitResult {
@@ -325,9 +372,10 @@ export interface RateLimitResult {
 }
 
 /**
- * Atomically consumes one request from the distributed bucket. Production
- * never falls back to process memory: missing/invalid config, untrusted IPs,
- * timeouts and malformed backend responses all fail closed.
+ * Atomically consumes one request from the distributed bucket. When all Redis
+ * variables are absent, production uses the documented bounded compatibility
+ * store. Partial/invalid configuration, untrusted IPs, timeouts, and malformed
+ * backend responses all fail closed.
  */
 export async function checkRateLimit(
   request: NextRequest,
@@ -340,20 +388,13 @@ export async function checkRateLimit(
 
     const config = redisRestConfig();
     if (!config) {
-      return localFallbackAllowed()
-        ? checkMemoryRateLimit(ip, options)
-        : unavailableResult(options);
+      if (!localFallbackAllowed()) warnProductionMemoryFallbackOnce();
+      return checkMemoryRateLimit(ip, options);
     }
 
     return await checkRedisRateLimit(config, ip, options);
   } catch {
-    if (!localFallbackAllowed()) return unavailableResult(options);
-    try {
-      validateOptions(options);
-      return checkMemoryRateLimit(getRateLimitClientIp(request), options);
-    } catch {
-      return unavailableResult(options);
-    }
+    return unavailableResult(options);
   }
 }
 

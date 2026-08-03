@@ -9,15 +9,41 @@ import { readTextBodyWithLimit } from '@/app/api/_lib/request-body';
 import { enforceSameOrigin } from '@/app/api/_lib/request-security';
 import { normalizeProxyPathSegments } from '@/app/api/_lib/safe-proxy-path';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedAuctionServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
+import { getAuctionApiUrlEnv } from '@/lib/server-runtime-env';
 import { appendQueryWithPolicy, QUERY_INTEGER, QUERY_POSITIVE_INTEGER, type QueryRules } from '@/app/api/_lib/query-policy';
+import type { TradeStatus } from '@/types/trade';
 
 const PROXY_TIMEOUT_MS = 12_000;
 const MAX_TRADE_BODY_BYTES = 256 * 1024;
 const MAX_TRADE_RESPONSE_BYTES = 2 * 1024 * 1024;
-const AUCTION_API_URL = trustedServiceOrigin(
-  process.env.AUCTION_API_URL
+
+const TRADE_STATUS_FILTERS = {
+  PROPOSED: true,
+  ACCEPTING: true,
+  ACCEPTED: true,
+  DECLINED: true,
+  CANCELLED: true,
+  EXPIRED: true,
+  COUNTERED: true,
+  COMPLETED: true,
+  DISPUTED: true,
+} as const satisfies Record<TradeStatus, true>;
+
+function isTradeStatusFilter(value: string): boolean {
+  const statuses = value.split(',');
+  if (statuses.length === 0 || statuses.length > Object.keys(TRADE_STATUS_FILTERS).length) {
+    return false;
+  }
+  const uniqueStatuses = new Set(statuses);
+  return uniqueStatuses.size === statuses.length && statuses.every(
+    (status) => Object.prototype.hasOwnProperty.call(TRADE_STATUS_FILTERS, status),
+  );
+}
+
+const AUCTION_API_URL = trustedAuctionServiceOrigin(
+  getAuctionApiUrlEnv()
 );
 
 function isAllowedTradePath(path: string, method: string): boolean {
@@ -66,7 +92,7 @@ export async function proxyTrade(request: NextRequest, pathSegments: string[]) {
   const queryRules: QueryRules = request.method === 'GET' && !path
     ? {
         role: /^(?:sent|received)$/,
-        status: /^[a-z_]{1,32}(?:,[a-z_]{1,32})*$/,
+        status: isTradeStatusFilter,
         limit: QUERY_POSITIVE_INTEGER,
         offset: QUERY_INTEGER,
       }

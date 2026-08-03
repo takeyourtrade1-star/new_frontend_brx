@@ -23,6 +23,9 @@ describe('auth verification BFF', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.doUnmock('@/app/api/_lib/rate-limit');
+    vi.doUnmock('@/lib/server-runtime-env');
     delete process.env.AUTH_API_URL;
     delete process.env.AUTH_INTERNAL_API_TOKEN;
   });
@@ -333,6 +336,193 @@ describe('auth verification BFF', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('logs out locally without a refresh cookie or a functioning rate limiter', async () => {
+    const checkRateLimit = vi.fn().mockRejectedValue(new Error('rate limit unavailable'));
+    vi.resetModules();
+    vi.doMock('@/app/api/_lib/rate-limit', () => ({
+      checkRateLimit,
+      rateLimitExceededResponse: vi.fn(),
+    }));
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+    vi.doUnmock('@/app/api/_lib/rate-limit');
+    const { getAuthCookieName } = await import('@/app/api/_lib/auth-cookies');
+
+    const response = await POST(
+      postRequest('/api/auth/logout', {
+        refresh_token: 'browser-controlled-token-must-be-ignored',
+      }),
+      { params: Promise.resolve({ path: ['logout'] }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toMatch(/no-store/);
+    expect(await response.json()).toEqual({ logged_out: true });
+    expect(checkRateLimit).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const cookies = response.headers.getSetCookie();
+    for (const kind of [
+      'access',
+      'refresh',
+      'preauth',
+      'password-reset',
+      'password-reset-confirm',
+    ] as const) {
+      expect(
+        cookies.some((cookie) =>
+          cookie.startsWith(`${getAuthCookieName(kind)}=; Path=/; HttpOnly;`),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it('keeps local logout successful when the revocation rate limiter is unavailable', async () => {
+    const checkRateLimit = vi.fn().mockRejectedValue(new Error('rate limit unavailable'));
+    vi.resetModules();
+    vi.doMock('@/app/api/_lib/rate-limit', () => ({
+      checkRateLimit,
+      rateLimitExceededResponse: vi.fn(),
+    }));
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+    vi.doUnmock('@/app/api/_lib/rate-limit');
+
+    const response = await POST(
+      postRequest('/api/auth/logout', {}, {
+        cookie: 'ebartex_refresh_token=valid-http-only-refresh',
+      }),
+      { params: Promise.resolve({ path: ['logout'] }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ logged_out: true });
+    expect(response.headers.getSetCookie().length).toBeGreaterThanOrEqual(5);
+    expect(checkRateLimit).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('returns a generic completed logout and clears cookies when auth is offline', async () => {
+    const refreshToken = 'refresh-token-never-leak-to-browser-or-logs';
+    const fetchMock = vi.fn().mockRejectedValue(new Error('auth offline'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+
+    const response = await POST(
+      postRequest(
+        '/api/auth/logout',
+        { refresh_token: 'browser-token-must-be-ignored' },
+        { cookie: `ebartex_refresh_token=${refreshToken}` },
+      ),
+      { params: Promise.resolve({ path: ['logout'] }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toMatch(/no-store/);
+    const payload = await response.json();
+    expect(payload).toEqual({ logged_out: true });
+    expect(JSON.stringify(payload)).not.toContain(refreshToken);
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain(refreshToken);
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const upstreamInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(upstreamInit.body).toBe(JSON.stringify({ refresh_token: refreshToken }));
+    expect(upstreamInit.headers).not.toHaveProperty('Authorization');
+    expect(response.headers.getSetCookie().length).toBeGreaterThanOrEqual(5);
+    errorSpy.mockRestore();
+  });
+
+  it('forwards the cookie access token for revocation but keeps local logout successful on 401', async () => {
+    const accessToken = 'expired-access-token';
+    const refreshToken = 'valid-http-only-refresh';
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ refresh_token: 'must-not-reach-browser' }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+
+    const response = await POST(
+      postRequest(
+        '/api/auth/logout',
+        {},
+        {
+          cookie:
+            `ebartex_access_token=${accessToken}; ebartex_refresh_token=${refreshToken}`,
+        },
+      ),
+      { params: Promise.resolve({ path: ['logout'] }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ logged_out: true });
+    expect(response.headers.getSetCookie().length).toBeGreaterThanOrEqual(5);
+    const upstreamInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(upstreamInit.headers).toMatchObject({
+      Authorization: `Bearer ${accessToken}`,
+    });
+    expect(upstreamInit.body).toBe(JSON.stringify({ refresh_token: refreshToken }));
+  });
+
+  it('clears both host-only and legacy production cookies without auth configuration', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('AUTH_COOKIE_DOMAIN', '.ebartex.com');
+    delete process.env.AUTH_API_URL;
+    vi.resetModules();
+    vi.doMock('@/lib/server-runtime-env', () => ({
+      getAuthApiUrlEnv: () => '',
+      getAuthInternalIdentityEnv: () => ({ caller: '', token: '' }),
+    }));
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+    vi.doUnmock('@/lib/server-runtime-env');
+
+    const response = await POST(
+      postRequest('/api/auth/logout', {}, {
+        origin: 'https://www.ebartex.com',
+        'sec-fetch-site': 'same-origin',
+      }),
+      { params: Promise.resolve({ path: ['logout'] }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).not.toHaveBeenCalled();
+    const cookies = response.headers.getSetCookie().join('\n');
+    expect(cookies).toContain('__Host-ebartex_access_token=;');
+    expect(cookies).toContain('__Host-ebartex_refresh_token=;');
+    expect(cookies).toContain('__Host-ebartex_pre_auth_token=;');
+    expect(cookies).toContain('__Host-ebartex_password_reset_token=;');
+    expect(cookies).toContain('__Host-ebartex_password_reset_confirm_token=;');
+    expect(cookies).toContain('ebartex_access_token=;');
+    expect(cookies).toContain('ebartex_refresh_token=;');
+    expect(cookies).toContain('ebartex_pre_auth_token=;');
+    expect(cookies).toContain('Domain=.ebartex.com');
+  });
+
+  it('keeps cross-site logout requests blocked before clearing cookies', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+
+    const response = await POST(
+      postRequest('/api/auth/logout', {}, {
+        origin: 'https://attacker.example',
+        'sec-fetch-site': 'cross-site',
+      }),
+      { params: Promise.resolve({ path: ['logout'] }) },
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.getSetCookie()).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('never creates cookies from token-shaped fields in an upstream error', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
@@ -569,9 +759,14 @@ describe('auth verification BFF', () => {
   it('marks missing auth service configuration as no-store', async () => {
     delete process.env.AUTH_API_URL;
     vi.resetModules();
+    vi.doMock('@/lib/server-runtime-env', () => ({
+      getAuthApiUrlEnv: () => '',
+      getAuthInternalIdentityEnv: () => ({ caller: '', token: '' }),
+    }));
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     const { POST } = await import('@/app/api/auth/[...path]/route');
+    vi.doUnmock('@/lib/server-runtime-env');
 
     const response = await POST(
       postRequest('/api/auth/login', {

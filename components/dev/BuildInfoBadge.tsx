@@ -1,11 +1,34 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 
 interface BuildInfo {
   hash: string;
   timestamp: number | null;
 }
+
+export const BUILD_INFO_STALE_TIME_MS = 30_000;
+export const BUILD_INFO_REFRESH_INTERVAL_MS = 60_000;
+
+export async function fetchBuildInfo(): Promise<BuildInfo> {
+  const cacheBuster = Date.now();
+  const res = await fetch(`/build-info.json?v=${cacheBuster}`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Not found');
+  return res.json() as Promise<BuildInfo>;
+}
+
+export const buildInfoQueryOptions = queryOptions<BuildInfo>({
+  queryKey: ['build-info'],
+  queryFn: fetchBuildInfo,
+  staleTime: BUILD_INFO_STALE_TIME_MS,
+  refetchInterval: BUILD_INFO_REFRESH_INTERVAL_MS,
+  refetchIntervalInBackground: false,
+  refetchOnWindowFocus: 'always',
+  retry: false,
+  placeholderData: { hash: 'dev', timestamp: null },
+});
 
 function formatTimestamp(ts: number): string {
   return new Intl.DateTimeFormat('it-IT', {
@@ -19,17 +42,7 @@ function formatTimestamp(ts: number): string {
 }
 
 export function BuildInfoBadge() {
-  const { data: info } = useQuery<BuildInfo>({
-    queryKey: ['build-info'],
-    queryFn: async () => {
-      const res = await fetch('/build-info.json');
-      if (!res.ok) throw new Error('Not found');
-      return res.json();
-    },
-    staleTime: Infinity,
-    retry: false,
-    placeholderData: { hash: 'dev', timestamp: null },
-  });
+  const { data: info } = useQuery(buildInfoQueryOptions);
 
   if (!info) return null;
 

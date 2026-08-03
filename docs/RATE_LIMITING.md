@@ -1,39 +1,55 @@
-# Rate limiting distribuito del BFF
+# Rate limiting del BFF
 
-Le route `app/api/*` consumano una quota condivisa tra tutte le istanze tramite
-un endpoint REST compatibile Redis. L'incremento e l'impostazione del TTL sono
-eseguiti in un singolo script Lua `EVAL`, quindi restano atomici anche con
-richieste concorrenti e scaling orizzontale.
+La modalità preferita per le route `app/api/*` usa una quota condivisa tra tutte
+le istanze tramite un endpoint REST compatibile Redis. L'incremento e
+l'impostazione del TTL sono eseguiti in un singolo script Lua `EVAL`, quindi
+restano atomici anche con richieste concorrenti e scaling orizzontale.
 
-In produzione non esiste fallback locale: configurazione assente o invalida,
-IP non attendibile, timeout, errore dello store o risposta malformata causano
-una risposta 503 `no-store`. Il fallback in memoria, limitato a 5.000 chiavi, è
-abilitato esclusivamente in sviluppo e test.
+Per mantenere disponibile l'attuale deploy Amplify finché non è pronto il
+provider di segreti runtime, esiste una modalità di compatibilità esplicita:
+**solo quando tutte e quattro** le variabili URL/token Redis dedicate e Upstash
+sono assenti o vuote, il processo usa un limiter in memoria limitato a 5.000
+chiavi ed emette un solo warning statico (senza IP, URL o segreti). Quota e
+finestra configurate dalle route restano identiche.
 
-## Variabili server-only obbligatorie
+Questo fallback è per-instance: cold start, riavvii e scaling creano contatori
+separati e permettono quindi a un attaccante di superare la quota globale
+distribuendo richieste tra istanze. Non va descritto come protezione distribuita
+né considerato lo stato finale. Va rimosso non appena il provider runtime può
+consegnare token Redis e chiave HMAC senza inserirli negli artifact.
+
+Qualsiasi coppia Redis parziale, configurazione invalida, IP non attendibile,
+timeout, errore dello store o risposta malformata causa invece una risposta 503
+`no-store`: non avviene mai un fallback da Redis guasto alla memoria locale.
+
+## Variabili server-only per la modalità Redis
 
 | Variabile | Vincolo |
 |---|---|
 | `RATE_LIMIT_REDIS_REST_URL` | Origin HTTPS senza path/porta/credenziali/query/fragment; host `*.upstash.io` o allowlist esatta |
 | `RATE_LIMIT_REDIS_REST_TOKEN` | Bearer token dedicato di almeno 32 byte (massimo 4096), con accesso solo al database/namespace del limiter |
 | `RATE_LIMIT_KEY_SECRET` | Segreto casuale di almeno 32 byte, diverso da JWT/cookie/Redis token |
-| `TRUSTED_CLIENT_IP_HEADER` | Header inserito e sovrascritto dall'edge: `cloudfront-viewer-address`, `cf-connecting-ip` o `x-vercel-forwarded-for` |
+| `TRUSTED_CLIENT_IP_HEADER` | Override opzionale: header inserito e sovrascritto dall'edge (`cloudfront-viewer-address`, `cf-connecting-ip` o `x-vercel-forwarded-for`) |
 
 Per compatibilità transitoria sono accettati
 `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` quando le variabili
 `RATE_LIMIT_*` dedicate sono entrambe assenti. Non configurare metà di una
 coppia: il limiter la considera un errore e fallisce chiuso.
 
-Se la piattaforma non offre uno degli header singoli ammessi, omettere
-`TRUSTED_CLIENT_IP_HEADER` e impostare `TRUSTED_PROXY_HOPS` (intero 1-10) solo
-dopo aver verificato in staging la catena `X-Forwarded-For`. Il codice seleziona
-l'indirizzo contando da destra. Il proxy/edge deve rimuovere o sovrascrivere gli
-header inviati dal client e l'origine non deve essere raggiungibile direttamente.
+Su Amplify/CloudFront, se entrambi gli override sono assenti, il codice usa
+l'elemento più a destra di `X-Forwarded-For`: CloudFront aggiunge lì l'indirizzo
+viewer, quindi un valore falsificato dal client a sinistra non cambia il bucket.
+`TRUSTED_PROXY_HOPS` (intero 1-10) permette di contare da destra solo dopo aver
+verificato la catena reale in staging. Un header/hop esplicitamente invalido,
+una catena troppo corta o un IP malformato falliscono chiuso. L'origine non deve
+essere raggiungibile direttamente aggirando CloudFront.
 
 Variabili opzionali:
 
 - `RATE_LIMIT_REDIS_ALLOWED_HOSTS`: hostname esatti, separati da virgola, per
-  gateway approvati diversi da Upstash; non accetta wildcard;
+  gateway approvati diversi da Upstash; non accetta wildcard. Un origin HTTPS
+  bare con host `*.upstash.io` è ammesso senza allowlist, mentre ogni host custom
+  deve comparire esattamente qui;
 - `RATE_LIMIT_REDIS_PREFIX`: namespace Redis, default `brx:bff:rl:v1`, massimo
   64 caratteri `[A-Za-z0-9:_-]`;
 - `RATE_LIMIT_REDIS_TIMEOUT_MS`: timeout 100-5000 ms, default 1500 ms.
@@ -53,14 +69,15 @@ Tutte le variabili sono server-only: non usare mai il prefisso `NEXT_PUBLIC_`.
 - Il namespace può essere condiviso tra istanze/regioni solo se lo store è la
   fonte comune. Store separati per regione producono quote separate.
 
-Le chiavi contengono soltanto namespace, scope e HMAC-SHA-256 dell'IP. IP e
-identificativi utente non vengono salvati in chiaro. Il `sub` del JWT non entra
-nella chiave perché il BFF non ne verifica localmente la firma: usarlo avrebbe
-permesso di cambiare soggetto e aggirare la quota. La rotazione di
-`RATE_LIMIT_KEY_SECRET` cambia tutte le chiavi e azzera di fatto le finestre
-attive; eseguirla in una finestra controllata.
+Le chiavi Redis contengono soltanto namespace, scope e HMAC-SHA-256 dell'IP. Le
+chiavi del fallback locale usano SHA-256 one-way e non richiedono un segreto,
+perché non lasciano il processo. IP e identificativi utente non vengono salvati
+in chiaro. Il `sub` del JWT non entra nella chiave perché il BFF non ne verifica
+localmente la firma: usarlo avrebbe permesso di cambiare soggetto e aggirare la
+quota. La rotazione di `RATE_LIMIT_KEY_SECRET` cambia tutte le chiavi Redis e
+azzera di fatto le finestre attive; eseguirla in una finestra controllata.
 
-## Gate di lancio
+## Gate per rimuovere il fallback temporaneo
 
 1. Rendere le variabili disponibili al runtime SSR tramite un canale segreti
    approvato, mai nel repository o in artifact accessibili a ruoli non fidati.
@@ -125,6 +142,9 @@ bloccante questo runbook:
    throttling/timeout AWS, KMS deny e secret malformato; controllare CloudTrail,
    metriche 503 e rollback prima della promozione.
 
-Finché provider, policy IAM e prove staging non sono verdi, il comportamento
-503 fail-closed è intenzionalmente un gate **NO-GO**, non una ragione per
-incorporare credenziali negli artifact o in `.env.production`.
+Finché provider, policy IAM e prove staging non sono verdi, non configurare
+parzialmente Redis e non incorporare credenziali negli artifact o in
+`.env.production`: la configurazione parziale produce intenzionalmente 503. Il
+fallback in memoria mantiene disponibile il deploy, ma il rischio per-instance
+resta accettato e temporaneo; il completamento di questo runbook deve disattivare
+e poi rimuovere la modalità di compatibilità.

@@ -17,9 +17,10 @@ import {
 import { enforceSameOrigin } from '@/app/api/_lib/request-security';
 import { readTextBodyWithLimit } from '@/app/api/_lib/request-body';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedAuctionServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
 import { appendQueryWithPolicy, QUERY_INTEGER, QUERY_POSITIVE_INTEGER, type QueryRules } from '@/app/api/_lib/query-policy';
+import { getAuctionApiUrlEnv } from '@/lib/server-runtime-env';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +28,8 @@ const PROXY_TIMEOUT_MS = 12_000;
 const MAX_PROXY_BODY_BYTES = 256 * 1024;
 const MAX_PROXY_RESPONSE_BYTES = 2 * 1024 * 1024;
 
-const AUCTION_API_URL = trustedServiceOrigin(
-  process.env.AUCTION_API_URL
+const AUCTION_API_URL = trustedAuctionServiceOrigin(
+  getAuctionApiUrlEnv()
 );
 
 /**

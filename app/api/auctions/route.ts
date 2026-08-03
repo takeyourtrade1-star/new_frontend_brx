@@ -13,9 +13,11 @@ import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-l
 import { enforceSameOrigin } from '@/app/api/_lib/request-security';
 import { readTextBodyWithLimit } from '@/app/api/_lib/request-body';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedAuctionServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
+import { getAuctionApiUrlEnv } from '@/lib/server-runtime-env';
 import { appendQueryWithPolicy, QUERY_INTEGER, QUERY_POSITIVE_INTEGER, type QueryRules } from '@/app/api/_lib/query-policy';
+import type { AuctionStatus } from '@/types/auction';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,8 +25,20 @@ const PROXY_TIMEOUT_MS = 12_000;
 const MAX_PROXY_BODY_BYTES = 256 * 1024;
 const MAX_PROXY_RESPONSE_BYTES = 2 * 1024 * 1024;
 
-const AUCTION_API_URL = trustedServiceOrigin(
-  process.env.AUCTION_API_URL
+type QueryableAuctionStatus = Exclude<AuctionStatus, 'UNKNOWN'>;
+
+const AUCTION_STATUS_FILTERS = {
+  DRAFT: true,
+  ACTIVE: true,
+  CLOSED: true,
+} as const satisfies Record<QueryableAuctionStatus, true>;
+
+function isAuctionStatusFilter(value: string): boolean {
+  return Object.prototype.hasOwnProperty.call(AUCTION_STATUS_FILTERS, value);
+}
+
+const AUCTION_API_URL = trustedAuctionServiceOrigin(
+  getAuctionApiUrlEnv()
 );
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
@@ -60,7 +74,7 @@ async function proxy(request: NextRequest) {
   const queryRules: QueryRules = isGet
     ? {
         q: (value: string) => value.length <= 100 && !/[\u0000-\u001f\u007f]/u.test(value),
-        status: /^[a-z_]{1,32}$/,
+        status: isAuctionStatusFilter,
         created_by_user_id: /^[A-Za-z0-9._~%-]{1,128}$/,
         limit: QUERY_POSITIVE_INTEGER,
         offset: QUERY_INTEGER,

@@ -183,26 +183,61 @@ describe('distributed BFF rate limiter', () => {
     }
   });
 
-  it('fails closed in production when Redis or trusted-IP config is absent', async () => {
+  it('uses the bounded production compatibility limiter only when Redis is entirely absent', async () => {
     vi.stubEnv('RATE_LIMIT_REDIS_REST_URL', '');
     vi.stubEnv('RATE_LIMIT_REDIS_REST_TOKEN', '');
     vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
     vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
-    const noRedis = await checkRateLimit(request(), {
-      scope: 'missing-redis',
+    vi.stubEnv('TRUSTED_CLIENT_IP_HEADER', '');
+    vi.stubEnv('TRUSTED_PROXY_HOPS', '');
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const scope = `production-memory-${Date.now()}`;
+    const amplifyRequest = request('203.0.113.10', {
+      'x-forwarded-for': '6.6.6.6, 203.0.113.10',
+    });
+    const results = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        checkRateLimit(amplifyRequest, { scope, limit: 3, windowMs: 60_000 }),
+      ),
+    );
+    expect(results.map((result) => result.allowed)).toEqual([true, true, true, false]);
+    expect(results[3]).toMatchObject({ remaining: 0 });
+    expect(rateLimitExceededResponse(results[3]).status).toBe(429);
+    expect(warning).toHaveBeenCalledTimes(1);
+    expect(warning).toHaveBeenCalledWith(
+      '[rate-limit] Redis non configurato: fallback temporaneo per-instance attivo.',
+    );
+    warning.mockRestore();
+  });
+
+  it('fails closed for partial Redis configuration and missing or invalid viewer IPs', async () => {
+    const redisFetch = vi.fn();
+    vi.stubGlobal('fetch', redisFetch);
+    vi.stubEnv('RATE_LIMIT_REDIS_REST_TOKEN', '');
+    let result = await checkRateLimit(request(), {
+      scope: 'partial-redis',
       limit: 5,
       windowMs: 60_000,
     });
-    expect(noRedis).toMatchObject({ allowed: false, unavailable: true });
+    expect(result).toMatchObject({ allowed: false, unavailable: true });
+    expect(redisFetch).not.toHaveBeenCalled();
 
     useProductionRedis();
     vi.stubEnv('TRUSTED_CLIENT_IP_HEADER', 'x-client-ip');
-    const untrustedIp = await checkRateLimit(request(), {
+    result = await checkRateLimit(request(), {
       scope: 'missing-ip',
       limit: 5,
       windowMs: 60_000,
     });
-    expect(untrustedIp).toMatchObject({ allowed: false, unavailable: true });
+    expect(result).toMatchObject({ allowed: false, unavailable: true });
+
+    vi.stubEnv('TRUSTED_CLIENT_IP_HEADER', 'cloudfront-viewer-address');
+    result = await checkRateLimit(
+      new NextRequest('https://www.ebartex.com/api/search'),
+      { scope: 'missing-ip', limit: 5, windowMs: 60_000 },
+    );
+    expect(result).toMatchObject({ allowed: false, unavailable: true });
+    expect(redisFetch).not.toHaveBeenCalled();
   });
 
   it('never sends the bearer token to a custom path or untrusted host', async () => {
@@ -227,7 +262,10 @@ describe('distributed BFF rate limiter', () => {
     expect(result).toMatchObject({ allowed: false, unavailable: true });
     expect(redisFetch).not.toHaveBeenCalled();
 
-    vi.stubEnv('RATE_LIMIT_REDIS_REST_URL', 'https://tenant.upstash.io/');
+    vi.stubEnv('RATE_LIMIT_REDIS_REST_URL', '');
+    vi.stubEnv('RATE_LIMIT_REDIS_REST_TOKEN', '');
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://tenant.upstash.io/');
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'redis-rest-token-for-tests-32-bytes');
     vi.stubEnv('RATE_LIMIT_REDIS_ALLOWED_HOSTS', '');
     const siblingFetch = vi.fn().mockResolvedValue(Response.json({ result: [1, 60_000] }));
     vi.stubGlobal('fetch', siblingFetch);
@@ -236,8 +274,8 @@ describe('distributed BFF rate limiter', () => {
       limit: 5,
       windowMs: 60_000,
     });
-    expect(result).toMatchObject({ allowed: false, unavailable: true });
-    expect(siblingFetch).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ allowed: true, remaining: 4 });
+    expect(siblingFetch).toHaveBeenCalledOnce();
   });
 
   it('trusts only the configured proxy boundary and validates the selected IP', () => {
@@ -247,8 +285,13 @@ describe('distributed BFF rate limiter', () => {
     expect(getRateLimitClientIp(req)).toBe('203.0.113.9');
 
     vi.stubEnv('TRUSTED_CLIENT_IP_HEADER', '');
-    vi.stubEnv('TRUSTED_PROXY_HOPS', '1');
+    vi.stubEnv('TRUSTED_PROXY_HOPS', '');
     expect(getRateLimitClientIp(req)).toBe('192.0.2.20');
+
+    const spoofedLeftmost = request('203.0.113.9', {
+      'x-forwarded-for': '6.6.6.6, 198.51.100.44',
+    });
+    expect(getRateLimitClientIp(spoofedLeftmost)).toBe('198.51.100.44');
 
     vi.stubEnv('TRUSTED_PROXY_HOPS', '11');
     expect(getRateLimitClientIp(req)).toBe('unknown');
@@ -261,7 +304,7 @@ describe('distributed BFF rate limiter', () => {
     expect(getRateLimitClientIp(request('::FFFF:192.0.2.1'))).toBe('::ffff:c000:201');
   });
 
-  it('keeps the in-memory fallback restricted to development/test', async () => {
+  it('uses the same bounded fallback semantics in development', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('RATE_LIMIT_REDIS_REST_URL', '');
     vi.stubEnv('RATE_LIMIT_REDIS_REST_TOKEN', '');

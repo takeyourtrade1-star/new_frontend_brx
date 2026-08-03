@@ -13,12 +13,13 @@ import { readTextBodyWithLimit } from '@/app/api/_lib/request-body';
 import { enforceSameOrigin } from '@/app/api/_lib/request-security';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
 import { MARKETPLACE_REPORT_REASONS } from '@/lib/marketplace/report-reasons';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedMarketplaceServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
+import { getMarketplaceApiUrlEnv } from '@/lib/server-runtime-env';
 
 export const dynamic = 'force-dynamic';
 
-const MARKETPLACE_API_URL = trustedServiceOrigin(process.env.MARKETPLACE_API_URL);
+const MARKETPLACE_API_URL = trustedMarketplaceServiceOrigin(getMarketplaceApiUrlEnv());
 const MAX_REPORT_BODY_BYTES = 32 * 1024;
 const MAX_REPORT_RESPONSE_BYTES = 256 * 1024;
 

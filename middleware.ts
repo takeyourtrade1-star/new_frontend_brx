@@ -23,6 +23,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthCookieName } from '@/app/api/_lib/auth-cookies';
+import { resolveProductionAppOrigins } from '@/lib/production-app-origin';
 
 const PROTECTED_PREFIXES = [
   '/account',
@@ -47,24 +48,7 @@ function disablePrivateCaching(response: NextResponse): NextResponse {
 
 function canonicalAppOrigin(request: NextRequest): string | null {
   if (process.env.NODE_ENV !== 'production') return request.nextUrl.origin;
-  try {
-    const url = new URL(process.env.APP_ORIGIN || '');
-    if (
-      url.protocol !== 'https:' ||
-      url.username ||
-      url.password ||
-      url.port ||
-      (url.pathname !== '/' && url.pathname !== '') ||
-      url.search ||
-      url.hash ||
-      (url.hostname !== 'ebartex.com' && !url.hostname.endsWith('.ebartex.com'))
-    ) {
-      return null;
-    }
-    return url.origin;
-  } catch {
-    return null;
-  }
+  return resolveProductionAppOrigins()?.canonicalOrigin ?? null;
 }
 
 /**

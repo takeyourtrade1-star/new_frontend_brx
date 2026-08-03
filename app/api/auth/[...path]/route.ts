@@ -23,7 +23,7 @@ import {
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
 import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedAuthServiceOrigin } from '@/app/api/_lib/upstream-url';
 import {
   appendQueryWithPolicy,
   QUERY_INTEGER,
@@ -39,16 +39,23 @@ import {
   parseTrustedDeviceSetCookies,
   serializeTrustedDeviceCookie,
 } from '@/lib/auth/trusted-device-cookie';
+import {
+  getAuthApiUrlEnv,
+  getAuthInternalIdentityEnv,
+} from '@/lib/server-runtime-env';
 
 export const dynamic = 'force-dynamic';
 const MAX_AUTH_BODY_BYTES = 128 * 1024;
 const MAX_AUTH_RESPONSE_BYTES = 256 * 1024;
+const LOGOUT_REVOCATION_TIMEOUT_MS = 3_000;
 
-const AUTH_API_URL = trustedServiceOrigin(
-  process.env.AUTH_API_URL
+const AUTH_API_URL = trustedAuthServiceOrigin(
+  getAuthApiUrlEnv()
 );
-const AUTH_INTERNAL_CALLER = (process.env.AUTH_INTERNAL_CALLER || '').trim();
-const AUTH_INTERNAL_CALLER_TOKEN = (process.env.AUTH_INTERNAL_CALLER_TOKEN || '').trim();
+const {
+  caller: AUTH_INTERNAL_CALLER,
+  token: AUTH_INTERNAL_CALLER_TOKEN,
+} = getAuthInternalIdentityEnv();
 
 type AllowedMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
@@ -97,6 +104,7 @@ const PASSWORD_RESET_TOKEN_MAX_AGE = 10 * 60;
 // cookie name and security attributes; oversized upstream JWTs fail closed.
 const PASSWORD_RESET_TOKEN_PATTERN = /^[A-Za-z0-9._~-]{32,3800}$/;
 const AUTH_COOKIE_TOKEN_PATTERN = /^[A-Za-z0-9._~-]{1,3800}$/;
+const LEGACY_REFRESH_COOKIE_NAME = 'ebartex_refresh_token';
 
 type PasswordResetTokenType = 'password_reset' | 'password_reset_confirm';
 
@@ -265,6 +273,83 @@ function passwordResetSessionClearedResponse(request: NextRequest): NextResponse
   return NextResponse.json({ cleared: true }, { status: 200, headers });
 }
 
+function appendLocalSessionDeletions(headers: Headers, secure: boolean): void {
+  headers.append('Set-Cookie', serializeAuthCookie('access', '', 0, secure));
+  headers.append('Set-Cookie', serializeAuthCookie('refresh', '', 0, secure));
+  headers.append('Set-Cookie', serializeAuthCookie('preauth', '', 0, secure));
+  appendPasswordResetCookieDeletion(headers, 'password-reset', secure);
+  appendPasswordResetCookieDeletion(headers, 'password-reset-confirm', secure);
+  for (const deletion of legacyAuthCookieDeletions(secure)) {
+    headers.append('Set-Cookie', deletion);
+  }
+}
+
+function localLogoutResponse(request: NextRequest): NextResponse {
+  const headers = noStoreHeaders();
+  appendLocalSessionDeletions(headers, isSecureRequest(request));
+  return NextResponse.json({ logged_out: true }, { status: 200, headers });
+}
+
+function readLogoutRefreshToken(request: NextRequest): string | undefined {
+  const currentToken = readAuthCookie(request, 'refresh');
+  if (currentToken) return currentToken;
+
+  // Durante il rollout il browser puo' avere ancora il precedente cookie con
+  // Domain parent. Lo usiamo soltanto per revocarlo e lo cancelliamo comunque.
+  const legacyToken = request.cookies.get(LEGACY_REFRESH_COOKIE_NAME)?.value?.trim();
+  return legacyToken || undefined;
+}
+
+async function revokeRefreshSessionBestEffort(
+  request: NextRequest,
+  refreshToken: string | undefined,
+  authorization: string | undefined,
+): Promise<void> {
+  if (
+    !AUTH_API_URL ||
+    !refreshToken ||
+    !AUTH_COOKIE_TOKEN_PATTERN.test(refreshToken)
+  ) {
+    return;
+  }
+
+  try {
+    const rateLimit = await checkRateLimit(request, {
+      scope: 'auth:logout-revoke',
+      ...authRateLimit('logout'),
+    });
+    if (!rateLimit.allowed) return;
+  } catch {
+    // Se il limiter non e' disponibile saltiamo la chiamata remota, ma la
+    // cancellazione locale preparata dal chiamante resta sempre valida.
+    return;
+  }
+
+  try {
+    const response = await fetchWithBodyDeadline(
+      new URL('/api/auth/logout', AUTH_API_URL).toString(),
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Accept-Encoding': 'identity',
+          'Content-Type': 'application/json',
+          ...(authorization ? { Authorization: authorization } : {}),
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+        cache: 'no-store',
+        next: { revalidate: 0 },
+        redirect: 'error',
+      },
+      LOGOUT_REVOCATION_TIMEOUT_MS,
+    );
+    await response.body?.cancel();
+  } catch {
+    // La revoca remota e' best-effort: il logout locale non deve dipendere
+    // dalla disponibilita' del servizio auth e non logga mai il token.
+  }
+}
+
 function withAuthenticatedFlag(payload: unknown, authenticated: boolean): unknown {
   const redacted = redactAuthTokens(payload);
   if (!authenticated || !redacted || typeof redacted !== 'object' || Array.isArray(redacted)) {
@@ -333,6 +418,19 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   const originViolation = enforceSameOrigin(request);
   if (originViolation) return originViolation;
 
+  if (path === 'logout') {
+    // Prepariamo prima la risposta che invalida ogni sessione browser. La
+    // revoca remota resta limitata e best-effort; solo quella passa dal rate
+    // limiter, la cui indisponibilita' non puo' bloccare la sessione locale.
+    const response = localLogoutResponse(request);
+    await revokeRefreshSessionBestEffort(
+      request,
+      readLogoutRefreshToken(request),
+      getForwardedAuthorization(request),
+    );
+    return response;
+  }
+
   if (path === 'password/reset/clear-session') {
     return passwordResetSessionClearedResponse(request);
   }
@@ -393,7 +491,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   };
   let body: string | undefined;
   if (request.method !== 'GET' && request.method !== 'HEAD') {
-    if (path === 'refresh' || path === 'logout') {
+    if (path === 'refresh') {
       const refreshToken = readAuthCookie(request, 'refresh');
       if (!refreshToken) {
         return NextResponse.json(
@@ -694,28 +792,6 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
         'password-reset-confirm',
         isSecure,
       );
-    } else if (pathSegments[0] === 'logout') {
-      responseHeaders.append(
-        'Set-Cookie',
-        serializeAuthCookie('access', '', 0, isSecure)
-      );
-      responseHeaders.append(
-        'Set-Cookie',
-        serializeAuthCookie('refresh', '', 0, isSecure)
-      );
-      responseHeaders.append(
-        'Set-Cookie',
-        serializeAuthCookie('preauth', '', 0, isSecure)
-      );
-      appendPasswordResetCookieDeletion(responseHeaders, 'password-reset', isSecure);
-      appendPasswordResetCookieDeletion(
-        responseHeaders,
-        'password-reset-confirm',
-        isSecure,
-      );
-      for (const deletion of legacyAuthCookieDeletions(isSecure)) {
-        responseHeaders.append('Set-Cookie', deletion);
-      }
     }
 
     return NextResponse.json(browserPayload, {

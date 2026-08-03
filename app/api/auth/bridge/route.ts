@@ -17,13 +17,14 @@ import { enforceSameOrigin } from '@/app/api/_lib/request-security';
 import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
 import { noStoreHeaders } from '@/app/api/_lib/proxy-response';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedAuthServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
+import { getAuthApiUrlEnv } from '@/lib/server-runtime-env';
 
 export const dynamic = 'force-dynamic';
 
-const AUTH_API_URL = trustedServiceOrigin(
-  process.env.AUTH_API_URL
+const AUTH_API_URL = trustedAuthServiceOrigin(
+  getAuthApiUrlEnv()
 );
 const DEFAULT_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24;
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30;

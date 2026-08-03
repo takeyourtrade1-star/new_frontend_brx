@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { noStoreHeaders } from '@/app/api/_lib/proxy-response';
+import { resolveProductionAppOrigins } from '@/lib/production-app-origin';
 
 
 function canonicalOrigin(value: string | null | undefined): string | null {
@@ -21,16 +22,20 @@ export function enforceScannerBrowserFetch(request: NextRequest): NextResponse |
   const fetchDest = request.headers.get('sec-fetch-dest')?.trim().toLowerCase();
   const rawOrigin = request.headers.get('origin');
   const origin = canonicalOrigin(rawOrigin);
-  const expectedOrigin = canonicalOrigin(
-    process.env.NODE_ENV === 'production' ? process.env.APP_ORIGIN : request.nextUrl.origin,
-  );
+  const productionOrigins = process.env.NODE_ENV === 'production'
+    ? resolveProductionAppOrigins()
+    : null;
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? new Set(productionOrigins?.sameOriginOrigins ?? [])
+    : new Set([request.nextUrl.origin]);
 
   if (
     scannerHeader !== '1' ||
+    (process.env.NODE_ENV === 'production' && productionOrigins === null) ||
     (fetchSite !== undefined && fetchSite !== 'same-origin') ||
     (fetchDest !== undefined && fetchDest !== 'empty') ||
     (rawOrigin !== null &&
-      (origin === null || expectedOrigin === null || origin !== expectedOrigin))
+      (origin === null || !allowedOrigins.has(origin)))
   ) {
     const headers = noStoreHeaders({
       'Cross-Origin-Resource-Policy': 'same-origin',

@@ -8,8 +8,9 @@ import { getForwardedAuthorization, extractUserIdForRateLimit } from '@/app/api/
 import { noStoreHeaders, redactedUpstreamErrorResponse, unauthorizedResponse } from '@/app/api/_lib/proxy-response';
 import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedAuctionServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
+import { getAuctionApiUrlEnv } from '@/lib/server-runtime-env';
 import { appendQueryWithPolicy, QUERY_INTEGER, QUERY_POSITIVE_INTEGER } from '@/app/api/_lib/query-policy';
 
 export const dynamic = 'force-dynamic';
@@ -17,8 +18,8 @@ export const dynamic = 'force-dynamic';
 const PROXY_TIMEOUT_MS = 12_000;
 const MAX_PROXY_RESPONSE_BYTES = 2 * 1024 * 1024;
 
-const AUCTION_API_URL = trustedServiceOrigin(
-  process.env.AUCTION_API_URL
+const AUCTION_API_URL = trustedAuctionServiceOrigin(
+  getAuctionApiUrlEnv()
 );
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {

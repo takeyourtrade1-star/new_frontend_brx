@@ -18,9 +18,10 @@ import { readTextBodyWithLimit } from '@/app/api/_lib/request-body';
 import { enforceSameOrigin } from '@/app/api/_lib/request-security';
 import { normalizeProxyPathSegments } from '@/app/api/_lib/safe-proxy-path';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedSyncServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
 import { appendQueryWithPolicy, QUERY_INTEGER, QUERY_POSITIVE_INTEGER, type QueryRules } from '@/app/api/_lib/query-policy';
+import { getSyncApiUrlEnv } from '@/lib/server-runtime-env';
 
 const PROXY_TIMEOUT_MS = 12_000;
 const MAX_SYNC_BODY_BYTES = 256 * 1024;
@@ -46,7 +47,7 @@ function isAllowedSyncPath(path: string, method: string): boolean {
 }
 
 function getSyncApiUrl(): string {
-  return trustedServiceOrigin(process.env.SYNC_API_URL);
+  return trustedSyncServiceOrigin(getSyncApiUrlEnv());
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {

@@ -21,8 +21,9 @@ import { readTextBodyWithLimit } from '@/app/api/_lib/request-body';
 import { enforceSameOrigin } from '@/app/api/_lib/request-security';
 import { normalizeProxyPathSegments } from '@/app/api/_lib/safe-proxy-path';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedMarketplaceServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
+import { getMarketplaceApiUrlEnv } from '@/lib/server-runtime-env';
 import { appendQueryWithPolicy, QUERY_POSITIVE_INTEGER, type QueryRules } from '@/app/api/_lib/query-policy';
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +34,7 @@ const MAX_MARKETPLACE_BODY_BYTES = 128 * 1024;
 const MAX_MARKETPLACE_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 function getMarketplaceApiUrl(): string {
-  return trustedServiceOrigin(process.env.MARKETPLACE_API_URL);
+  return trustedMarketplaceServiceOrigin(getMarketplaceApiUrlEnv());
 }
 
 async function fetchWithTimeout(

@@ -7,7 +7,13 @@
 
 import 'server-only';
 
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedMeilisearchServiceOrigin } from '@/app/api/_lib/upstream-url';
+import {
+  getMeilisearchIndexEnv,
+  getMeilisearchSearchApiKeyEnv,
+  getMeilisearchUrlEnv,
+  type RuntimeEnvInput,
+} from '@/lib/server-runtime-env';
 
 export type MeilisearchServerConfig = {
   url: string;
@@ -19,27 +25,29 @@ function trimTrailingSlashes(value: string): string {
   return value.replace(/\/+$/, '');
 }
 
-function canonicalIndexUid(rawValue: string | undefined): string {
-  if (!rawValue) return process.env.NODE_ENV === 'production' ? '' : 'cards';
+function canonicalIndexUid(
+  rawValue: string | undefined,
+  nodeEnv: string | undefined,
+): string {
+  if (!rawValue) return nodeEnv === 'production' ? '' : 'cards';
   if (rawValue !== rawValue.trim()) return '';
   return /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(rawValue) ? rawValue : '';
 }
 
-export function getMeilisearchServerConfig(): MeilisearchServerConfig {
-  const url = trustedServiceOrigin(trimTrailingSlashes(
-    process.env.MEILISEARCH_URL ||
-      process.env.MEILI_URL ||
-      ''
-  ));
+export function getMeilisearchServerConfig(
+  env?: RuntimeEnvInput,
+): MeilisearchServerConfig {
+  const url = trustedMeilisearchServiceOrigin(trimTrailingSlashes(
+    getMeilisearchUrlEnv(env)
+  ), env);
 
-  // Intentionally no fallback to generic/master-key variable names: accepting
-  // those makes an accidental high-privilege deployment far too easy.
-  const apiKey = process.env.MEILISEARCH_SEARCH_API_KEY || '';
+  // Generic master-key aliases remain forbidden. The one compatibility alias
+  // was already browser-visible and must stay restricted to search actions.
+  const apiKey = getMeilisearchSearchApiKeyEnv(env);
 
   const index = canonicalIndexUid(
-    process.env.MEILISEARCH_INDEX ||
-    process.env.MEILISEARCH_INDEX_NAME ||
-    process.env.MEILI_INDEX
+    getMeilisearchIndexEnv(env),
+    env ? env.NODE_ENV : process.env.NODE_ENV,
   );
 
   return { url, apiKey, index };

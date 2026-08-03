@@ -4,6 +4,25 @@ export interface RuntimeRequestLike {
   headers: Headers;
 }
 
+export type PrecacheEntryLike = string | { url: string };
+
+function isBuildInfoUrl(rawUrl: string): boolean {
+  try {
+    return new URL(rawUrl, 'https://service-worker.invalid').pathname === '/build-info.json';
+  } catch {
+    return false;
+  }
+}
+
+/** Build metadata must remain mutable so an open tab can observe each deploy. */
+export function excludeBuildInfoFromPrecache<T extends PrecacheEntryLike>(
+  entries: readonly T[] | undefined,
+): T[] | undefined {
+  return entries?.filter((entry) =>
+    !isBuildInfoUrl(typeof entry === 'string' ? entry : entry.url),
+  );
+}
+
 /** Personalized Next payloads and every API response are network-only. */
 export function mustBypassServiceWorkerCache(input: {
   request: RuntimeRequestLike;
@@ -12,6 +31,7 @@ export function mustBypassServiceWorkerCache(input: {
 }): boolean {
   const { request, url, sameOrigin } = input;
   if (!sameOrigin) return false;
+  if (url.pathname === '/build-info.json') return true;
   if (url.pathname.startsWith('/api/')) return true;
   return (
     request.mode === 'navigate' ||

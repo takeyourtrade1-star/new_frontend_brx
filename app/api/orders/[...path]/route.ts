@@ -12,9 +12,11 @@ import { isAllowedAuctionProxyPath } from '@/app/api/_lib/auction-proxy-policy';
 import { enforceSameOrigin } from '@/app/api/_lib/request-security';
 import { readTextBodyWithLimit } from '@/app/api/_lib/request-body';
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedAuctionServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
+import { getAuctionApiUrlEnv } from '@/lib/server-runtime-env';
 import { appendQueryWithPolicy, QUERY_INTEGER, QUERY_POSITIVE_INTEGER, type QueryRules } from '@/app/api/_lib/query-policy';
+import type { OrderStatus } from '@/types/order';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,8 +24,30 @@ const PROXY_TIMEOUT_MS = 12_000;
 const MAX_PROXY_BODY_BYTES = 128 * 1024;
 const MAX_PROXY_RESPONSE_BYTES = 2 * 1024 * 1024;
 
-const AUCTION_API_URL = trustedServiceOrigin(
-  process.env.AUCTION_API_URL
+const ORDER_STATUS_FILTERS = {
+  PAYMENT_PENDING: true,
+  PAYMENT_OVERDUE: true,
+  DISPUTED: true,
+  PAID: true,
+  SHIPPED: true,
+  DELIVERED: true,
+  CANCELLED: true,
+  REASSIGNED: true,
+} as const satisfies Record<OrderStatus, true>;
+
+function isOrderStatusFilter(value: string): boolean {
+  const statuses = value.split(',');
+  if (statuses.length === 0 || statuses.length > Object.keys(ORDER_STATUS_FILTERS).length) {
+    return false;
+  }
+  const uniqueStatuses = new Set(statuses);
+  return uniqueStatuses.size === statuses.length && statuses.every(
+    (status) => Object.prototype.hasOwnProperty.call(ORDER_STATUS_FILTERS, status),
+  );
+}
+
+const AUCTION_API_URL = trustedAuctionServiceOrigin(
+  getAuctionApiUrlEnv()
 );
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
@@ -66,7 +90,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   const url = new URL(targetPath, AUCTION_API_URL);
   const queryRules: QueryRules = request.method === 'GET' && /^(?:buyer|seller)$/.test(path)
     ? {
-        status: /^[a-z_]{1,32}(?:,[a-z_]{1,32})*$/,
+        status: isOrderStatusFilter,
         limit: QUERY_POSITIVE_INTEGER,
         offset: QUERY_INTEGER,
       }

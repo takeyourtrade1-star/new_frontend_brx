@@ -2,7 +2,8 @@ import 'server-only';
 
 import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
-import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { trustedAuthServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { getAuthApiUrlEnv } from '@/lib/server-runtime-env';
 
 const PUBLIC_USERNAME_RE = /^[A-Za-z0-9_.-]{1,50}$/;
 const MAX_PROFILE_RESPONSE_BYTES = 32 * 1024;
@@ -18,7 +19,7 @@ function record(value: unknown): Record<string, unknown> | null {
 /** Fetch only the bounded public field used by metadata; fail closed to null. */
 export async function fetchPublicProfileBio(username: string): Promise<string | null> {
   if (!PUBLIC_USERNAME_RE.test(username)) return null;
-  const authOrigin = trustedServiceOrigin(process.env.AUTH_API_URL);
+  const authOrigin = trustedAuthServiceOrigin(getAuthApiUrlEnv());
   if (!authOrigin) return null;
 
   const url = new URL(
