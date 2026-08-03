@@ -6,6 +6,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
+import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import { appendQueryWithPolicy } from '@/app/api/_lib/query-policy';
+import { safePublicImageUrl } from '@/lib/security/catalog-public-data';
 
 const ALLOWED_GAMES = new Set(['mtg', 'pokemon', 'one-piece', 'op', 'pk', 'yugioh', '']);
 
@@ -26,16 +30,33 @@ interface MeiliSetDocument {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimit = await checkRateLimit(request, {
+    scope: 'catalog:sets',
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit);
+
+  const safeQuery = new URL('https://catalog.invalid/');
+  if (
+    !appendQueryWithPolicy(safeQuery, request.nextUrl, {
+      q: (value) => value.length <= 200 && !/[\u0000-\u001f\u007f]/.test(value),
+      game: /^(?:mtg|pokemon|one-piece|op|pk|yugioh)?$/,
+      limit: /^(?:[1-9]|1\d|20)$/,
+    })
+  ) {
+    return NextResponse.json({ error: 'Query non valida' }, { status: 400 });
+  }
   const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
 
   if (!MEILI_URL || !MEILI_KEY) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (MEILISEARCH_URL / API_KEY)' },
+      { error: 'Ricerca set non disponibile' },
       { status: 503 }
     );
   }
 
-  const { searchParams } = new URL(request.url);
+  const { searchParams } = safeQuery;
   const q = (searchParams.get('q') ?? '').trim().slice(0, 200);
   const gameRaw = (searchParams.get('game') ?? '').trim().toLowerCase();
   const game = ALLOWED_GAMES.has(gameRaw) ? gameRaw : '';
@@ -59,21 +80,25 @@ export async function GET(request: NextRequest) {
     const res = await fetch(url, {
       method: 'POST',
       headers: {
+        'Accept-Encoding': 'identity',
         'Content-Type': 'application/json',
         Authorization: `Bearer ${MEILI_KEY}`,
       },
       body: JSON.stringify(body),
+      redirect: 'error',
+      signal: AbortSignal.timeout(5_000),
     });
 
     if (!res.ok) {
-      const text = await res.text();
       return NextResponse.json(
-        { error: `Meilisearch error: ${res.status}`, detail: text },
+        { error: 'Ricerca set non disponibile' },
         { status: 502 }
       );
     }
 
-    const data = (await res.json()) as { hits: MeiliSetDocument[] };
+    const data = (await readJsonResponseWithLimit(res, 2 * 1_024 * 1_024)) as {
+      hits: MeiliSetDocument[];
+    };
     const hits = Array.isArray(data.hits) ? data.hits : [];
 
     // Deduplicate by set_name, keep first occurrence
@@ -84,7 +109,7 @@ export async function GET(request: NextRequest) {
       seen.set(name, {
         set_name: name,
         set_code: hit.set_code ?? null,
-        set_icon_uri: hit.set_icon_uri ?? null,
+        set_icon_uri: safePublicImageUrl(hit.set_icon_uri, 'set-icon'),
         game_slug: hit.game_slug ?? '',
         release_date: hit.release_date ?? null,
       });
@@ -104,10 +129,9 @@ export async function GET(request: NextRequest) {
         'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
       },
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+  } catch {
     return NextResponse.json(
-      { error: 'Ricerca set non disponibile', detail: message },
+      { error: 'Ricerca set non disponibile' },
       { status: 502 }
     );
   }

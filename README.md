@@ -76,3 +76,13 @@ scripts/             # Tooling (check i18n, build-info, copy wasm)
 Le variabili `NEXT_PUBLIC_*` sono esposte al client (vedi `next.config.mjs`).
 Le chiavi sensibili (es. Meilisearch admin) devono restare **server-only**.
 Vedi [docs/](docs/) per i dettagli per ambiente (Amplify).
+
+Il BFF richiede in produzione un rate limiter Redis distribuito e un confine
+proxy/IP esplicito; configurazione, rollout e smoke test sono descritti in
+[`docs/RATE_LIMITING.md`](docs/RATE_LIMITING.md). In assenza dello store o di un
+IP proveniente da un proxy fidato, le route protette rispondono fail-closed 503.
+
+Le route gateway `/api/auth/users/public` e `/api/auth/users/search` richiedono
+anche le variabili server-only `AUTH_INTERNAL_CALLER` e
+`AUTH_INTERNAL_CALLER_TOKEN`. Il caller deve avere la capability Auth
+`users.public:read`; il token non deve mai usare il prefisso `NEXT_PUBLIC_`.

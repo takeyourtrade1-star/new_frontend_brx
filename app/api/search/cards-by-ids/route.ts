@@ -11,6 +11,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import {
+  readTextBodyWithLimit,
+  RequestBodyTimeoutError,
+} from '@/app/api/_lib/request-body';
+import { noStoreHeaders } from '@/app/api/_lib/proxy-response';
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
+import {
+  enforceJsonContentType,
+  enforceSameOrigin,
+} from '@/app/api/_lib/request-security';
+import { sanitizeCatalogImageFields } from '@/lib/security/catalog-public-data';
 import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
 import {
   MAX_IDS_BATCH,
@@ -56,20 +68,64 @@ interface RequestBody {
   filterField?: unknown;
 }
 
+function isExactRequestBody(value: unknown): value is RequestBody {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const body = value as Record<string, unknown>;
+  if (!Object.keys(body).every((key) => key === 'ids' || key === 'filterField')) return false;
+  if (!Array.isArray(body.ids) || body.ids.length > MAX_IDS_BATCH) return false;
+  if (!body.ids.every(
+    (id) => typeof id === 'number' && Number.isSafeInteger(id) && id > 0,
+  )) return false;
+  return body.filterField === undefined
+    || body.filterField === 'cardtrader_id'
+    || body.filterField === 'id';
+}
+
 export async function POST(request: NextRequest) {
+  const requestViolation =
+    enforceSameOrigin(request) ?? enforceJsonContentType(request);
+  if (requestViolation) return requestViolation;
+
+  const rateLimit = await checkRateLimit(request, {
+    scope: 'search:cards-by-ids',
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit);
+
   const { url: meiliUrl, apiKey: meiliKey, index } = getMeilisearchServerConfig();
-  if (!meiliUrl) {
+  if (!meiliUrl || !meiliKey) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (MEILISEARCH_URL)' },
+      { error: 'Ricerca catalogo non disponibile' },
       { status: 503 }
     );
   }
 
   let body: RequestBody;
   try {
-    body = (await request.json()) as RequestBody;
-  } catch {
-    return NextResponse.json({ error: 'JSON non valido' }, { status: 400 });
+    const bodyResult = await readTextBodyWithLimit(request, 64 * 1024);
+    if (bodyResult.tooLarge) {
+      return NextResponse.json({ error: 'Payload troppo grande' }, { status: 413 });
+    }
+    const parsed = JSON.parse(bodyResult.body || '{}') as unknown;
+    if (!isExactRequestBody(parsed)) {
+      return NextResponse.json(
+        { error: 'Payload non valido' },
+        { status: 400, headers: noStoreHeaders() },
+      );
+    }
+    body = parsed;
+  } catch (error) {
+    if (error instanceof RequestBodyTimeoutError) {
+      return NextResponse.json(
+        { error: 'Timeout lettura richiesta' },
+        { status: 408, headers: noStoreHeaders() },
+      );
+    }
+    return NextResponse.json(
+      { error: 'JSON non valido' },
+      { status: 400, headers: noStoreHeaders() },
+    );
   }
 
   const ids = normalizeIdList(body?.ids);
@@ -106,13 +162,17 @@ export async function POST(request: NextRequest) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: `Meilisearch error: ${res.status}` },
+        { error: 'Ricerca catalogo non disponibile' },
         { status: publicStatusForMeiliStatus(res.status) }
       );
     }
 
-    const data = (await res.json()) as { hits?: CardCatalogHit[] };
-    const hits = Array.isArray(data.hits) ? data.hits : [];
+    const data = (await readJsonResponseWithLimit(res, 2 * 1_024 * 1_024)) as {
+      hits?: CardCatalogHit[];
+    };
+    const hits = Array.isArray(data.hits)
+      ? data.hits.map((hit) => sanitizeCatalogImageFields(hit))
+      : [];
 
     return NextResponse.json(
       { hits },
@@ -125,11 +185,10 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     if (err instanceof MeiliFetchError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+      return NextResponse.json({ error: 'Ricerca catalogo non disponibile' }, { status: err.status });
     }
-    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: 'Ricerca catalogo non disponibile', detail: message },
+      { error: 'Ricerca catalogo non disponibile' },
       { status: 502 }
     );
   }

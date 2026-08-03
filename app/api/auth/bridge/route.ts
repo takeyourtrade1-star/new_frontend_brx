@@ -1,139 +1,135 @@
 /**
- * SSO bridge — legge il refresh token HttpOnly (Domain=.ebartex.com) e
- * ruota la sessione cookie-first e restituisce al client soltanto l'access token
- * effimero, mantenendo il refresh token esclusivamente HttpOnly.
- * Usato quando l'utente è già loggato su tornei.ebartex.com nello stesso browser.
+ * Compatibilita' per i client che usavano il vecchio bridge SSO.
+ *
+ * La sessione e' ora esclusivamente host-only: questa route puo' ruotare il
+ * refresh cookie del sito corrente, ma non condivide cookie tra sottodomini e
+ * non restituisce mai token a JavaScript.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  isSecureRequest,
+  legacyAuthCookieDeletions,
+  readAuthCookie,
+  serializeAuthCookie,
+} from '@/app/api/_lib/auth-cookies';
+import { enforceSameOrigin } from '@/app/api/_lib/request-security';
+import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import { noStoreHeaders } from '@/app/api/_lib/proxy-response';
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
+import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
 
 export const dynamic = 'force-dynamic';
 
-const AUTH_API_URL = (
-  process.env.NEXT_PUBLIC_AUTH_API_URL ||
-  process.env.AUTH_API_URL ||
-  process.env.VITE_AWS_AUTH_URL ||
-  ''
-).replace(/\/+$/, '');
-
-const AUTH_COOKIE_NAME = 'ebartex_access_token';
-const REFRESH_COOKIE_NAME = 'ebartex_refresh_token';
+const AUTH_API_URL = trustedServiceOrigin(
+  process.env.AUTH_API_URL
+);
 const DEFAULT_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24;
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30;
-const AUTH_COOKIE_DOMAIN = process.env.AUTH_COOKIE_DOMAIN || '';
 const AUTH_BRIDGE_TIMEOUT_MS = 15_000;
+const MAX_AUTH_RESPONSE_BYTES = 256 * 1024;
 
-function buildAuthCookie(name: string, value: string, maxAge: number, isSecure: boolean): string {
-  const domain = AUTH_COOKIE_DOMAIN ? `; Domain=${AUTH_COOKIE_DOMAIN}` : '';
-  const secureFlag = isSecure ? '; Secure' : '';
-  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${domain}${secureFlag}`;
-}
-
-function extractAccessToken(payload: unknown): string | undefined {
+function tokenFrom(payload: unknown, key: 'access_token' | 'refresh_token'): string | undefined {
   if (!payload || typeof payload !== 'object') return undefined;
   const data = payload as Record<string, unknown>;
-  if (typeof data.access_token === 'string' && data.access_token.length > 0) {
-    return data.access_token;
-  }
+  if (typeof data[key] === 'string' && data[key]) return data[key] as string;
   const nested = data.data;
   if (!nested || typeof nested !== 'object') return undefined;
-  const nestedToken = (nested as Record<string, unknown>).access_token;
-  return typeof nestedToken === 'string' && nestedToken.length > 0 ? nestedToken : undefined;
+  const value = (nested as Record<string, unknown>)[key];
+  return typeof value === 'string' && value ? value : undefined;
 }
-
-function extractRefreshToken(payload: unknown): string | undefined {
-  if (!payload || typeof payload !== 'object') return undefined;
-  const data = payload as Record<string, unknown>;
-  if (typeof data.refresh_token === 'string' && data.refresh_token.length > 0) {
-    return data.refresh_token;
-  }
-  const nested = data.data;
-  if (!nested || typeof nested !== 'object') return undefined;
-  const nestedToken = (nested as Record<string, unknown>).refresh_token;
-  return typeof nestedToken === 'string' && nestedToken.length > 0 ? nestedToken : undefined;
-}
-
-function extractExpiresIn(payload: unknown): number {
+function expiresIn(payload: unknown): number {
   if (!payload || typeof payload !== 'object') return DEFAULT_ACCESS_TOKEN_MAX_AGE;
   const data = payload as Record<string, unknown>;
-  if (typeof data.expires_in === 'number' && data.expires_in > 0) return Math.floor(data.expires_in);
+  const direct = data.expires_in;
+  if (typeof direct === 'number' && direct > 0) return Math.floor(direct);
   const nested = data.data;
-  if (!nested || typeof nested !== 'object') return DEFAULT_ACCESS_TOKEN_MAX_AGE;
-  const nestedExpires = (nested as Record<string, unknown>).expires_in;
-  if (typeof nestedExpires === 'number' && nestedExpires > 0) return Math.floor(nestedExpires);
-  return DEFAULT_ACCESS_TOKEN_MAX_AGE;
+  const value = nested && typeof nested === 'object'
+    ? (nested as Record<string, unknown>).expires_in
+    : undefined;
+  return typeof value === 'number' && value > 0
+    ? Math.floor(value)
+    : DEFAULT_ACCESS_TOKEN_MAX_AGE;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(): Promise<NextResponse> {
+  return NextResponse.json(
+    { detail: 'Metodo non consentito' },
+    { status: 405, headers: noStoreHeaders({ Allow: 'POST' }) },
+  );
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const originViolation = enforceSameOrigin(request);
+  if (originViolation) return originViolation;
+
+  const limit = await checkRateLimit(request, {
+    scope: 'auth:bridge',
+    limit: 10,
+    windowMs: 5 * 60_000,
+  });
+  if (!limit.allowed) return rateLimitExceededResponse(limit);
+
   if (!AUTH_API_URL) {
-    return NextResponse.json({ detail: 'Auth API not configured' }, { status: 503 });
+    return NextResponse.json(
+      { detail: 'Authentication service unavailable' },
+      { status: 503, headers: noStoreHeaders() },
+    );
   }
-
-  const refreshToken = request.cookies.get(REFRESH_COOKIE_NAME)?.value;
+  const refreshToken = readAuthCookie(request, 'refresh');
   if (!refreshToken) {
-    return NextResponse.json({ detail: 'No shared session' }, { status: 401 });
+    return NextResponse.json(
+      { detail: 'No refresh session' },
+      { status: 401, headers: noStoreHeaders() },
+    );
   }
-
-  const isSecure =
-    process.env.NODE_ENV === 'production' ||
-    request.nextUrl.protocol === 'https:' ||
-    request.headers.get('x-forwarded-proto') === 'https';
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), AUTH_BRIDGE_TIMEOUT_MS);
-    const res = await fetch(`${AUTH_API_URL}/api/auth/refresh`, {
+    const upstream = await fetchWithBodyDeadline(`${AUTH_API_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
+        'Accept-Encoding': 'identity',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ refresh_token: refreshToken }),
       cache: 'no-store',
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timeoutId));
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
+      redirect: 'error',
+    }, AUTH_BRIDGE_TIMEOUT_MS);
+    const data = await readJsonResponseWithLimit(upstream, MAX_AUTH_RESPONSE_BYTES);
+    if (!upstream.ok) {
+      return NextResponse.json(
+        { detail: upstream.status === 401 ? 'Refresh session invalid' : 'Authentication service unavailable' },
+        { status: upstream.status === 401 ? 401 : 502, headers: noStoreHeaders() },
+      );
     }
 
-    const accessToken = extractAccessToken(data);
-    const newRefreshToken = extractRefreshToken(data);
+    const accessToken = tokenFrom(data, 'access_token');
+    const newRefreshToken = tokenFrom(data, 'refresh_token');
     if (!accessToken || !newRefreshToken) {
-      return NextResponse.json({ detail: 'Invalid refresh response' }, { status: 502 });
+      return NextResponse.json(
+        { detail: 'Invalid refresh response' },
+        { status: 502, headers: noStoreHeaders() },
+      );
     }
 
-    const responseHeaders = new Headers();
-    responseHeaders.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
-    const maxAge = extractExpiresIn(data);
-    responseHeaders.append(
+    const secure = isSecureRequest(request);
+    const headers = noStoreHeaders();
+    headers.append('Set-Cookie', serializeAuthCookie('access', accessToken, expiresIn(data), secure));
+    headers.append(
       'Set-Cookie',
-      buildAuthCookie(AUTH_COOKIE_NAME, accessToken, maxAge, isSecure)
+      serializeAuthCookie('refresh', newRefreshToken, REFRESH_TOKEN_MAX_AGE, secure),
     );
-    responseHeaders.append(
-      'Set-Cookie',
-      buildAuthCookie(REFRESH_COOKIE_NAME, newRefreshToken, REFRESH_TOKEN_MAX_AGE, isSecure)
-    );
-
+    for (const deletion of legacyAuthCookieDeletions(secure)) {
+      headers.append('Set-Cookie', deletion);
+    }
+    return NextResponse.json({ authenticated: true }, { status: 200, headers });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === 'AbortError';
     return NextResponse.json(
-      { access_token: accessToken, expires_in: maxAge },
-      { status: 200, headers: responseHeaders }
-    );
-  } catch (err) {
-    const timedOut = err instanceof Error && err.name === 'AbortError';
-    return NextResponse.json(
-      {
-        detail: timedOut
-          ? 'Authentication service timed out'
-          : 'Authentication service unavailable',
-      },
-      {
-        status: timedOut ? 504 : 502,
-        headers: {
-          'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
-        },
-      }
+      { detail: timedOut ? 'Authentication service timed out' : 'Authentication service unavailable' },
+      { status: timedOut ? 504 : 502, headers: noStoreHeaders() },
     );
   }
 }

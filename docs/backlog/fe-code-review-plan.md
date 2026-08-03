@@ -26,10 +26,10 @@
 
 | ID | Sev. | Titolo | File principali | Stato |
 |----|------|--------|-----------------|-------|
-| FE-CR-001 | CRITICAL | Loader infinito errore API asta | `AsteDetailView.tsx` | ⬜ |
+| FE-CR-001 | CRITICAL | Loader infinito errore API asta | `AsteDetailView.tsx` | ✅ |
 | FE-CR-002 | HIGH | Fallback enrichment aste (hook) | `use-enriched-auctions.ts`, consumer | ⬜ |
 | FE-CR-003 | HIGH | Fallback enrichment product detail | `use-enriched-card-auctions.ts`, `ProductAuctionsPanel.tsx` | ⬜ |
-| FE-CR-004 | HIGH | Meilisearch key fuori dal bundle | `meilisearchClient.ts`, `GlobalSearchBar.tsx`, BFF | ⬜ |
+| FE-CR-004 | HIGH | Meilisearch key fuori dal bundle | `meilisearchClient.ts`, `GlobalSearchBar.tsx`, BFF | ✅ |
 | FE-CR-005 | HIGH | Stale closure conferma offerta | `AuctionBidPanel.tsx` | ⬜ |
 | FE-CR-006 | MEDIUM | Timer leak search bar | `SearchWithInstantSearch.tsx` | ⬜ |
 | FE-CR-007 | MEDIUM | Token auth desync localStorage | ~12 file con pattern duplicato | ⬜ |
@@ -42,6 +42,8 @@
 ---
 
 ## FE-CR-001 — Loader infinito su errore API asta
+
+**Stato (2026-08-03):** ✅ chiuso. La pagina distingue loading/error/ready, usa il dettaglio base durante l'enrichment e offre un retry esplicito.
 
 **Severità:** CRITICAL  
 **File:** `components/feature/aste/AsteDetailView.tsx`
@@ -162,6 +164,8 @@ Aggiornare `ProductAuctionsPanel`: considerare `cardQuery.isFetching` o `enriche
 ---
 
 ## FE-CR-004 — Meilisearch API key fuori dal bundle client
+
+**Stato (2026-08-03):** ✅ chiuso. Il client usa esclusivamente `/api/search/autocomplete`; host e chiave sono letti solo dai moduli/route server.
 
 **Severità:** HIGH (CRITICAL se in prod è master key)  
 **File:** `lib/meilisearchClient.ts`, `lib/config.ts`, `components/layout/GlobalSearchBar.tsx`  

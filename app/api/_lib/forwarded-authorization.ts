@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { readAuthCookie } from './auth-cookies';
 
 function safeDecodeURIComponent(value: string): string {
   try {
@@ -17,16 +18,6 @@ function normalizeBearerHeader(value: string | null): string | undefined {
 }
 
 /**
- * Restituisce il nome del cookie di sessione al momento della chiamata (lazy).
- * In produzione (HTTPS) usa il prefisso `__Host-` per massima sicurezza.
- * In sviluppo/test usa il nome semplice (HTTP localhost non supporta __Host-).
- * La valutazione è lazy per evitare problemi con il caching dei moduli in test.
- */
-function getSessionCookieName(): string {
-  return 'ebartex_access_token';
-}
-
-/**
  * Value for ``Authorization`` when proxying browser requests to upstream APIs.
  *
  * Cookie-first: legge esclusivamente il cookie HttpOnly impostato dal BFF
@@ -36,8 +27,7 @@ function getSessionCookieName(): string {
  * Se il cookie è assente, ritorna `undefined` e il proxy deve rispondere 401.
  */
 export function getForwardedAuthorization(request: NextRequest): string | undefined {
-  const cookieName = getSessionCookieName();
-  const tokenFromCookie = request.cookies.get(cookieName)?.value;
+  const tokenFromCookie = readAuthCookie(request, 'access');
   if (tokenFromCookie) {
     const decoded = safeDecodeURIComponent(tokenFromCookie).trim();
     if (decoded) return `Bearer ${decoded}`;

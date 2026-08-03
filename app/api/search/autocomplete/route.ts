@@ -19,7 +19,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import {
+  readTextBodyWithLimit,
+  RequestBodyTimeoutError,
+} from '@/app/api/_lib/request-body';
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
+import { noStoreHeaders } from '@/app/api/_lib/proxy-response';
+import {
+  enforceJsonContentType,
+  enforceSameOrigin,
+} from '@/app/api/_lib/request-security';
 import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
+import { sanitizeCatalogImageFields } from '@/lib/security/catalog-public-data';
 import {
   ALLOWED_GAME_SLUGS,
   MAX_AUTOCOMPLETE_REQUESTS,
@@ -119,20 +131,104 @@ interface RequestBody {
   requests?: unknown;
 }
 
+const SAFE_INDEX_NAME = /^[A-Za-z0-9_-]{1,128}$/;
+const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/u;
+
+function isExactAutocompleteBody(value: unknown): value is { requests: AutocompleteRequest[] } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const body = value as Record<string, unknown>;
+  if (Object.keys(body).some((key) => key !== 'requests')) return false;
+  if (
+    !Array.isArray(body.requests)
+    || body.requests.length < 1
+    || body.requests.length > MAX_AUTOCOMPLETE_REQUESTS
+  ) return false;
+
+  return body.requests.every((rawRequest) => {
+    if (!rawRequest || typeof rawRequest !== 'object' || Array.isArray(rawRequest)) return false;
+    const request = rawRequest as Record<string, unknown>;
+    if (Object.keys(request).some((key) => key !== 'indexName' && key !== 'params')) return false;
+    if (
+      request.indexName !== undefined
+      && (typeof request.indexName !== 'string' || !SAFE_INDEX_NAME.test(request.indexName))
+    ) return false;
+    if (request.params === undefined) return true;
+    if (!request.params || typeof request.params !== 'object' || Array.isArray(request.params)) return false;
+    const params = request.params as Record<string, unknown>;
+    if (Object.keys(params).some(
+      (key) => !['query', 'filters', 'hitsPerPage', 'page'].includes(key),
+    )) return false;
+    if (
+      params.query !== undefined
+      && (typeof params.query !== 'string'
+        || params.query.length > 200
+        || CONTROL_CHARACTERS.test(params.query))
+    ) return false;
+    if (
+      params.filters !== undefined
+      && (typeof params.filters !== 'string'
+        || sanitizeAutocompleteFilter(params.filters) === undefined)
+    ) return false;
+    if (
+      params.hitsPerPage !== undefined
+      && (typeof params.hitsPerPage !== 'number'
+        || !Number.isInteger(params.hitsPerPage)
+        || (params.hitsPerPage as number) < 1
+        || (params.hitsPerPage as number) > MAX_HITS_PER_PAGE)
+    ) return false;
+    return params.page === undefined
+      || (typeof params.page === 'number'
+        && Number.isInteger(params.page)
+        && (params.page as number) >= 0
+        && (params.page as number) <= MAX_PAGE);
+  });
+}
+
 export async function POST(request: NextRequest) {
+  const requestViolation =
+    enforceSameOrigin(request) ?? enforceJsonContentType(request);
+  if (requestViolation) return requestViolation;
+
+  const rateLimit = await checkRateLimit(request, {
+    scope: 'search:autocomplete',
+    limit: 90,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit);
+
   const { url: meiliUrl, apiKey: meiliKey, index } = getMeilisearchServerConfig();
-  if (!meiliUrl) {
+  if (!meiliUrl || !meiliKey) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (MEILISEARCH_URL)' },
+      { error: 'Ricerca non disponibile' },
       { status: 503 }
     );
   }
 
   let body: RequestBody;
   try {
-    body = (await request.json()) as RequestBody;
-  } catch {
-    return NextResponse.json({ error: 'JSON non valido' }, { status: 400 });
+    const bodyResult = await readTextBodyWithLimit(request, 32 * 1024);
+    if (bodyResult.tooLarge) {
+      return NextResponse.json({ error: 'Payload troppo grande' }, { status: 413 });
+    }
+    const parsed = JSON.parse(bodyResult.body || '{}') as unknown;
+    if (!isExactAutocompleteBody(parsed)) {
+      return NextResponse.json(
+        { error: 'Payload non valido' },
+        { status: 400, headers: noStoreHeaders() },
+      );
+    }
+    body = parsed;
+  } catch (error) {
+    if (error instanceof RequestBodyTimeoutError) {
+      return NextResponse.json(
+        { error: 'Timeout lettura richiesta' },
+        { status: 408, headers: noStoreHeaders() },
+      );
+    }
+    return NextResponse.json(
+      { error: 'JSON non valido' },
+      { status: 400, headers: noStoreHeaders() },
+    );
   }
 
   const rawRequests = Array.isArray(body?.requests) ? (body.requests as AutocompleteRequest[]) : [];
@@ -143,6 +239,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: `Troppe richieste in un'unica chiamata (max ${MAX_AUTOCOMPLETE_REQUESTS})` },
       { status: 400 }
+    );
+  }
+  if (rawRequests.some((entry) => entry.indexName !== undefined && entry.indexName !== index)) {
+    return NextResponse.json(
+      { error: 'Indice non valido' },
+      { status: 400, headers: noStoreHeaders() },
     );
   }
 
@@ -176,15 +278,17 @@ export async function POST(request: NextRequest) {
         });
 
         if (!res.ok) {
-          throw new MeiliFetchError(`Meilisearch error: ${res.status}`, publicStatusForMeiliStatus(res.status));
+          throw new MeiliFetchError('Ricerca non disponibile', publicStatusForMeiliStatus(res.status));
         }
 
-        const data = (await res.json()) as {
+        const data = (await readJsonResponseWithLimit(res, 2 * 1_024 * 1_024)) as {
           hits?: Record<string, unknown>[];
           estimatedTotalHits?: number;
           processingTimeMs?: number;
         };
-        const hits = Array.isArray(data.hits) ? data.hits : [];
+        const hits = Array.isArray(data.hits)
+          ? data.hits.map((hit) => sanitizeCatalogImageFields(hit))
+          : [];
         const nbHits = typeof data.estimatedTotalHits === 'number' ? data.estimatedTotalHits : hits.length;
         const nbPages = hitsPerPage > 0 ? Math.ceil(nbHits / hitsPerPage) || 1 : 1;
 
@@ -216,11 +320,10 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     if (err instanceof MeiliFetchError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+      return NextResponse.json({ error: 'Ricerca non disponibile' }, { status: err.status });
     }
-    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: 'Ricerca non disponibile', detail: message },
+      { error: 'Ricerca non disponibile' },
       { status: 502 }
     );
   }

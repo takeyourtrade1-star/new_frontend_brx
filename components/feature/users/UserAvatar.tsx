@@ -1,5 +1,7 @@
 import Image from 'next/image';
 
+import { safePublicAvatarUrl } from '@/lib/security/public-avatar-url';
+
 type AvatarSize = 'sm' | 'md' | 'lg';
 
 const SIZE_MAP: Record<AvatarSize, { container: string; text: string; px: number }> = {
@@ -18,17 +20,20 @@ interface UserAvatarProps {
 export function UserAvatar({ username, avatar_url, size = 'md', className = '' }: UserAvatarProps) {
   const { container, text, px } = SIZE_MAP[size];
   const initial = username.charAt(0).toUpperCase();
+  const safeAvatarUrl = safePublicAvatarUrl(avatar_url);
 
   return (
     <div
       className={`${container} relative shrink-0 overflow-hidden rounded-full bg-slate-200 ring-2 ring-white ${className}`}
     >
-      {avatar_url ? (
+      {safeAvatarUrl ? (
         <Image
-          src={avatar_url}
+          src={safeAvatarUrl}
           alt={`Avatar di ${username}`}
           width={px}
           height={px}
+          referrerPolicy="no-referrer"
+          unoptimized
           className="h-full w-full object-cover"
         />
       ) : (

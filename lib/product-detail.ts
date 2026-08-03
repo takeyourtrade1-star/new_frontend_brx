@@ -1,26 +1,6 @@
-/**
- * Recupero dettaglio prodotto/carta da Meilisearch per id (server-side).
- * Usato dalla pagina /products/[slug] quando slug è un id indice (mtg_123, op_456, sealed_10).
- */
+/** Shared product types and pure presentation helpers (safe for Client Components). */
 
-import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
-
-const CDN_URL = (
-  process.env.NEXT_PUBLIC_CDN_URL ||
-  (process.env.NODE_ENV === 'development'
-    ? 'https://di0y87a9s8da9.cloudfront.net'
-    : '')
-).replace(/\/+$/, '');
-
-function buildImageUrl(raw: string | null | undefined): string | null {
-  if (raw == null || raw === '') return null;
-  const trimmed = raw.trim();
-  if (trimmed.startsWith('http')) return trimmed;
-  const path = trimmed.replace(/^\/img\//, '').replace(/^img\//, '');
-  if (!path) return null;
-  const withSlash = path.startsWith('/') ? path : `/${path}`;
-  return CDN_URL ? `${CDN_URL}${withSlash}` : withSlash;
-}
+import { normalizeCatalogProductId } from '@/lib/security/catalog-public-data';
 
 /** Documento carta/prodotto come restituito da Meilisearch (allineato all'indexer search_engine). */
 export interface CardDocument {
@@ -79,94 +59,7 @@ export function getGameLabel(gameSlug: string): string {
 
 /** Restituisce true se slug è un id documento Meilisearch (mtg_123, op_456, pk_789, sealed_10). */
 export function isIndexProductId(slug: string): boolean {
-  return /^(mtg_|op_|pk_|sealed_)\d+$/.test(slug);
-}
-
-/**
- * Recupera il documento carta da Meilisearch per id (stesso flusso del debug meilisearch-product).
- * 1) GET /documents/:id → se 403/401/404 fa 2) POST /search con filter id = ":id".
- * Restituisce CardDocument per la pagina dettaglio, null se non trovato.
- * Usa cache: 'no-store' per evitare di cachare una risposta 403.
- */
-export async function getCardDocumentById(id: string): Promise<CardDocument | null> {
-  const rawId = id?.trim();
-  const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
-  if (!rawId || !MEILI_URL) return null;
-
-  const headers: Record<string, string> = {};
-  if (MEILI_KEY) headers.Authorization = `Bearer ${MEILI_KEY}`;
-
-  try {
-    const docUrl = `${MEILI_URL}/indexes/${INDEX}/documents/${encodeURIComponent(rawId)}`;
-    const res = await fetch(docUrl, {
-      method: 'GET',
-      headers,
-      cache: 'no-store',
-    });
-
-    if (res.ok) {
-      return (await res.json()) as CardDocument;
-    }
-
-    if (res.status !== 403 && res.status !== 401 && res.status !== 404) {
-      return null;
-    }
-
-    const searchUrl = `${MEILI_URL}/indexes/${INDEX}/search`;
-    const filter = `id = "${rawId.replace(/"/g, '\\"')}"`;
-    const searchRes = await fetch(searchUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...headers },
-      body: JSON.stringify({ filter, limit: 1 }),
-      cache: 'no-store',
-    });
-
-    if (!searchRes.ok) return null;
-    const data = (await searchRes.json()) as { hits?: CardDocument[] };
-    return data.hits?.[0] ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Recupera il documento da Meilisearch per id. Restituisce null se non trovato o Meilisearch non configurato.
- * Se NEXT_PUBLIC_MEILISEARCH_API_KEY non è impostata, la richiesta viene fatta senza Authorization (come per la ricerca).
- */
-export async function getProductById(id: string): Promise<ProductDetailData | null> {
-  const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
-  if (!id?.trim() || !MEILI_URL) return null;
-
-  const url = `${MEILI_URL}/indexes/${INDEX}/documents/${encodeURIComponent(id.trim())}`;
-  const headers: Record<string, string> = {};
-  if (MEILI_KEY) headers.Authorization = `Bearer ${MEILI_KEY}`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers,
-      next: { revalidate: 60 },
-    });
-
-    if (res.status === 404 || !res.ok) return null;
-
-    const doc = (await res.json()) as CardDocument;
-
-    return {
-      id: doc.id,
-      name: doc.name ?? '',
-      set_name: doc.set_name ?? '',
-      game_slug: doc.game_slug ?? 'mtg',
-      category_name: doc.category_name,
-      imageUrl: buildImageUrl(doc.image ?? null),
-      keywords_localized: doc.keywords_localized,
-      collector_number: doc.collector_number,
-      rarity: doc.rarity,
-      available_languages: doc.available_languages,
-    };
-  } catch {
-    return null;
-  }
+  return normalizeCatalogProductId(slug) !== null;
 }
 
 /**

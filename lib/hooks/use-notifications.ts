@@ -20,12 +20,13 @@ import type {
   NotificationListResponse,
   NotificationUnreadCountResponse,
 } from '@/types/notification';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 const KEYS = {
   all: ['notifications'] as const,
-  list: (params?: NotificationListParams) =>
-    ['notifications', 'list', params ?? {}] as const,
-  unread: ['notifications', 'unread-count'] as const,
+  list: (owner: string, params?: NotificationListParams) =>
+    ['notifications', owner, 'list', params ?? {}] as const,
+  unread: (owner: string) => ['notifications', owner, 'unread-count'] as const,
 };
 
 /** Thrown by ``notifications-client`` on HTTP errors (see ``err.status``). */
@@ -61,8 +62,9 @@ export function useNotificationList(
   params?: NotificationListParams,
   options?: Partial<UseQueryOptions<NotificationListResponse>>,
 ) {
+  const owner = useAuthStore((state) => state.user?.id || 'anonymous');
   return useQuery({
-    queryKey: KEYS.list(params),
+    queryKey: KEYS.list(owner, params),
     queryFn: () => notificationsApi.list(params),
     staleTime: 10_000,
     refetchInterval: notificationsRefetchInterval,
@@ -75,8 +77,9 @@ export function useNotificationList(
 export function useUnreadNotificationsCount(
   options?: Partial<UseQueryOptions<NotificationUnreadCountResponse>>,
 ) {
+  const owner = useAuthStore((state) => state.user?.id || 'anonymous');
   return useQuery({
-    queryKey: KEYS.unread,
+    queryKey: KEYS.unread(owner),
     queryFn: () => notificationsApi.unreadCount(),
     staleTime: 15_000,
     refetchInterval: notificationsRefetchInterval,

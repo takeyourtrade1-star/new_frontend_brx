@@ -25,9 +25,11 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   buildVerificationPath,
   clearPendingRegistration,
+  readAndScrubVerificationToken,
   readPendingRegistration,
   savePendingRegistration,
 } from '@/lib/auth/registration-verification';
+import { sanitizeInternalReturnPath } from '@/lib/security/internal-return-path';
 
 type VerificationPhase = 'pending' | 'verified';
 type VerificationErrorKey =
@@ -74,8 +76,7 @@ export function VerificationView() {
   const rawReturnTo = searchParams.get('returnTo');
 
   const returnTo = useMemo(() => {
-    if (!rawReturnTo?.startsWith('/') || rawReturnTo.startsWith('//')) return undefined;
-    return rawReturnTo;
+    return sanitizeInternalReturnPath(rawReturnTo) ?? undefined;
   }, [rawReturnTo]);
 
   const [activeFlowId, setActiveFlowId] = useState(queryFlowId);
@@ -102,8 +103,7 @@ export function VerificationView() {
   }, [queryFlowId]);
 
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.slice(1));
-    setToken(hashParams.get('token'));
+    setToken(readAndScrubVerificationToken());
   }, []);
 
   useEffect(() => {

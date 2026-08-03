@@ -18,7 +18,9 @@
     /* Palette principale (gradiente e blocchi) */
     --color-brand: #3D65C6;
     --color-brand-dark: #1D3160;
-    /* Font principale: Nunito (gestito da next/font/google) */
+    /* Stack locale: nessun download di font durante build o runtime. */
+    --font-sans: ui-rounded, 'Avenir Next', Avenir, 'Segoe UI', system-ui,
+      -apple-system, BlinkMacSystemFont, sans-serif;
     /* Font display: Comodo Regular (locale in public/fonts) */
     --font-comodo: 'Comodo Regular', sans-serif;
 

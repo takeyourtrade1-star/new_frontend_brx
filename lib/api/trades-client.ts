@@ -7,14 +7,16 @@ import type {
   TradeResponse,
   TradeStatus,
 } from '@/types/trade';
+import { createSecureIdempotencyKey } from '@/lib/security/secure-idempotency-key';
 
 function idempotencyKey(): string {
-  return globalThis.crypto?.randomUUID?.() ?? `trade-${Date.now()}-${Math.random()}`;
+  return createSecureIdempotencyKey();
 }
 
 async function request<T>(path: string, options: RequestInit = {}, retried = false): Promise<T> {
   const response = await fetch(`/api/trades${path}`, {
     ...options,
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
@@ -24,8 +26,8 @@ async function request<T>(path: string, options: RequestInit = {}, retried = fal
   const data: unknown = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401 && !retried && typeof window !== 'undefined') {
-      const token = await tokenManager.ensureFreshToken();
-      if (token) return request<T>(path, options, true);
+      const refreshed = await tokenManager.ensureFreshSession();
+      if (refreshed) return request<T>(path, options, true);
     }
     const body = data as { detail?: string; message?: string; code?: string };
     const error = new Error(body.detail || body.message || `Trades API error ${response.status}`) as Error & {

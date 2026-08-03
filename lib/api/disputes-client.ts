@@ -7,31 +7,21 @@ import type {
   MaybeDisputeResponse,
 } from '@/types/dispute';
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('ebartex_access_token');
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function request<T>(path: string, options: RequestInit = {}, retried = false): Promise<T> {
   const res = await fetch(`/api/disputes${path}`, {
     ...options,
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      ...authHeaders(),
       ...(options.headers as Record<string, string> | undefined),
     },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const newToken = await tokenManager.ensureFreshToken();
-      if (newToken) {
+      const refreshed = await tokenManager.ensureFreshSession();
+      if (refreshed) {
         return request<T>(path, options, true);
       }
     }

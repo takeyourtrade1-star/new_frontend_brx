@@ -16,26 +16,24 @@ import {
 } from '@/app/api/_lib/forwarded-authorization';
 import { noStoreHeaders, publicCacheHeaders, unauthorizedResponse } from '@/app/api/_lib/proxy-response';
 import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import { marketplaceProxyPolicy } from '@/app/api/_lib/marketplace-proxy-policy';
+import { readTextBodyWithLimit } from '@/app/api/_lib/request-body';
+import { enforceSameOrigin } from '@/app/api/_lib/request-security';
 import { normalizeProxyPathSegments } from '@/app/api/_lib/safe-proxy-path';
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
+import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
+import { appendQueryWithPolicy, QUERY_POSITIVE_INTEGER, type QueryRules } from '@/app/api/_lib/query-policy';
 
 export const dynamic = 'force-dynamic';
 
 /** Fail fast before Amplify/API gateway returns opaque 504. */
 const PROXY_TIMEOUT_MS = 12000;
-
-const DEFAULT_MARKETPLACE_API_URL = 'https://marketplace-api.ebartex.com';
+const MAX_MARKETPLACE_BODY_BYTES = 128 * 1024;
+const MAX_MARKETPLACE_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 function getMarketplaceApiUrl(): string {
-  const url =
-    process.env.MARKETPLACE_API_URL ||
-    process.env.NEXT_PUBLIC_MARKETPLACE_API_URL ||
-    DEFAULT_MARKETPLACE_API_URL;
-  return url.replace(/\/+$/, '');
-}
-
-/** Paths that do not require Authorization (public catalog). */
-function isPublicMarketplacePath(path: string): boolean {
-  return path.startsWith('listings/public/');
+  return trustedServiceOrigin(process.env.MARKETPLACE_API_URL);
 }
 
 async function fetchWithTimeout(
@@ -43,25 +41,42 @@ async function fetchWithTimeout(
   init: RequestInit,
   timeoutMs: number,
 ): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, {
-      ...init,
-      signal: controller.signal,
-      cache: 'no-store',
-    });
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  const headers = new Headers(init.headers);
+  headers.set('Accept-Encoding', 'identity');
+  return fetchWithBodyDeadline(url, {
+    ...init,
+    headers,
+    cache: 'no-store',
+    redirect: 'error',
+  }, timeoutMs);
 }
 
-function buildTargetUrl(base: string, targetPath: string, request: NextRequest): URL {
+function marketplaceQueryRules(path: string, method: string): QueryRules {
+  if (method !== 'GET') return {};
+  if (path === 'listings') {
+    return {
+      page: QUERY_POSITIVE_INTEGER,
+      page_size: QUERY_POSITIVE_INTEGER,
+      status_filter: /^(?:active|paused|sold|cancelled)$/,
+    };
+  }
+  if (/^listings\/public\/by-blueprint\/[1-9]\d{0,18}$/.test(path)) {
+    return { card_id: /^[A-Za-z0-9._~%-]{1,128}$/ };
+  }
+  if (path === 'listings/public/best-sellers') {
+    return { game: /^[a-z0-9_-]{1,32}$/i, limit: QUERY_POSITIVE_INTEGER };
+  }
+  if (path === 'orders' || path === 'collections' || path === 'sync/events') {
+    return { page: QUERY_POSITIVE_INTEGER, page_size: QUERY_POSITIVE_INTEGER };
+  }
+  return {};
+}
+
+function buildTargetUrl(base: string, targetPath: string, request: NextRequest, path: string): URL | null {
   const url = new URL(targetPath, base);
-  request.nextUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
-  return url;
+  return appendQueryWithPolicy(url, request.nextUrl, marketplaceQueryRules(path, request.method))
+    ? url
+    : null;
 }
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
@@ -73,11 +88,27 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     );
   }
 
+  const policy = marketplaceProxyPolicy(path, request.method);
+  if (!policy.allowed) {
+    return NextResponse.json(
+      { detail: 'Not found' },
+      { status: 404, headers: noStoreHeaders() },
+    );
+  }
+
+  const originViolation = enforceSameOrigin(request);
+  if (originViolation) return originViolation;
+
   const MARKETPLACE_API_URL = getMarketplaceApiUrl();
+  if (!MARKETPLACE_API_URL) {
+    return NextResponse.json(
+      { detail: 'Marketplace service unavailable' },
+      { status: 503, headers: noStoreHeaders() },
+    );
+  }
 
   const targetPath = `/api/v1/${path}`;
-  const isPublicGet =
-    request.method === 'GET' && isPublicMarketplacePath(path);
+  const isPublicGet = request.method === 'GET' && policy.public;
 
   // Cookie-first: legge il cookie HttpOnly per le route private.
   // Le route pubbliche (listings/public/*) non richiedono autenticazione.
@@ -87,7 +118,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     return unauthorizedResponse();
   }
 
-  const rateLimit = checkRateLimit(request, {
+  const rateLimit = await checkRateLimit(request, {
     scope: isPublicGet ? 'marketplace-public' : 'marketplace-private',
     limit: 60,
     windowMs: 60_000,
@@ -107,7 +138,14 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     request.method !== 'HEAD' &&
     contentType?.includes('application/json')
   ) {
-    body = await request.text();
+    const bodyResult = await readTextBodyWithLimit(request, MAX_MARKETPLACE_BODY_BYTES);
+    if (bodyResult.tooLarge) {
+      return NextResponse.json(
+        { detail: 'Request body too large' },
+        { status: 413, headers: noStoreHeaders() },
+      );
+    }
+    body = bodyResult.body;
     headers['Content-Type'] = 'application/json';
   }
 
@@ -117,7 +155,13 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     body,
   };
 
-  const primaryUrl = buildTargetUrl(MARKETPLACE_API_URL, targetPath, request);
+  const primaryUrl = buildTargetUrl(MARKETPLACE_API_URL, targetPath, request, path);
+  if (!primaryUrl) {
+    return NextResponse.json(
+      { detail: 'Invalid query parameters' },
+      { status: 400, headers: noStoreHeaders() },
+    );
+  }
 
   const responseCacheHeaders = isPublicGet
     ? publicCacheHeaders(30, 60)
@@ -134,14 +178,39 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
       return new NextResponse(null, { status: 204 });
     }
 
-    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const publicStatus = res.status >= 500 ? 502 : res.status;
+      const detail =
+        res.status === 401
+          ? 'Autenticazione richiesta'
+          : res.status === 403
+            ? 'Permessi insufficienti'
+            : res.status === 404
+              ? 'Risorsa non trovata'
+              : res.status === 409
+                ? 'Operazione in conflitto'
+                : res.status === 422
+                  ? 'Dati richiesta non validi'
+                  : 'Operazione marketplace non riuscita';
+      return NextResponse.json(
+        { detail },
+        { status: publicStatus, headers: noStoreHeaders() },
+      );
+    }
+
+    const data = await readJsonResponseWithLimit(res, MAX_MARKETPLACE_RESPONSE_BYTES);
     return NextResponse.json(data, {
       status: res.status,
       headers: responseCacheHeaders,
     });
   } catch (err) {
     const isTimeout = err instanceof Error && err.name === 'AbortError';
-    if (!isTimeout) console.error('[marketplace proxy]', primaryUrl.toString());
+    if (!isTimeout) {
+      console.error(
+        '[marketplace proxy] request failed',
+        err instanceof Error ? err.name : 'UnknownError',
+      );
+    }
     return NextResponse.json(
       {
         detail: isTimeout

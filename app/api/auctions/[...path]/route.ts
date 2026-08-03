@@ -7,18 +7,29 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getForwardedAuthorization, extractUserIdForRateLimit } from '@/app/api/_lib/forwarded-authorization';
-import { noStoreHeaders, unauthorizedResponse } from '@/app/api/_lib/proxy-response';
+import { noStoreHeaders, redactedUpstreamErrorResponse, unauthorizedResponse } from '@/app/api/_lib/proxy-response';
 import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import { normalizeProxyPathSegments } from '@/app/api/_lib/safe-proxy-path';
+import {
+  isAllowedAuctionProxyPath,
+  isPublicAuctionProxyGet,
+} from '@/app/api/_lib/auction-proxy-policy';
+import { enforceSameOrigin } from '@/app/api/_lib/request-security';
+import { readTextBodyWithLimit } from '@/app/api/_lib/request-body';
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
+import { trustedServiceOrigin } from '@/app/api/_lib/upstream-url';
+import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
+import { appendQueryWithPolicy, QUERY_INTEGER, QUERY_POSITIVE_INTEGER, type QueryRules } from '@/app/api/_lib/query-policy';
 
 export const dynamic = 'force-dynamic';
 
 const PROXY_TIMEOUT_MS = 12_000;
+const MAX_PROXY_BODY_BYTES = 256 * 1024;
+const MAX_PROXY_RESPONSE_BYTES = 2 * 1024 * 1024;
 
-const AUCTION_API_URL = (
-  process.env.AUCTION_API_URL ||
-  process.env.NEXT_PUBLIC_AUCTION_API_URL ||
-  ''
-).replace(/\/+$/, '');
+const AUCTION_API_URL = trustedServiceOrigin(
+  process.env.AUCTION_API_URL
+);
 
 /**
  * Flusso QR "foto da telefono" senza login.
@@ -35,7 +46,18 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PAIRING_TOKEN_RE = /^[A-Za-z0-9_-]{16,256}$/;
 const GUEST_PAIRING_POST_PATHS = new Set(['photos/init', 'photos/finalize']);
-const GUEST_PAIRING_GET_RE = /^photos\/pairing-sessions\/[0-9a-f-]{36}$/i;
+const GUEST_PAIRING_GET_RE = new RegExp(`^photos/pairing-sessions/${UUID_RE.source.slice(1, -1)}$`, 'i');
+
+function auctionQueryRules(path: string, method: string): QueryRules {
+  if (method !== 'GET') return {};
+  if (/^[A-Za-z0-9_%.-]{1,128}\/bids$/.test(path)) {
+    return { limit: QUERY_POSITIVE_INTEGER, offset: QUERY_INTEGER };
+  }
+  if (path === 'photos/by-listings') {
+    return { ids: /^[A-Za-z0-9._~%-]{1,2048}(?:,[A-Za-z0-9._~%-]{1,2048})*$/ };
+  }
+  return {};
+}
 
 function isGuestPairingRequest(
   request: NextRequest,
@@ -71,57 +93,84 @@ function isGuestPairingRequest(
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal, cache: 'no-store' });
-  } finally {
-    clearTimeout(id);
-  }
+  const headers = new Headers(init.headers);
+  headers.set('Accept-Encoding', 'identity');
+  return fetchWithBodyDeadline(url, {
+    ...init,
+    headers,
+    cache: 'no-store',
+    redirect: 'error',
+  }, timeoutMs);
 }
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
   if (!AUCTION_API_URL) {
     return NextResponse.json(
-      { detail: 'AUCTION_API_URL is not configured' },
+      { detail: 'Servizio aste non disponibile' },
       { status: 503, headers: noStoreHeaders() }
     );
   }
 
-  const path = pathSegments.join('/');
-
-  // Il body serve prima del check auth per validare le richieste guest QR.
-  let body: string | undefined;
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    body = await request.text();
+  const path = normalizeProxyPathSegments(pathSegments);
+  if (path === null) {
+    return NextResponse.json(
+      { detail: 'Percorso non valido' },
+      { status: 400, headers: noStoreHeaders() },
+    );
+  }
+  if (!isAllowedAuctionProxyPath('auctions', request.method, path)) {
+    return NextResponse.json(
+      { detail: 'Not found' },
+      { status: 404, headers: noStoreHeaders() },
+    );
   }
 
+  const originViolation = enforceSameOrigin(request);
+  if (originViolation) return originViolation;
+
   const auth = getForwardedAuthorization(request);
-  const isGet = request.method === 'GET';
-  const guestPairing = !auth && isGuestPairingRequest(request, path, body);
-  if (!auth && !isGet && !guestPairing) return unauthorizedResponse();
+  const publicGet = request.method === 'GET' && isPublicAuctionProxyGet(path);
+  const guestGet = !auth && request.method === 'GET' && isGuestPairingRequest(request, path, undefined);
+  const guestPostCandidate =
+    !auth && request.method === 'POST' && GUEST_PAIRING_POST_PATHS.has(path);
+  if (!auth && !publicGet && !guestGet && !guestPostCandidate) return unauthorizedResponse();
 
   const userId = auth ? extractUserIdForRateLimit(auth) : undefined;
-  const rl = checkRateLimit(request, {
-    scope: guestPairing ? 'auctions-guest-pairing' : 'auctions',
-    limit: guestPairing ? 30 : 60,
+  const rl = await checkRateLimit(request, {
+    scope: guestGet || guestPostCandidate ? 'auctions-guest-pairing' : 'auctions',
+    limit: guestGet || guestPostCandidate ? 30 : 60,
     windowMs: 60_000,
     userId,
   });
   if (!rl.allowed) return rateLimitExceededResponse(rl);
 
+  let body: string | undefined;
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    const bodyResult = await readTextBodyWithLimit(request, MAX_PROXY_BODY_BYTES);
+    if (bodyResult.tooLarge) {
+      return NextResponse.json(
+        { detail: 'Request body too large' },
+        { status: 413, headers: noStoreHeaders() },
+      );
+    }
+    body = bodyResult.body;
+  }
+
+  const guestPairing = !auth && isGuestPairingRequest(request, path, body);
+  if (!auth && guestPostCandidate && !guestPairing) return unauthorizedResponse();
+
   const targetPath = `/auctions${path ? `/${path}` : ''}`;
   const url = new URL(targetPath, AUCTION_API_URL);
-  request.nextUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
+  if (!appendQueryWithPolicy(url, request.nextUrl, auctionQueryRules(path, request.method))) {
+    return NextResponse.json(
+      { detail: 'Invalid query parameters' },
+      { status: 400, headers: noStoreHeaders() },
+    );
+  }
 
   const idempotencyKey =
     request.headers.get('idempotency-key') ||
     request.headers.get('Idempotency-Key');
-  const requestId =
-    request.headers.get('x-request-id') ||
-    request.headers.get('X-Request-ID');
   const pairingUploadToken =
     request.headers.get('x-pairing-upload-token') ||
     request.headers.get('X-Pairing-Upload-Token');
@@ -129,9 +178,12 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     Accept: 'application/json',
     'Content-Type': 'application/json',
     ...(auth ? { Authorization: auth } : {}),
-    ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
-    ...(requestId ? { 'X-Request-ID': requestId } : {}),
-    ...(pairingUploadToken ? { 'X-Pairing-Upload-Token': pairingUploadToken } : {}),
+    ...(idempotencyKey && /^[A-Za-z0-9._:-]{8,128}$/.test(idempotencyKey)
+      ? { 'Idempotency-Key': idempotencyKey }
+      : {}),
+    ...(guestPairing && pairingUploadToken
+      ? { 'X-Pairing-Upload-Token': pairingUploadToken }
+      : {}),
   };
 
   if (body) {
@@ -142,13 +194,14 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
 
   try {
     const res = await fetchWithTimeout(url.toString(), { method: request.method, headers, body }, PROXY_TIMEOUT_MS);
-    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return redactedUpstreamErrorResponse(res.status, 'Operazione asta non riuscita');
+    const data = await readJsonResponseWithLimit(res, MAX_PROXY_RESPONSE_BYTES);
     return NextResponse.json(data, { status: res.status, headers: noStoreHeaders() });
   } catch (err) {
     const isTimeout = err instanceof Error && err.name === 'AbortError';
     if (isAttachListing) {
       // eslint-disable-next-line no-console
-      console.error('[auction proxy] attach-listing fetch error', err);
+      console.error('[auction proxy] attach-listing fetch error');
     } else if (!isTimeout) {
       console.error('[auction proxy] fetch error');
     }

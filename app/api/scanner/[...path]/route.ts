@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import {
-  extractUserIdForRateLimit,
-  getForwardedAuthorization,
-} from '@/app/api/_lib/forwarded-authorization';
 import { noStoreHeaders } from '@/app/api/_lib/proxy-response';
-import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import { enforceSameOrigin } from '@/app/api/_lib/request-security';
+import {
+  checkRateLimit,
+  getRateLimitClientIp,
+  rateLimitExceededResponse,
+} from '@/app/api/_lib/rate-limit';
+import { readBinaryBodyWithLimit } from '@/app/api/_lib/request-body';
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
 import {
   getBrxMatchBaseUrl,
+  getBrxMatchServiceToken,
   getScannerBudgetMode,
+  getScannerEdgeModelBytes,
+  MAX_EDGE_MODEL_BYTES,
   SCANNER_LIMITS,
   SCANNER_TIMEOUTS,
 } from '@/app/api/scanner/_config';
+import { enforceScannerBrowserFetch } from '@/app/api/scanner/_request-security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,6 +44,116 @@ const TIMEOUT_MS: Record<ScannerPath, number> = {
   verify: SCANNER_TIMEOUTS.recognitionUpstreamMs,
   'static/dinov2_small.onnx': SCANNER_TIMEOUTS.modelUpstreamMs,
 };
+const MAX_RECOGNITION_RESPONSE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_MODEL_CONTENT_TYPES = new Set([
+  'application/octet-stream',
+  'application/onnx',
+  'application/x-onnx',
+]);
+
+function boundedModelStream(
+  body: ReadableStream<Uint8Array>,
+  expectedBytes: number,
+  lifecycle: {
+    signal: AbortSignal;
+    deadlineAt: number;
+    onDeadline: () => void;
+    onConsumerCancel: () => void;
+    onFinalize: () => void;
+  },
+): ReadableStream<Uint8Array> {
+  const reader = body.getReader();
+  let received = 0;
+  let finished = false;
+  let cancelPromise: Promise<void> | null = null;
+  let streamController: ReadableStreamDefaultController<Uint8Array> | null = null;
+
+  const releaseReader = () => {
+    try {
+      reader.releaseLock();
+    } catch {
+      // A pending read keeps the lock until cancellation settles.
+    }
+  };
+  const finalize = () => {
+    lifecycle.signal.removeEventListener('abort', abortStream);
+    lifecycle.onFinalize();
+  };
+  const cancelReader = (reason?: unknown): Promise<void> => {
+    if (!cancelPromise) {
+      cancelPromise = reader
+        .cancel(reason)
+        .catch(() => undefined)
+        .then(() => {
+          releaseReader();
+        });
+    }
+    return cancelPromise;
+  };
+  const fail = (message: string, reason?: unknown) => {
+    if (finished) return;
+    finished = true;
+    try {
+      streamController?.error(new Error(message));
+    } finally {
+      // Never leave a rejected cancellation promise unobserved.
+      void cancelReader(reason);
+      finalize();
+    }
+  };
+  function abortStream() {
+    fail('Scanner model stream aborted', lifecycle.signal.reason);
+  }
+
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      streamController = controller;
+      lifecycle.signal.addEventListener('abort', abortStream, { once: true });
+      if (lifecycle.signal.aborted) abortStream();
+    },
+    async pull(controller) {
+      if (finished) return;
+      if (performance.now() >= lifecycle.deadlineAt) {
+        lifecycle.onDeadline();
+        if (!lifecycle.signal.aborted) {
+          fail('Scanner model stream timed out');
+        }
+        return;
+      }
+      try {
+        const { done, value } = await reader.read();
+        if (finished || lifecycle.signal.aborted) return;
+        if (done) {
+          finished = true;
+          if (received !== expectedBytes) {
+            controller.error(new Error('Scanner model size mismatch'));
+          } else {
+            controller.close();
+          }
+          releaseReader();
+          finalize();
+          return;
+        }
+        received += value.byteLength;
+        if (received > expectedBytes || received > MAX_EDGE_MODEL_BYTES) {
+          fail('Scanner model exceeds configured size');
+          return;
+        }
+        controller.enqueue(value);
+      } catch {
+        fail('Scanner model stream failed');
+      }
+    },
+    async cancel(reason) {
+      if (!finished) {
+        finished = true;
+        lifecycle.onConsumerCancel();
+        finalize();
+      }
+      await cancelReader(reason);
+    },
+  });
+}
 
 type AbortCause = 'client' | 'timeout';
 
@@ -81,6 +198,8 @@ function diagnosticHeaders(
   extra?: HeadersInit,
 ): Headers {
   const headers = noStoreHeaders(extra);
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('Cross-Origin-Resource-Policy', 'same-origin');
   headers.set('Server-Timing', timingHeader(timings));
   headers.set('X-Scanner-Upstream-Timeout-Ms', String(timeoutMs));
   headers.set('X-Scanner-Response-Mode', responseMode);
@@ -111,6 +230,8 @@ function errorResponse(
     options?.timeoutMs !== undefined && options.timings
       ? diagnosticHeaders(options.timeoutMs, options.timings, 'buffered')
       : noStoreHeaders();
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('Cross-Origin-Resource-Policy', 'same-origin');
   if (options?.abortCause) headers.set('X-Scanner-Abort-Cause', options.abortCause);
   return NextResponse.json(body, { status, headers });
 }
@@ -126,18 +247,37 @@ async function proxyScanner(
   if (request.method !== ALLOWED_METHODS[path]) {
     return errorResponse('Metodo non consentito', 405);
   }
+  if (request.method === 'POST') {
+    const originViolation = enforceSameOrigin(request);
+    if (originViolation) return originViolation;
+  }
+  if (path === 'static/dinov2_small.onnx') {
+    const resourceViolation = enforceScannerBrowserFetch(request);
+    if (resourceViolation) return resourceViolation;
+  }
 
   const budgetMode = getScannerBudgetMode();
   if (budgetMode === 'edge_only' && (path === 'scan' || path === 'verify')) {
     return errorResponse('Verifica server sospesa: completa la revisione manualmente', 503);
   }
 
-  const auth = getForwardedAuthorization(request);
-  const rateLimit = checkRateLimit(request, {
+  const brxMatchBaseUrl = getBrxMatchBaseUrl();
+  const brxMatchServiceToken = getBrxMatchServiceToken();
+  if (
+    !brxMatchBaseUrl ||
+    (process.env.NODE_ENV === 'production' && brxMatchServiceToken.length < 32)
+  ) {
+    return errorResponse('Servizio di riconoscimento non disponibile', 503);
+  }
+
+  // This value comes only from the infrastructure header policy used by the
+  // fail-closed local limiter.  Never derive a trusted downstream subject from
+  // the unverified JWT payload.
+  const rateClientIp = getRateLimitClientIp(request);
+  const rateLimit = await checkRateLimit(request, {
     scope: path === 'static/dinov2_small.onnx' ? 'scanner-model' : 'scanner-recognition',
     limit: path === 'static/dinov2_small.onnx' ? 4 : SCANNER_LIMITS.requestsPerMinute,
     windowMs: path === 'static/dinov2_small.onnx' ? 60 * 60_000 : 60_000,
-    userId: extractUserIdForRateLimit(auth),
   });
   if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit);
 
@@ -160,12 +300,11 @@ async function proxyScanner(
   const bodyStartedAt = performance.now();
   try {
     if (request.method === 'POST') {
-      // Il buffering resta intenzionale: consente di applicare il limite anche
-      // quando Content-Length manca, prima di inviare dati al matcher.
-      body = await request.arrayBuffer();
-      if (maxBodyBytes && body.byteLength > maxBodyBytes) {
+      const result = await readBinaryBodyWithLimit(request, maxBodyBytes || 1);
+      if (result.tooLarge) {
         return errorResponse('Payload scanner troppo grande', 413);
       }
+      body = result.body?.buffer;
     }
   } catch {
     if (request.signal.aborted) {
@@ -190,7 +329,7 @@ async function proxyScanner(
     });
   }
 
-  const upstreamUrl = new URL(`/brx-match/${path}`, getBrxMatchBaseUrl());
+  const upstreamUrl = new URL(`/brx-match/${path}`, brxMatchBaseUrl);
   if (path === 'scan') {
     const mode = request.nextUrl.searchParams.get('mode');
     if (mode === 'auto' || mode === 'fast' || mode === 'full') {
@@ -199,18 +338,35 @@ async function proxyScanner(
   }
 
   const headers = new Headers({ Accept: request.headers.get('accept') || 'application/json' });
+  headers.set('X-Internal-Caller', 'web-bff');
+  headers.set('Accept-Encoding', 'identity');
+  if (brxMatchServiceToken) headers.set('X-Internal-Token', brxMatchServiceToken);
+  // BRX Match has no user-authorized operation: do not grant it the access
+  // bearer.  The subject is a canonical peer identity resolved from explicitly
+  // trusted infrastructure headers, never an attacker-selected JWT `sub`.
+  if (rateClientIp !== 'unknown') {
+    headers.set('X-Internal-Rate-Subject', `ip:${rateClientIp}`);
+  }
   const contentType = request.headers.get('content-type');
   if (contentType) headers.set('Content-Type', contentType);
-  if (auth) headers.set('Authorization', auth);
-  const requestId = request.headers.get('x-request-id');
-  if (requestId) headers.set('X-Request-ID', requestId);
 
   const upstreamStartedAt = performance.now();
-  const timeout = setTimeout(() => {
+  const upstreamDeadlineAt = upstreamStartedAt + timeoutMs;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let lifecycleHandedToStream = false;
+  let cleanupComplete = false;
+  const cleanupUpstreamLifecycle = () => {
+    if (cleanupComplete) return;
+    cleanupComplete = true;
+    if (timeout !== undefined) clearTimeout(timeout);
+    request.signal.removeEventListener('abort', abortFromClient);
+  };
+  const abortFromTimeout = () => {
     if (abortCause) return;
     abortCause = 'timeout';
     controller.abort(new DOMException('Scanner upstream timeout', 'TimeoutError'));
-  }, timeoutMs);
+  };
+  timeout = setTimeout(abortFromTimeout, timeoutMs);
   let upstreamHeadersAt: number | undefined;
   try {
     const response = await fetch(upstreamUrl, {
@@ -218,17 +374,57 @@ async function proxyScanner(
       headers,
       body,
       cache: 'no-store',
+      redirect: 'error',
       signal: controller.signal,
     });
     upstreamHeadersAt = performance.now();
     const upstreamTtfbMs = upstreamHeadersAt - upstreamStartedAt;
 
-    // Il modello può essere molto grande e resta in streaming. Le risposte di
-    // riconoscimento sono JSON piccole: bufferizzarle permette di misurare
-    // separatamente TTFB, lettura upstream e durata totale.
+    if (!response.ok) {
+      try { await response.body?.cancel(); } catch { /* already closed */ }
+      const publicStatus = response.status >= 500 ? 502 : response.status;
+      return errorResponse(
+        path === 'static/dinov2_small.onnx'
+          ? 'Modello scanner non disponibile'
+          : 'Riconoscimento carta non disponibile',
+        publicStatus,
+      );
+    }
+
+    // Il modello può superare 80 MiB: resta streaming con un contatore rigido.
+    // Le risposte di riconoscimento sono JSON piccole e vengono bufferizzate.
     if (path === 'static/dinov2_small.onnx') {
+      const contentType = (response.headers.get('content-type') || '')
+        .split(';', 1)[0]
+        .trim()
+        .toLowerCase();
+      if (!ALLOWED_MODEL_CONTENT_TYPES.has(contentType)) {
+        try { await response.body?.cancel(); } catch { /* already closed */ }
+        return errorResponse('Modello scanner non disponibile', 502);
+      }
+      const expectedBytes = getScannerEdgeModelBytes();
+      const declaredLength = response.headers.get('content-length');
+      const contentEncoding = response.headers.get('content-encoding')?.trim().toLowerCase();
+      if (
+        !response.body ||
+        expectedBytes < 100_000 ||
+        expectedBytes > MAX_EDGE_MODEL_BYTES ||
+        (contentEncoding && contentEncoding !== 'identity') ||
+        (declaredLength && (!/^\d+$/.test(declaredLength) || Number(declaredLength) !== expectedBytes))
+      ) {
+        try { await response.body?.cancel(); } catch { /* already closed */ }
+        return errorResponse('Modello scanner non disponibile', 502);
+      }
       const responsePrepStartedAt = performance.now();
-      const proxiedResponse = new Response(response.body, {
+      const modelStream = boundedModelStream(response.body, expectedBytes, {
+        signal: controller.signal,
+        deadlineAt: upstreamDeadlineAt,
+        onDeadline: abortFromTimeout,
+        onConsumerCancel: abortFromClient,
+        onFinalize: cleanupUpstreamLifecycle,
+      });
+      lifecycleHandedToStream = true;
+      const proxiedResponse = new Response(modelStream, {
         status: response.status,
         headers: diagnosticHeaders(
           timeoutMs,
@@ -239,6 +435,7 @@ async function proxyScanner(
           'streamed',
           {
             'Content-Type': response.headers.get('content-type') || 'application/octet-stream',
+            'Content-Disposition': 'attachment; filename="dinov2_small.onnx"',
           },
         ),
       });
@@ -255,7 +452,18 @@ async function proxyScanner(
       return proxiedResponse;
     }
 
-    const upstreamBody = await response.arrayBuffer();
+    const recognitionContentType = (response.headers.get('content-type') || '')
+      .split(';', 1)[0]
+      .trim()
+      .toLowerCase();
+    if (recognitionContentType !== 'application/json') {
+      try { await response.body?.cancel(); } catch { /* already closed */ }
+      return errorResponse('Riconoscimento carta non disponibile', 502);
+    }
+    const upstreamJson = await readJsonResponseWithLimit(
+      response,
+      MAX_RECOGNITION_RESPONSE_BYTES,
+    );
     const upstreamFinishedAt = performance.now();
     const responsePrepStartedAt = performance.now();
     const responseHeaders = diagnosticHeaders(timeoutMs, {
@@ -264,9 +472,9 @@ async function proxyScanner(
       upstreamBodyMs: upstreamFinishedAt - upstreamHeadersAt,
       upstreamTotalMs: upstreamFinishedAt - upstreamStartedAt,
     }, 'buffered', {
-      'Content-Type': response.headers.get('content-type') || 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
     });
-    const proxiedResponse = new Response(upstreamBody, {
+    const proxiedResponse = new Response(JSON.stringify(upstreamJson), {
       status: response.status,
       headers: responseHeaders,
     });
@@ -313,14 +521,16 @@ async function proxyScanner(
         timings,
       });
     }
-    console.error('[scanner proxy]', error);
+    console.error(
+      '[scanner proxy] upstream failure',
+      error instanceof Error ? error.name : 'UnknownError',
+    );
     return errorResponse('Servizio di riconoscimento non disponibile', 502, {
       timeoutMs,
       timings,
     });
   } finally {
-    clearTimeout(timeout);
-    request.signal.removeEventListener('abort', abortFromClient);
+    if (!lifecycleHandedToStream) cleanupUpstreamLifecycle();
   }
 }
 

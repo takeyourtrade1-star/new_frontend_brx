@@ -52,22 +52,47 @@ export interface TradeProposalContext {
 }
 
 const STORAGE_KEY = 'ebartex_trade_proposal_ctx';
+const TRADE_CONTEXT_TTL_MS = 15 * 60 * 1000;
 
-export function setTradeProposalContext(ctx: TradeProposalContext): void {
-  if (typeof window === 'undefined') return;
+interface StoredTradeProposalContext {
+  schemaVersion: 1;
+  ownerId: string;
+  expiresAt: number;
+  context: TradeProposalContext;
+}
+
+export function setTradeProposalContext(ownerId: string, ctx: TradeProposalContext): void {
+  if (typeof window === 'undefined' || !ownerId.trim()) return;
   try {
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(ctx));
+    const stored: StoredTradeProposalContext = {
+      schemaVersion: 1,
+      ownerId: ownerId.trim(),
+      expiresAt: Date.now() + TRADE_CONTEXT_TTL_MS,
+      context: ctx,
+    };
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
   } catch {
     /* sessionStorage non disponibile: ignora */
   }
 }
 
-export function getTradeProposalContext(): TradeProposalContext | null {
-  if (typeof window === 'undefined') return null;
+export function getTradeProposalContext(ownerId: string): TradeProposalContext | null {
+  if (typeof window === 'undefined' || !ownerId.trim()) return null;
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<TradeProposalContext>;
+    const envelope = JSON.parse(raw) as Partial<StoredTradeProposalContext>;
+    if (
+      envelope.schemaVersion !== 1 ||
+      envelope.ownerId !== ownerId.trim() ||
+      typeof envelope.expiresAt !== 'number' ||
+      envelope.expiresAt <= Date.now() ||
+      !envelope.context
+    ) {
+      window.sessionStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    const parsed = envelope.context as Partial<TradeProposalContext>;
     if (
       !parsed.seller || typeof parsed.seller.name !== 'string' ||
       !parsed.card || typeof parsed.card.id !== 'string' || typeof parsed.card.name !== 'string' ||
@@ -75,6 +100,7 @@ export function getTradeProposalContext(): TradeProposalContext | null {
       typeof parsed.listing.sellerId !== 'string' || typeof parsed.listing.quantity !== 'number' ||
       (parsed.listing.source !== 'sync' && parsed.listing.source !== 'marketplace')
     ) {
+      window.sessionStorage.removeItem(STORAGE_KEY);
       return null;
     }
     const storedBlueprintId = Number(parsed.card.blueprintId);
@@ -93,6 +119,7 @@ export function getTradeProposalContext(): TradeProposalContext | null {
       listing: parsed.listing,
     } as TradeProposalContext;
   } catch {
+    window.sessionStorage.removeItem(STORAGE_KEY);
     return null;
   }
 }

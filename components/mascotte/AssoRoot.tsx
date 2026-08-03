@@ -559,6 +559,8 @@ export function AssoRoot() {
   // ── Bug report + screenshot ──────────────────────────────────────────────
   const [bugForm, setBugForm] = useState<BugFormState>(EMPTY_BUG_FORM);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmittingBug, setIsSubmittingBug] = useState(false);
+  const [bugSubmitError, setBugSubmitError] = useState<string | null>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
@@ -571,6 +573,8 @@ export function AssoRoot() {
 
   const resetBugState = useCallback(() => {
     setSubmitted(false);
+    setIsSubmittingBug(false);
+    setBugSubmitError(null);
     setScreenshot(null);
     setBugForm(EMPTY_BUG_FORM);
     setHasConsoleLogs(false);
@@ -582,16 +586,48 @@ export function AssoRoot() {
     resetBugState();
   }, [resetBugState]);
 
-  const handleBugSubmit = useCallback((e: React.FormEvent) => {
+  const handleBugSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    playSuccessSound();
-    dispatch({ type: 'BUG_SUBMITTED' });
-    setSubmitted(true);
-    scheduleTimeout(() => {
-      dispatch({ type: 'CLOSE_BUG' });
-      resetBugState();
-    }, SUBMIT_FEEDBACK_MS);
-  }, [resetBugState, scheduleTimeout]);
+    if (isSubmittingBug) return;
+    setIsSubmittingBug(true);
+    setBugSubmitError(null);
+    try {
+      const pageUrl = bugForm.url.trim() || window.location.href;
+      const response = await fetch('/api/support/bug-reports', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({
+          name: bugForm.name,
+          email: bugForm.email,
+          subject: bugForm.subject,
+          message: bugForm.message,
+          bugType: bugForm.bugType,
+          priority: bugForm.priority,
+          pageUrl,
+          ...(screenshot ? { screenshot } : {}),
+        }),
+      });
+      const result = (await response.json().catch(() => null)) as { reportId?: unknown } | null;
+      if (!response.ok || (typeof result?.reportId !== 'string' && typeof result?.reportId !== 'number')) {
+        setBugSubmitError(t('marketplace.report.errorGeneric'));
+        return;
+      }
+
+      playSuccessSound();
+      dispatch({ type: 'BUG_SUBMITTED' });
+      setSubmitted(true);
+      scheduleTimeout(() => {
+        dispatch({ type: 'CLOSE_BUG' });
+        resetBugState();
+      }, SUBMIT_FEEDBACK_MS);
+    } catch {
+      setBugSubmitError(t('marketplace.report.errorGeneric'));
+    } finally {
+      setIsSubmittingBug(false);
+    }
+  }, [bugForm, isSubmittingBug, resetBugState, scheduleTimeout, screenshot, t]);
 
   const captureScreenshot = useCallback(async () => {
     if (isCapturing) return;
@@ -708,6 +744,8 @@ export function AssoRoot() {
       zIndex={Z_INDEX.modal}
       t={t}
       submitted={submitted}
+      isSubmitting={isSubmittingBug}
+      submitError={bugSubmitError}
       bugForm={bugForm}
       setBugForm={setBugForm}
       onSubmit={handleBugSubmit}

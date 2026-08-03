@@ -7,8 +7,6 @@ import type { User } from '@/types';
 vi.mock('@/lib/api/auth-client', () => ({
   authApi: {
     post: vi.fn(),
-    setToken: vi.fn(),
-    clearToken: vi.fn(),
     requestLoginCode: vi.fn(),
     verifyLoginCode: vi.fn(),
   },
@@ -16,15 +14,6 @@ vi.mock('@/lib/api/auth-client', () => ({
 
 vi.mock('@/lib/auth/fetch-me', () => ({
   fetchMe: vi.fn(),
-}));
-
-vi.mock('@/lib/api/refresh-token', () => ({
-  stopProactiveRefresh: vi.fn(),
-}));
-
-vi.mock('@/lib/auth/mfa-session', () => ({
-  clearMfaPreAuthToken: vi.fn(),
-  saveMfaPreAuthToken: vi.fn(),
 }));
 
 vi.mock('@/lib/config/tournaments', () => ({
@@ -67,7 +56,7 @@ describe('auth-store', () => {
     it('login diretto con email → autenticato, flash message e utente caricato', async () => {
       const post = vi.mocked(authApi.post);
       post.mockResolvedValue({
-        access_token: 'access_123',
+        authenticated: true,
       });
       vi.mocked(fetchMe).mockResolvedValue(mockUser);
 
@@ -79,7 +68,7 @@ describe('auth-store', () => {
 
       expect(result).toEqual({ mfaRequired: false });
       expect(useAuthStore.getState().isAuthenticated).toBe(true);
-      expect(useAuthStore.getState().accessToken).toBe('access_123');
+      expect(useAuthStore.getState().accessToken).toBe('cookie-session');
       expect(useAuthStore.getState().user).toEqual(mockUser);
       expect(useAuthStore.getState().flashMessage).toBe('Login avvenuto con successo');
       expect(useAuthStore.getState().isLoading).toBe(false);
@@ -89,7 +78,6 @@ describe('auth-store', () => {
       const post = vi.mocked(authApi.post);
       post.mockResolvedValue({
         mfa_required: true,
-        pre_auth_token: 'pre_auth_123',
       });
 
       const result = await useAuthStore.getState().login({
@@ -98,9 +86,9 @@ describe('auth-store', () => {
         website_url: '',
       });
 
-      expect(result).toEqual({ mfaRequired: true, preAuthToken: 'pre_auth_123' });
+      expect(result).toEqual({ mfaRequired: true });
       expect(useAuthStore.getState().mfaRequired).toBe(true);
-      expect(useAuthStore.getState().preAuthToken).toBe('pre_auth_123');
+      expect(useAuthStore.getState().preAuthToken).toBe('cookie-session');
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
       expect(useAuthStore.getState().accessToken).toBeNull();
     });
@@ -129,20 +117,19 @@ describe('auth-store', () => {
     it('verifica MFA valida → autenticato e stato MFA pulito', async () => {
       const post = vi.mocked(authApi.post);
       post.mockResolvedValue({
-        access_token: 'access_mfa',
+        authenticated: true,
       });
       vi.mocked(fetchMe).mockResolvedValue(mockUser);
 
       await useAuthStore.getState().verifyMFA({
         mfa_code: '123456',
-        pre_auth_token: 'pre_auth_123',
       });
 
       const state = useAuthStore.getState();
       expect(state.isAuthenticated).toBe(true);
       expect(state.mfaRequired).toBe(false);
       expect(state.preAuthToken).toBeNull();
-      expect(state.accessToken).toBe('access_mfa');
+      expect(state.accessToken).toBe('cookie-session');
       expect(state.user).toEqual(mockUser);
       expect(state.flashMessage).toBe('Autenticazione completata con successo');
     });
@@ -154,7 +141,6 @@ describe('auth-store', () => {
       await expect(
         useAuthStore.getState().verifyMFA({
           mfa_code: '000000',
-          pre_auth_token: 'pre_auth_123',
         })
       ).rejects.toThrow();
 
@@ -214,7 +200,7 @@ describe('auth-store', () => {
     it('logout pulisce store e imposta flash message', async () => {
       useAuthStore.setState({
         user: mockUser,
-        accessToken: 'access_123',
+        accessToken: 'cookie-session',
         isAuthenticated: true,
       });
       localStorage.setItem('ebartex_access_token', 'access_123');
@@ -232,7 +218,7 @@ describe('auth-store', () => {
     it('logout({ silent: true }) pulisce lo store senza flash di successo', async () => {
       useAuthStore.setState({
         user: mockUser,
-        accessToken: 'access_123',
+        accessToken: 'cookie-session',
         isAuthenticated: true,
       });
       localStorage.setItem('ebartex_access_token', 'access_123');
@@ -249,10 +235,27 @@ describe('auth-store', () => {
     });
   });
 
-  describe('preAuthToken persistence', () => {
-    it('il preAuthToken MFA NON viene persistito in localStorage (vive in sessionStorage)', async () => {
+  describe('session marker persistence', () => {
+    it('persiste esattamente uno stato vuoto, senza token o PII', () => {
       useAuthStore.setState({
-        preAuthToken: 'pre_auth_not_persisted',
+        user: mockUser,
+        accessToken: 'cookie-session',
+        isAuthenticated: true,
+        preAuthToken: 'cookie-session',
+        mfaRequired: true,
+        authError: 'non persistibile',
+      });
+
+      const raw = localStorage.getItem('ebartex-auth');
+      expect(raw).toBeTruthy();
+      expect(JSON.parse(raw!).state).toEqual({});
+      expect(raw).not.toContain(mockUser.email);
+      expect(raw).not.toContain('cookie-session');
+    });
+
+    it('il marker MFA non viene persistito in localStorage', async () => {
+      useAuthStore.setState({
+        preAuthToken: 'cookie-session',
         mfaRequired: true,
       });
 
@@ -262,8 +265,7 @@ describe('auth-store', () => {
       const raw = localStorage.getItem('ebartex-auth');
       expect(raw).toBeTruthy();
       const persisted = JSON.parse(raw!);
-      // Superficie ridotta: il flusso MFA tra reload passa da sessionStorage
-      // (lib/auth/mfa-session.ts), non dallo store persistito.
+      // Il token reale vive esclusivamente nel cookie HttpOnly del BFF.
       expect(persisted.state.preAuthToken).toBeUndefined();
       expect(persisted.state.mfaRequired).toBeUndefined();
     });
@@ -271,7 +273,7 @@ describe('auth-store', () => {
     it('non persiste l\'access token nello storage Zustand', () => {
       useAuthStore.setState({
         user: mockUser,
-        accessToken: 'access_non_persistito',
+        accessToken: 'cookie-session',
         isAuthenticated: true,
       });
 
@@ -312,7 +314,7 @@ describe('auth-store', () => {
     it('setFlashMessage pulisce solo il messaggio senza toccare autenticazione', () => {
       useAuthStore.setState({
         isAuthenticated: true,
-        accessToken: 'access_123',
+        accessToken: 'cookie-session',
         flashMessage: 'Login avvenuto con successo',
       });
 
@@ -321,13 +323,13 @@ describe('auth-store', () => {
       const state = useAuthStore.getState();
       expect(state.flashMessage).toBeNull();
       expect(state.isAuthenticated).toBe(true);
-      expect(state.accessToken).toBe('access_123');
+      expect(state.accessToken).toBe('cookie-session');
     });
 
     it('logout azzera authError/error e imposta flashMessage atomicamente con isAuthenticated', async () => {
       useAuthStore.setState({
         isAuthenticated: true,
-        accessToken: 'access_123',
+        accessToken: 'cookie-session',
         authError: 'Errore precedente',
         error: 'Altro errore',
       });
@@ -369,8 +371,7 @@ describe('auth-store', () => {
 
     it('verifyLoginCode con token diretti → autenticato, flash, utente caricato', async () => {
       vi.mocked(authApi.verifyLoginCode).mockResolvedValue({
-        access_token: 'access_code',
-        token_type: 'bearer',
+        authenticated: true,
       });
       vi.mocked(fetchMe).mockResolvedValue(mockUser);
 
@@ -379,7 +380,7 @@ describe('auth-store', () => {
       expect(result).toEqual({ mfaRequired: false });
       const state = useAuthStore.getState();
       expect(state.isAuthenticated).toBe(true);
-      expect(state.accessToken).toBe('access_code');
+      expect(state.accessToken).toBe('cookie-session');
       expect(state.user).toEqual(mockUser);
       expect(state.flashMessage).toBe('Login avvenuto con successo');
     });
@@ -387,15 +388,14 @@ describe('auth-store', () => {
     it('verifyLoginCode con MFA richiesta → preAuthToken e mfaRequired, non autenticato', async () => {
       vi.mocked(authApi.verifyLoginCode).mockResolvedValue({
         mfa_required: true,
-        pre_auth_token: 'pre_code_123',
       });
 
       const result = await useAuthStore.getState().verifyLoginCode('test@example.com', '123456');
 
-      expect(result).toEqual({ mfaRequired: true, preAuthToken: 'pre_code_123' });
+      expect(result).toEqual({ mfaRequired: true });
       const state = useAuthStore.getState();
       expect(state.mfaRequired).toBe(true);
-      expect(state.preAuthToken).toBe('pre_code_123');
+      expect(state.preAuthToken).toBe('cookie-session');
       expect(state.isAuthenticated).toBe(false);
       expect(state.accessToken).toBeNull();
     });

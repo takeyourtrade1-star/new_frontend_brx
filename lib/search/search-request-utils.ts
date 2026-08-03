@@ -167,7 +167,14 @@ export async function fetchMeiliWithTimeout(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const headers = new Headers(init.headers);
+    headers.set('Accept-Encoding', 'identity');
+    return await fetch(url, {
+      ...init,
+      headers,
+      signal: controller.signal,
+      redirect: 'error',
+    });
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
       throw new MeiliFetchError('Meilisearch timeout', 504);

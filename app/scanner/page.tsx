@@ -623,7 +623,7 @@ function ScannerPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const showDebug =
-    process.env.NODE_ENV !== 'production' || searchParams?.get('debug') === '1';
+    process.env.NODE_ENV !== 'production' && searchParams?.get('debug') === '1';
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSlowRef = useRef(false);
   const [torchOn, setTorchOn] = useState(false);

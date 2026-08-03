@@ -193,7 +193,6 @@ export type RegistrationResult =
   | { status: 'legacy_created' };
 
 export interface VerifyMFAData {
-  pre_auth_token: string;
   mfa_code: string;
   remember_device?: boolean;
 }
@@ -203,12 +202,18 @@ export interface MFAEnableResponse {
   secret: string;
 }
 
+export interface MFAEnableData {
+  password: string;
+  current_mfa_code?: string;
+}
+
 export interface MFAVerifySetupData {
   mfa_code: string;
 }
 
 export interface MFADisableData {
   password: string;
+  current_mfa_code: string;
 }
 
 export interface TokenResponse {
@@ -219,7 +224,6 @@ export interface TokenResponse {
 }
 
 export interface PreAuthTokenResponse {
-  pre_auth_token: string;
   mfa_required: boolean;
 }
 
@@ -277,11 +281,4 @@ export interface Address {
 
 export type PasswordResetRequestPayload = { email: string };
 export type PasswordResetVerifyCodePayload = { email: string; code: string };
-export type PasswordResetConfirmInitPayload = { reset_token: string; new_password: string };
-export type PasswordResetConfirmFinalPayload = { confirm_token: string; code: string };
-export type PasswordResetTokenResponse = {
-  token: string;
-  token_type: "password_reset" | "password_reset_confirm";
-  expires_in_seconds: number;
-};
 export type MessageResponse = { message: string };

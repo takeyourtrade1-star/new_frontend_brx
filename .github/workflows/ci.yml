@@ -11,22 +11,31 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # Gate bloccanti: devono restare verdi per poter fare merge.
   quality:
     name: Lint · Typecheck · i18n keys
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 20
+          node-version: 24.18.1
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
 
       - name: ESLint
         run: npm run lint
@@ -37,28 +46,56 @@ jobs:
       - name: i18n — chiavi allineate tra le 6 lingue
         run: npm run i18n:keys
 
-  # Test unitari. Attualmente 2 test di sicurezza (bff-security) falliscono per
-  # una questione di policy auth preesistente da triagare: NON bloccano il merge
-  # finché non viene decisa la semantica (GET aste pubbliche vs 401 fail-closed).
-  # Rimuovere `continue-on-error` una volta risolti.
+  # I test di sicurezza sono un gate bloccante: un fallimento impedisce il merge.
   test:
     name: Unit test (vitest)
-    runs-on: ubuntu-latest
-    continue-on-error: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 20
+          node-version: 24.18.1
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run vitest
-        run: npx vitest run
+        run: npm test -- --run
+
+  # Blocking production compilation gate, independent from Amplify and from
+  # the intentionally non-blocking bundle-budget report below.
+  build:
+    name: Production build (blocking)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.1
+          cache: npm
+
+      - name: Assert exact Node runtime
+        run: test "$(node --version)" = "v24.18.1"
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install application-owned WASM assets
+        run: node scripts/copy-ort-wasm.mjs
+
+      - name: Build
+        run: npm run build
 
   # Report del budget di bundle. NON bloccante (continue-on-error): mostra nei log
   # della PR i chunk/route/CSS più grandi e gli eventuali sforamenti delle soglie,
@@ -66,19 +103,25 @@ jobs:
   # quando le soglie sono stabili e condivise.
   bundle-budget:
     name: Bundle budget (report, non bloccante)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 20
+          node-version: 24.18.1
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Install application-owned WASM assets
+        run: node scripts/copy-ort-wasm.mjs
 
       - name: Build + report budget bundle
         run: npm run build:budget

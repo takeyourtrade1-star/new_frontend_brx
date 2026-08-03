@@ -3,7 +3,7 @@
  *
  * Routing:
  *  - browser → same-origin proxy /api/marketplace (avoids CORS on mobile)
- *  - server  → direct NEXT_PUBLIC_MARKETPLACE_API_URL/api/v1
+ *  - browser → same-origin proxy /api/marketplace
  *
  * Auth browser: cookie HttpOnly same-origin, inoltrato dal BFF.
  */
@@ -74,9 +74,7 @@ export interface MarketplaceSyncConfig {
 }
 
 function getMarketplaceBaseUrl(): string {
-  if (typeof window !== 'undefined') return '/api/marketplace';
-  const base = process.env.NEXT_PUBLIC_MARKETPLACE_API_URL || 'https://marketplace-api.ebartex.com';
-  return `${base.replace(/\/+$/, '')}/api/v1`;
+  return '/api/marketplace';
 }
 
 const MARKETPLACE_FETCH_TIMEOUT_MS = 10000;
@@ -101,6 +99,7 @@ async function marketplaceFetch<T>(
   try {
     res = await fetch(`${getMarketplaceBaseUrl()}${path}`, {
       ...options,
+      credentials: typeof window !== 'undefined' ? 'same-origin' : options.credentials,
       headers,
       signal: controller.signal,
     });
@@ -114,8 +113,8 @@ async function marketplaceFetch<T>(
   }
 
   if (res.status === 401 && !retried && typeof window !== 'undefined') {
-    const newToken = await tokenManager.ensureFreshToken();
-    if (newToken) {
+    const refreshed = await tokenManager.ensureFreshSession();
+    if (refreshed) {
       return marketplaceFetch<T>(path, options, true);
     }
   }
@@ -332,12 +331,6 @@ export type OrderStatus =
   | 'cancelled'
   | 'mock';
 
-export interface PurchaseRequest {
-  listing_id: string;
-  quantity: number;
-  idempotency_key: string;
-}
-
 export interface OrderResponse {
   id: string;
   buyer_user_id: string;
@@ -360,13 +353,6 @@ export interface OrderListResponse {
   total: number;
   page: number;
   page_size: number;
-}
-
-export async function purchaseListing(body: PurchaseRequest): Promise<OrderResponse> {
-  return marketplaceFetch<OrderResponse>('/orders', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
 }
 
 export async function getMyOrders(params?: {

@@ -2,7 +2,7 @@
  * In-app notifications API client.
  *
  * Pattern mirrors ``orders-client.ts``: same-origin proxy to ``/api/notifications/*``,
- * Bearer auth from local storage, transparent 401 refresh.
+ * Cookie HttpOnly same-origin con un solo refresh trasparente su 401.
  */
 
 import { tokenManager } from '@/lib/api/refresh-token';
@@ -11,17 +11,7 @@ import type {
   NotificationUnreadCountResponse,
 } from '@/types/notification';
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('ebartex_access_token');
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-type NotificationRequestMode = 'default' | 'after-refresh' | 'cookie-only';
+type NotificationRequestMode = 'default' | 'after-refresh';
 
 async function request<T>(
   path: string,
@@ -29,14 +19,12 @@ async function request<T>(
   mode: NotificationRequestMode = 'default',
 ): Promise<T> {
   const url = `/api/notifications${path}`;
-  const cookieOnly = mode === 'cookie-only';
   const res = await fetch(url, {
     ...options,
     credentials: 'include',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      ...(cookieOnly ? {} : authHeaders()),
       ...(options.headers as Record<string, string> | undefined),
     },
   });
@@ -46,14 +34,10 @@ async function request<T>(
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined') {
       if (mode === 'default') {
-        const newToken = await tokenManager.ensureFreshToken();
-        if (newToken) {
+        const refreshed = await tokenManager.ensureFreshSession();
+        if (refreshed) {
           return request<T>(path, options, 'after-refresh');
         }
-        return request<T>(path, options, 'cookie-only');
-      }
-      if (mode === 'after-refresh') {
-        return request<T>(path, options, 'cookie-only');
       }
     }
     const msg =

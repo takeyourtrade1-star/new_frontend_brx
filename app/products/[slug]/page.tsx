@@ -5,11 +5,13 @@ import { EbartexBoutiquePage } from '@/components/feature/product/EbartexBoutiqu
 import { MissingPage } from '@/components/shared/MissingPage';
 import { Suspense, cache, type ComponentProps } from 'react';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import Link from 'next/link';
 import { getCdnImageUrl, SITE_URL } from '@/lib/config';
 import { getCardImageUrl } from '@/lib/assets';
 import { getCardBySlug } from '@/lib/mock-cards';
-import { getCardDocumentById, isIndexProductId, type CardDocument } from '@/lib/product-detail';
+import { isIndexProductId, type CardDocument } from '@/lib/product-detail';
+import { getCardDocumentById } from '@/lib/product-detail-server';
 import { CATEGORY_SLUGS, type ProductCategorySlug } from '@/lib/product-categories';
 
 type ProductPageProps = {
@@ -53,7 +55,15 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 }
 
 /** JSON-LD BreadcrumbList per la rich result di Google sulla pagina prodotto. */
-function ProductBreadcrumbJsonLd({ card, slug }: { card: CardDocument; slug: string }) {
+function ProductBreadcrumbJsonLd({
+  card,
+  slug,
+  nonce,
+}: {
+  card: CardDocument;
+  slug: string;
+  nonce?: string;
+}) {
   const data = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -65,7 +75,13 @@ function ProductBreadcrumbJsonLd({ card, slug }: { card: CardDocument; slug: str
   };
   // Escape di `<` per non poter chiudere il tag <script> con dati dal catalogo.
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: json }} />;
+  return (
+    <script
+      nonce={nonce}
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: json }}
+    />
+  );
 }
 
 function ProductDetailWithSuspense(
@@ -88,6 +104,7 @@ function ProductDetailWithSuspense(
 export default async function ProductPage({ params }: ProductPageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
+  const nonce = (await headers()).get('x-nonce') || undefined;
 
   // Ebartex Boutique: pagina dedicata con carousel, categorie, stampa 3D
   if (slug === 'boutique') {
@@ -125,7 +142,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
     return (
       <>
-        <ProductBreadcrumbJsonLd card={cardData} slug={cardId} />
+        <ProductBreadcrumbJsonLd card={cardData} slug={cardId} nonce={nonce} />
         <ProductDetailWithSuspense card={cardData} />
       </>
     );

@@ -28,7 +28,6 @@ import {
 
   AuthSubmitButton,
 
-  AUTH_LINK_CLASS,
 
   AUTH_ERROR_CLASS,
 
@@ -36,7 +35,6 @@ import {
 
   AUTH_SPLIT_FORM_CLASS,
 
-  AUTH_SPLIT_MUTED_CLASS,
 
   AUTH_SPLIT_VIEW_FOOTER_CLASS,
 
@@ -49,8 +47,6 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useVerifyMFA } from '@/lib/hooks/use-auth';
 
 import { useTranslation } from '@/lib/i18n/useTranslation';
-
-import { readMfaPreAuthToken } from '@/lib/auth/mfa-session';
 
 import { cn } from '@/lib/utils';
 
@@ -96,8 +92,6 @@ export default function VerifyMFAPage() {
 
 
 
-  const preAuthToken = useAuthStore((s) => s.preAuthToken);
-
   const storeError = useAuthStore((s) => s.error);
 
   const isLoading = useAuthStore((s) => s.isLoading);
@@ -105,8 +99,6 @@ export default function VerifyMFAPage() {
   const clearError = useAuthStore((s) => s.clearError);
 
 
-
-  const [clientReady, setClientReady] = useState(false);
 
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -150,87 +142,9 @@ export default function VerifyMFAPage() {
 
   useEffect(() => {
 
-    const fromSession = readMfaPreAuthToken();
-
-    if (fromSession) {
-
-      useAuthStore.setState({ preAuthToken: fromSession, mfaRequired: true });
-
-    }
-
-    setClientReady(true);
-
-  }, []);
-
-
-
-  useEffect(() => {
-
     if (storeError) setLocalError(storeError);
 
   }, [storeError]);
-
-
-
-  const effectiveToken = preAuthToken || (clientReady ? readMfaPreAuthToken() : null);
-
-
-
-  if (!clientReady) {
-
-    return (
-
-      <AuthSplitViewShell centerForm>
-
-        <div className="flex items-center justify-center py-16">
-
-          <div className="h-9 w-9 animate-spin rounded-full border-2 border-black/10 border-t-global-bg-start" />
-
-        </div>
-
-      </AuthSplitViewShell>
-
-    );
-
-  }
-
-
-
-  if (!effectiveToken && process.env.NODE_ENV !== 'development') {
-
-    return (
-
-      <AuthSplitViewShell centerForm>
-
-        <div className="space-y-3.5 text-left">
-
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-
-            <AlertCircle className="h-6 w-6 text-red-500" />
-
-          </div>
-
-          <div className="space-y-1">
-
-            <h1 className="text-[16px] font-semibold text-[#1d1d1f]">{t('mfa.invalidSession')}</h1>
-
-            <p className={AUTH_SPLIT_MUTED_CLASS}>{t('mfa.sessionExpired')}</p>
-
-          </div>
-
-          <Link href="/login" className={`inline-flex items-center gap-1.5 text-[13px] ${AUTH_LINK_CLASS}`}>
-
-            {t('mfa.backToLogin')}
-
-          </Link>
-
-        </div>
-
-      </AuthSplitViewShell>
-
-    );
-
-  }
 
 
 
@@ -242,23 +156,9 @@ export default function VerifyMFAPage() {
 
 
 
-    const tokenToSend = effectiveToken || preAuthToken;
-
-    if (!tokenToSend) {
-
-      setLocalError(t('mfa.tokenMissing'));
-
-      return;
-
-    }
-
-
-
     try {
 
       await verifyMFAMutation.mutateAsync({
-
-        pre_auth_token: tokenToSend,
 
         mfa_code: data.mfa_code,
 
@@ -409,4 +309,3 @@ export default function VerifyMFAPage() {
   );
 
 }
-

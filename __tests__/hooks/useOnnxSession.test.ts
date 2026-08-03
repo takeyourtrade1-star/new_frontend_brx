@@ -34,7 +34,13 @@ beforeEach(() => {
   vi.stubGlobal(
     'fetch',
     vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ edge: { enabled: true } }), {
+      new Response(JSON.stringify({
+        edge: {
+          enabled: true,
+          model_bytes: 200_000,
+          model_sha256: 'a'.repeat(64),
+        },
+      }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -52,6 +58,10 @@ describe('useOnnxSession', () => {
     expect(result.current.modelStatus).toBe('loading');
 
     await waitFor(() => expect(result.current.modelStatus).toBe('failed'));
+    expect(fetch).toHaveBeenCalledWith(
+      '/brx-match/capabilities',
+      expect.objectContaining({ headers: { 'X-Scanner-Request': '1' } }),
+    );
     expect(result.current.modelError).toBe('download boom');
     expect(result.current.isTurboReady()).toBe(false);
   });

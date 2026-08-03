@@ -1,14 +1,9 @@
-import { ASSETS, getCdnImageUrl } from '@/lib/config';
+import { getCdnImageUrl } from '@/lib/config';
+import { safePublicImageUrl } from '@/lib/security/catalog-public-data';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 
 export function buildImageUrl(raw: string | null | undefined): string | null {
-  if (raw == null || raw === '') return null;
-  const trimmed = String(raw).trim();
-  if (trimmed.startsWith('http')) return trimmed;
-  const path = trimmed.replace(/^\/img\//, '').replace(/^img\//, '');
-  if (!path) return null;
-  const withSlash = path.startsWith('/') ? path : `/${path}`;
-  return ASSETS.cdnUrl ? `${ASSETS.cdnUrl}${withSlash}` : withSlash;
+  return safePublicImageUrl(raw, 'card');
 }
 
 export const DEFAULT_IMAGE = getCdnImageUrl('Logo%20Principale%20EBARTEX.png');

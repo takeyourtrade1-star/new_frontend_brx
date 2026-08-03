@@ -68,12 +68,6 @@ const COMPRESSION_TARGET = {
 const MAX_INIT_FINALIZE_RETRIES = 3;
 const INIT_FINALIZE_BACKOFF_MS = [400, 1200, 3000];
 
-function authHeaders(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  const token = window.localStorage.getItem('ebartex_access_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function jsonRequest<T>(
   path: string,
   init: RequestInit = {},
@@ -81,18 +75,18 @@ async function jsonRequest<T>(
 ): Promise<T> {
   const res = await fetch(path, {
     ...init,
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      ...authHeaders(),
       ...(init.headers as Record<string, string> | undefined),
     },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const newToken = await tokenManager.ensureFreshToken();
-      if (newToken) {
+      const refreshed = await tokenManager.ensureFreshSession();
+      if (refreshed) {
         return jsonRequest<T>(path, init, true);
       }
     }

@@ -20,10 +20,19 @@ describe('createIdempotencyKey', () => {
     expect(createIdempotencyKey()).toBe('uuid-test-1');
   });
 
-  it('falls back to generated key when crypto is unavailable', () => {
+  it('fails closed when Web Crypto is unavailable', () => {
     vi.stubGlobal('crypto', undefined);
-    const key = createIdempotencyKey();
-    expect(key.startsWith('bid-')).toBe(true);
+    expect(() => createIdempotencyKey()).toThrow(/Secure randomness is unavailable/);
+  });
+
+  it('uses getRandomValues as a cryptographic compatibility fallback', () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues: (bytes: Uint8Array) => {
+        bytes.fill(0xab);
+        return bytes;
+      },
+    });
+    expect(createIdempotencyKey()).toBe('abababab-abab-4bab-abab-abababababab');
   });
 });
 

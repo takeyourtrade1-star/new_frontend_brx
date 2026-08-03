@@ -1,20 +1,14 @@
 /**
  * Sync API Client - BRX Sync microservice
- * Le richieste vanno direttamente al server Sync (NEXT_PUBLIC_SYNC_API_URL + /api/v1).
- * sync.ebartex.com deve essere raggiungibile: DNS + reverse proxy su 80/443 → :8002 (vedi SYNC_DOMAIN_SETUP.md).
+ * Le richieste browser passano esclusivamente dal BFF same-origin /api/sync.
  * Su 401 (token scaduto) tenta un refresh automatico e ritenta la richiesta una volta.
  */
 
 import { tokenManager } from '@/lib/api/refresh-token';
 
-/** Base URL Sync:
- * - browser: usa proxy same-origin /api/sync (evita CORS/rete mobile instabile)
- * - server: usa URL diretto del servizio Sync + /api/v1
- */
+/** Base URL same-origin; le origini dei servizi non entrano nel bundle client. */
 function getSyncBaseUrl(): string {
-  if (typeof window !== 'undefined') return '';
-  const baseUrl = process.env.NEXT_PUBLIC_SYNC_API_URL || 'https://sync.ebartex.com';
-  return `${baseUrl.replace(/\/+$/, '')}/api/v1`;
+  return '';
 }
 
 export type SyncStatus = 'idle' | 'initial_sync' | 'active' | 'error';
@@ -154,13 +148,7 @@ async function request<T>(
   }
   const base = getSyncBaseUrl();
   const isBrowser = typeof window !== 'undefined';
-  // Browser: /api/v1/sync/... -> /api/sync/... (proxy interno Next.js)
-  // Server:  /api/v1/sync/... -> /sync/... (base già contiene /api/v1)
-  const normalizedPath = isBrowser
-    ? path.replace(/^\/api\/v1\/sync/, '/api/sync')
-    : path.startsWith('/api/v1')
-      ? path.replace(/^\/api\/v1/, '')
-      : path;
+  const normalizedPath = path.replace(/^\/api\/v1\/sync/, '/api/sync');
   const url = path.startsWith('http')
     ? path
     : `${base}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
@@ -175,7 +163,6 @@ async function request<T>(
     credentials: isBrowser ? 'same-origin' : options.credentials,
     signal: controller.signal,
     headers: {
-      ...(!isBrowser ? { Authorization: `Bearer ${t}` } : {}),
       'Content-Type': 'application/json',
       Accept: 'application/json',
       ...options.headers,
@@ -197,9 +184,9 @@ async function request<T>(
   if (!res.ok) {
     // Su 401: refresh centralizzato — tokenManager deduplicates concurrent calls
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const newToken = await tokenManager.ensureFreshToken();
-      if (newToken) {
-        return request<T>(path, newToken, options, true);
+      const refreshed = await tokenManager.ensureFreshSession();
+      if (refreshed) {
+        return request<T>(path, t, options, true);
       }
     }
     const err = new Error((data.detail as string) || data.message || res.statusText) as Error & { status?: number; data?: unknown };
@@ -242,21 +229,7 @@ export const syncClient = {
     return request<WebhookUrlResponse>(`/api/v1/sync/webhook-url/${userId}`, token, { method: 'GET' });
   },
 
-  /**
-   * POST /api/v1/sync/setup-test-user (legacy alias)
-   * POST /api/v1/sync/link-cardtrader (preferred)
-   * Body: { user_id, cardtrader_token } — user_id must match JWT sub.
-   */
-  setupTestUser(
-    body: { user_id: string; cardtrader_token: string },
-    token: string
-  ): Promise<LinkCardtraderResponse> {
-    return request(`/api/v1/sync/setup-test-user`, token, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-  },
-
+  /** Body user_id must match the authoritative JWT subject in the Sync service. */
   linkCardtrader(
     body: { user_id: string; cardtrader_token: string },
     token: string

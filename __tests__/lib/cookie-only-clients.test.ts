@@ -24,7 +24,6 @@ describe('client BFF con cookie HttpOnly', () => {
   });
 
   afterEach(() => {
-    authApi.clearToken();
     localStorage.clear();
     vi.unstubAllGlobals();
   });
@@ -60,14 +59,9 @@ describe('client BFF con cookie HttpOnly', () => {
     );
   });
 
-  it('auth conserva l\'access token solo in memoria e rimuove refresh token legacy', () => {
-    localStorage.removeItem('ebartex_access_token');
-    localStorage.setItem('ebartex_refresh_token', 'refresh-preesistente');
-
-    authApi.setToken('access-in-memoria', 'refresh-legacy');
-
-    expect(authApi.getToken()).toBe('access-in-memoria');
-    expect(localStorage.getItem('ebartex_access_token')).toBeNull();
-    expect(localStorage.getItem('ebartex_refresh_token')).toBeNull();
+  it('auth client non espone API JavaScript per leggere o impostare token', () => {
+    expect('setToken' in authApi).toBe(false);
+    expect('getToken' in authApi).toBe(false);
+    expect('clearToken' in authApi).toBe(false);
   });
 });

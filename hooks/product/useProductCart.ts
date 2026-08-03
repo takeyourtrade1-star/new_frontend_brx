@@ -122,10 +122,10 @@ export function useProductCart({
 
   const handleProposeTrade = useCallback(
     (item: ListingItem) => {
-      if (!card) return;
+      if (!card || !userId) return;
       const rowImageSrc = cardImages[currentImageIndex] || effectiveImageSrc;
       const blueprintId = blueprintIdForAuction ?? parseBlueprintId(card.cardtrader_id) ?? 0;
-      setTradeProposalContext({
+      setTradeProposalContext(userId, {
         seller: {
           name: item.seller_display_name,
           isPro: item.seller_account_type === 'business',
@@ -149,7 +149,7 @@ export function useProductCart({
       });
       router.push('/scambi/proponi');
     },
-    [blueprintIdForAuction, card, cardImages, currentImageIndex, effectiveImageSrc, router],
+    [blueprintIdForAuction, card, cardImages, currentImageIndex, effectiveImageSrc, router, userId],
   );
 
   // Flusso "compra ora" (modale demo)

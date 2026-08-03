@@ -1,22 +1,17 @@
-/** Chiave sessionStorage per il token pre-auth MFA (breve durata). Non è in localStorage per ridurre la superficie. */
+/**
+ * Legacy cleanup shim. MFA pre-auth credentials are now stored exclusively in
+ * an HttpOnly host-only cookie by the BFF and are never readable by JavaScript.
+ */
 export const MFA_PRE_AUTH_SESSION_KEY = 'ebartex_pre_auth_token';
 
-export function saveMfaPreAuthToken(token: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    sessionStorage.setItem(MFA_PRE_AUTH_SESSION_KEY, token);
-  } catch {
-    // storage pieno o modalità privata
-  }
+/** @deprecated The BFF owns the MFA session. */
+export function saveMfaPreAuthToken(_token: string): void {
+  clearMfaPreAuthToken();
 }
 
-export function readMfaPreAuthToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return sessionStorage.getItem(MFA_PRE_AUTH_SESSION_KEY);
-  } catch {
-    return null;
-  }
+/** @deprecated HttpOnly credentials are intentionally not readable here. */
+export function readMfaPreAuthToken(): null {
+  return null;
 }
 
 export function clearMfaPreAuthToken(): void {
@@ -24,6 +19,6 @@ export function clearMfaPreAuthToken(): void {
   try {
     sessionStorage.removeItem(MFA_PRE_AUTH_SESSION_KEY);
   } catch {
-    // ignore
+    // Ignore unavailable browser storage.
   }
 }

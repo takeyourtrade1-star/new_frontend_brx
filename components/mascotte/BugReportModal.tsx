@@ -24,6 +24,8 @@ export interface BugReportModalProps {
   zIndex: number;
   t: (key: MessageKey, vars?: Record<string, string | number>) => string;
   submitted: boolean;
+  isSubmitting: boolean;
+  submitError: string | null;
   bugForm: BugFormState;
   setBugForm: Dispatch<SetStateAction<BugFormState>>;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
@@ -45,6 +47,8 @@ export function BugReportModal({
   zIndex,
   t,
   submitted,
+  isSubmitting,
+  submitError,
   bugForm,
   setBugForm,
   onSubmit,
@@ -270,9 +274,17 @@ export function BugReportModal({
               </>
             )}
             <div className="flex gap-3">
+              {submitError && (
+                <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {submitError}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-3">
               <button
                 type="button"
                 onClick={onCancel}
+                disabled={isSubmitting}
                 className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
               >
                 {t('common.cancel')}
@@ -283,7 +295,8 @@ export function BugReportModal({
                   !bugForm.message.trim() ||
                   !bugForm.name.trim() ||
                   !bugForm.email.trim() ||
-                  !bugForm.subject.trim()
+                  !bugForm.subject.trim() ||
+                  isSubmitting
                 }
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
               >

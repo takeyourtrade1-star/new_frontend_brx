@@ -32,12 +32,6 @@ export interface AttachListingPhotosResult {
   }>;
 }
 
-function authHeaders(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  const token = window.localStorage.getItem('ebartex_access_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 export interface ListingPhotoSummary {
   id: number;
   cdn_url: string;
@@ -60,13 +54,14 @@ function normalizeListingPhotos(
 
 async function fetchListingPhotosFromApi(listingId: string): Promise<ListingPhotoSummary[]> {
   const res = await fetch(`/api/auctions/photos/by-listing/${encodeURIComponent(listingId)}`, {
-    headers: { Accept: 'application/json', ...authHeaders() },
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined') {
-      const newToken = await tokenManager.ensureFreshToken();
-      if (newToken) {
+      const refreshed = await tokenManager.ensureFreshSession();
+      if (refreshed) {
         return fetchListingPhotosFromApi(listingId);
       }
     }
@@ -97,7 +92,8 @@ export async function prefetchListingCoverPhotos(listingIds: string[]): Promise<
 
   const qs = encodeURIComponent(missing.slice(0, 40).join(','));
   const res = await fetch(`/api/auctions/photos/by-listings?ids=${qs}`, {
-    headers: { Accept: 'application/json', ...authHeaders() },
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return;
@@ -136,22 +132,23 @@ export async function getListingPhotos(listingId: string): Promise<ListingPhotoS
 export async function attachListingPhotos(
   listingId: string,
   photoIds: number[],
+  retried = false,
 ): Promise<AttachListingPhotosResult> {
   const res = await fetch('/api/auctions/photos/attach-listing', {
     method: 'POST',
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      ...authHeaders(),
     },
     body: JSON.stringify({ listing_id: listingId, photo_ids: photoIds }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401 && typeof window !== 'undefined') {
-      const newToken = await tokenManager.ensureFreshToken();
-      if (newToken) {
-        return attachListingPhotos(listingId, photoIds);
+    if (res.status === 401 && !retried && typeof window !== 'undefined') {
+      const refreshed = await tokenManager.ensureFreshSession();
+      if (refreshed) {
+        return attachListingPhotos(listingId, photoIds, true);
       }
     }
     const message =

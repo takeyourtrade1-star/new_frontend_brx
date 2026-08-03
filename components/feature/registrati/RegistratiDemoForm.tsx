@@ -23,6 +23,7 @@ import {
   buildVerificationPath,
   savePendingRegistration,
 } from '@/lib/auth/registration-verification';
+import { sanitizeInternalReturnPath } from '@/lib/security/internal-return-path';
 
 
 const defaultValues: RegisterDemoValues = {
@@ -63,10 +64,7 @@ export function RegistratiDemoForm() {
    * redirect. Fallback alla home se invalido.
    */
   const safeReturnTo = useCallback((): string => {
-    if (!rawReturnTo) return '/';
-    if (typeof rawReturnTo !== 'string') return '/';
-    if (!rawReturnTo.startsWith('/') || rawReturnTo.startsWith('//')) return '/';
-    return rawReturnTo;
+    return sanitizeInternalReturnPath(rawReturnTo) ?? '/';
   }, [rawReturnTo]);
 
   const {

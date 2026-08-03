@@ -13,6 +13,8 @@ import webpush from 'web-push';
 import { z } from 'zod';
 import { noStoreHeaders } from '@/app/api/_lib/proxy-response';
 import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import { enforceSameOrigin } from '@/app/api/_lib/request-security';
+import { readTextBodyWithLimit } from '@/app/api/_lib/request-body';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -33,6 +35,17 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Diagnostica locale soltanto: in produzione l'endpoint sarebbe sia un SSRF
+  // cieco sia un modo economico per tenere occupate funzioni serverless.
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { detail: 'Not found' },
+      { status: 404, headers: noStoreHeaders() },
+    );
+  }
+  const originViolation = enforceSameOrigin(request);
+  if (originViolation) return originViolation;
+
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT || 'mailto:info@ebartex.com';
@@ -43,10 +56,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const rl = checkRateLimit(request, { scope: 'push-test', limit: 5, windowMs: 60_000 });
+  const rl = await checkRateLimit(request, { scope: 'push-test', limit: 5, windowMs: 60_000 });
   if (!rl.allowed) return rateLimitExceededResponse(rl);
 
-  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+  const bodyResult = await readTextBodyWithLimit(request, 16 * 1_024);
+  if (bodyResult.tooLarge) {
+    return NextResponse.json(
+      { detail: 'Payload troppo grande.' },
+      { status: 413, headers: noStoreHeaders() },
+    );
+  }
+  let rawBody: unknown;
+  try {
+    rawBody = JSON.parse(bodyResult.body || 'null') as unknown;
+  } catch {
+    rawBody = null;
+  }
+  const parsed = bodySchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
       { detail: 'Body non valido: attesi { subscription, delaySeconds? }.' },

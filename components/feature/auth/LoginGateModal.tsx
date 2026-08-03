@@ -25,6 +25,7 @@ import {
 } from '@/lib/hooks/use-auth';
 import { parseAuthError } from '@/lib/api/auth-error';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { sanitizeInternalReturnPath } from '@/lib/security/internal-return-path';
 import { AUTH_INPUT_CLASS, AUTH_LINK_CLASS, AUTH_PRIMARY_BUTTON_CLASS } from '@/components/auth/ui/auth-styles';
 
 type Step = 'email' | 'password' | 'code';
@@ -71,9 +72,12 @@ export function LoginGateModal({
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
   const resolveReturnTo = useCallback((): string => {
-    if (returnTo) return returnTo;
+    const explicit = sanitizeInternalReturnPath(returnTo);
+    if (explicit) return explicit;
     if (typeof window === 'undefined') return '/';
-    return window.location.pathname + window.location.search;
+    return sanitizeInternalReturnPath(
+      window.location.pathname + window.location.search,
+    ) ?? '/';
   }, [returnTo]);
 
   const resetState = useCallback(() => {

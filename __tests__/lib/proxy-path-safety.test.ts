@@ -29,7 +29,7 @@ describe('/api/marketplace path e rate limit', () => {
     process.env.MARKETPLACE_API_URL = 'https://marketplace-api.test';
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
+      vi.fn().mockImplementation(async () =>
         new Response(JSON.stringify([]), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -52,12 +52,12 @@ describe('/api/marketplace path e rate limit', () => {
   it('limita anche il catalogo pubblico', async () => {
     const { GET } = await import('@/app/api/marketplace/[...path]/route');
     const context = {
-      params: Promise.resolve({ path: ['listings', 'public', '123'] }),
+      params: Promise.resolve({ path: ['listings', 'public', 'by-blueprint', '123'] }),
     };
 
     for (let requestNumber = 0; requestNumber < 60; requestNumber += 1) {
       const request = new NextRequest(
-        'http://localhost:3000/api/marketplace/listings/public/123',
+        'http://localhost:3000/api/marketplace/listings/public/by-blueprint/123',
         { headers: { 'x-forwarded-for': '198.51.100.77' } },
       );
       const response = await GET(request, context);
@@ -65,7 +65,7 @@ describe('/api/marketplace path e rate limit', () => {
     }
 
     const blockedRequest = new NextRequest(
-      'http://localhost:3000/api/marketplace/listings/public/123',
+      'http://localhost:3000/api/marketplace/listings/public/by-blueprint/123',
       { headers: { 'x-forwarded-for': '198.51.100.77' } },
     );
     const blockedResponse = await GET(blockedRequest, context);

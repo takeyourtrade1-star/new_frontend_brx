@@ -8,6 +8,8 @@ import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { disputesApi } from '@/lib/api/disputes-client';
 import type { DisputeMessageAPI } from '@/types/dispute';
+import { publicAuctionWsOrigin } from '@/lib/ws/public-auction-ws-origin';
+import { isValidDisputeWsTicket, parseDisputeWsFrame } from '@/lib/ws/dispute-ws';
 import {
   useDisputeDetail,
   useDisputeMessages,
@@ -17,13 +19,7 @@ import {
 } from '@/lib/hooks/use-disputes';
 
 function backendWsBase(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_AUCTION_API_URL ?? '';
-  if (fromEnv) {
-    return fromEnv.replace(/^http/i, 'ws').replace(/\/+$/, '');
-  }
-  if (typeof window === 'undefined') return '';
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${proto}://${window.location.host}`;
+  return publicAuctionWsOrigin();
 }
 
 const RECONNECT_DELAY_MS = 3_000;
@@ -53,23 +49,22 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
       const ticketRes = await disputesApi.createWsTicket(disputeId);
       if (!mountedRef.current) return;
       const ticket = ticketRes.data.ticket;
-      const wsUrl = `${backendWsBase()}/disputes/ws?ticket=${encodeURIComponent(ticket)}`;
-      const ws = new WebSocket(wsUrl);
+      if (!isValidDisputeWsTicket(ticket)) return;
+      const wsBase = backendWsBase();
+      if (!wsBase) return;
+      const wsUrl = `${wsBase}/disputes/ws`;
+      // Keep the short-lived capability out of URLs, access logs and telemetry.
+      const ws = new WebSocket(wsUrl, [`brx-ticket.${ticket}`]);
       socketRef.current = ws;
 
       ws.onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data as string) as { type: string; data?: DisputeMessageAPI };
-          if (payload.type === 'message' && payload.data) {
-            setWsMessages((prev) => {
-              // Deduplicate by id.
-              if (prev.some((m) => m.id === payload.data!.id)) return prev;
-              return [...prev, payload.data!];
-            });
-          }
-        } catch {
-          // Ignore malformed frames.
-        }
+        const message = parseDisputeWsFrame(event.data, disputeId);
+        if (!message) return;
+        setWsMessages((prev) => {
+          // Deduplicate by id.
+          if (prev.some((item) => item.id === message.id)) return prev;
+          return [...prev, message];
+        });
       };
 
       ws.onerror = () => {

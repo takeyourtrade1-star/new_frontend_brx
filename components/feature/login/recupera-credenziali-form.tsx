@@ -50,8 +50,7 @@ export function RecuperaCredenzialiForm() {
   useEffect(() => {
     if (step === 'completed') {
       const timer = setTimeout(() => {
-        resetFlow();
-        router.push('/login');
+        void resetFlow().finally(() => router.push('/login'));
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -132,8 +131,7 @@ export function RecuperaCredenzialiForm() {
         </div>
         <button
           onClick={() => {
-            resetFlow();
-            router.push('/login');
+            void resetFlow().finally(() => router.push('/login'));
           }}
           className={`${AUTH_SPLIT_BUTTON_CLASS} w-auto self-start px-6`}
         >
@@ -347,11 +345,16 @@ export function RecuperaCredenzialiForm() {
         <form onSubmit={otp2Form.handleSubmit(onSubmitOtp2)} className={AUTH_SPLIT_FORM_CLASS}>
           <OtpSixBoxes
             value={otp2Form.watch('code')}
-            onChange={(v) => otp2Form.setValue('code', v, { shouldValidate: true })}
+            onChange={(v) => {
+              clearError();
+              otp2Form.setValue('code', v, { shouldValidate: true });
+            }}
             disabled={isLoading || isExpired}
             error={otp2Form.formState.errors.code?.message ? translateZodMessage(otp2Form.formState.errors.code.message, t) : undefined}
             ariaLabelPrefix={t('mfa.digitAria').replace('{n}', '').trim()}
           />
+
+          {error && <ErrorBlock messageKey={error.message} />}
 
           <div className={`flex items-center justify-between ${AUTH_SPLIT_MUTED_CLASS}`}>
             <span>{t('passwordReset.step4Subtitle')}</span>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type * as OrtLib from 'onnxruntime-web';
 
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
 import {
   fetchAndCacheOnnxModel,
   ONNX_LOAD_PROGRESS_IDLE,
@@ -23,6 +24,38 @@ const ONNX_SIZE = 224;
  * the same globals concurrently.
  */
 let ortEnvConfigured = false;
+
+interface EdgeCapability {
+  edge: {
+    enabled: true;
+    model_bytes: number;
+    model_sha256: string;
+  };
+}
+
+function parseEdgeCapability(value: unknown): EdgeCapability | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const edge = (value as { edge?: unknown }).edge;
+  if (!edge || typeof edge !== 'object' || Array.isArray(edge)) return null;
+  const candidate = edge as Record<string, unknown>;
+  if (
+    candidate.enabled !== true ||
+    !Number.isSafeInteger(candidate.model_bytes) ||
+    (candidate.model_bytes as number) < 100_000 ||
+    (candidate.model_bytes as number) > 128 * 1024 * 1024 ||
+    typeof candidate.model_sha256 !== 'string' ||
+    !/^[0-9a-f]{64}$/i.test(candidate.model_sha256)
+  ) {
+    return null;
+  }
+  return {
+    edge: {
+      enabled: true,
+      model_bytes: candidate.model_bytes as number,
+      model_sha256: candidate.model_sha256.toLowerCase(),
+    },
+  };
+}
 
 export interface UseOnnxSessionOptions {
   apiBaseUrl: string;
@@ -108,10 +141,15 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
 
       try {
         const capabilitiesResponse = await fetch(`${apiBaseUrl}/capabilities`, {
+          headers: { 'X-Scanner-Request': '1' },
           cache: 'no-store',
+          credentials: 'same-origin',
+          redirect: 'error',
         });
         const capabilities = capabilitiesResponse.ok
-          ? ((await capabilitiesResponse.json()) as { edge?: { enabled?: boolean } })
+          ? parseEdgeCapability(
+              await readJsonResponseWithLimit(capabilitiesResponse, 16 * 1024),
+            )
           : null;
         if (!capabilities?.edge?.enabled) {
           if (!cancelled) {
@@ -129,9 +167,16 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
         }
 
         const modelUrls = await resolveOnnxDownloadUrls(apiBaseUrl);
-        const modelData = await fetchAndCacheOnnxModel(modelUrls, (progress) => {
-          if (!cancelled) setModelProgress(progress);
-        });
+        const modelData = await fetchAndCacheOnnxModel(
+          modelUrls,
+          {
+            bytes: capabilities.edge.model_bytes,
+            sha256: capabilities.edge.model_sha256,
+          },
+          (progress) => {
+            if (!cancelled) setModelProgress(progress);
+          },
+        );
         if (cancelled) return;
 
         if (!cancelled) {

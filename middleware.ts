@@ -22,7 +22,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { config as appConfig } from '@/lib/config';
+import { getAuthCookieName } from '@/app/api/_lib/auth-cookies';
 
 const PROTECTED_PREFIXES = [
   '/account',
@@ -38,6 +38,84 @@ const PROTECTED_PREFIXES = [
 ];
 
 const LOGIN_PATH = '/login';
+const PRIVATE_CACHE_CONTROL = 'private, no-store, max-age=0';
+
+function disablePrivateCaching(response: NextResponse): NextResponse {
+  response.headers.set('Cache-Control', PRIVATE_CACHE_CONTROL);
+  return response;
+}
+
+function canonicalAppOrigin(request: NextRequest): string | null {
+  if (process.env.NODE_ENV !== 'production') return request.nextUrl.origin;
+  try {
+    const url = new URL(process.env.APP_ORIGIN || '');
+    if (
+      url.protocol !== 'https:' ||
+      url.username ||
+      url.password ||
+      url.port ||
+      (url.pathname !== '/' && url.pathname !== '') ||
+      url.search ||
+      url.hash ||
+      (url.hostname !== 'ebartex.com' && !url.hostname.endsWith('.ebartex.com'))
+    ) {
+      return null;
+    }
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * CSP stretta per le pagine HTML.
+ *
+ * Il nonce viene rigenerato per ogni richiesta e inoltrato a Next anche come
+ * request header: Next 15 lo applica agli script di bootstrap/hydration. Non
+ * accettiamo mai un eventuale x-nonce inviato dal client.
+ */
+export function buildContentSecurityPolicy(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'`,
+    "script-src-attr 'none'",
+    "worker-src 'self' blob:",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://di0y87a9s8da9.cloudfront.net https://cdn.ebartex.com https://flagcdn.com https://cards.scryfall.io https://svgs.scryfall.io https://c1.scryfall.com https://c2.scryfall.com https://ebartex-user-uploads-prod.s3.eu-south-1.amazonaws.com",
+    "font-src 'self' data:",
+    "media-src 'self' https://di0y87a9s8da9.cloudfront.net https://cdn.ebartex.com",
+    "connect-src 'self' https://di0y87a9s8da9.cloudfront.net https://cdn.ebartex.com wss://auction.ebartex.com https://ebartex-user-uploads-prod.s3.eu-south-1.amazonaws.com",
+    "object-src 'none'",
+    "frame-src 'none'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "manifest-src 'self'",
+    'upgrade-insecure-requests',
+  ].join('; ');
+}
+
+function createPageResponse(
+  request: NextRequest,
+  responseFactory: (requestHeaders: Headers) => NextResponse = (requestHeaders) =>
+    NextResponse.next({ request: { headers: requestHeaders } })
+): NextResponse {
+  if (process.env.NODE_ENV === 'development') {
+    return responseFactory(new Headers(request.headers));
+  }
+
+  // randomUUID usa il CSPRNG Web Crypto disponibile nell'Edge runtime. La
+  // forma esadecimale evita caratteri ambigui nel grammar CSP.
+  const nonce = crypto.randomUUID().replaceAll('-', '');
+  const csp = buildContentSecurityPolicy(nonce);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', csp);
+
+  const response = responseFactory(requestHeaders);
+  response.headers.set('Content-Security-Policy', csp);
+  return response;
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -47,7 +125,10 @@ export function middleware(request: NextRequest) {
   );
 
   if (!isProtected) {
-    return NextResponse.next();
+    const response = createPageResponse(request);
+    return pathname === LOGIN_PATH || pathname.startsWith(`${LOGIN_PATH}/`)
+      ? disablePrivateCaching(response)
+      : response;
   }
 
   // Leggiamo solo i cookie HttpOnly impostati dal BFF /api/auth.
@@ -58,12 +139,19 @@ export function middleware(request: NextRequest) {
   // fallback l'utente loggato veniva rimbalzato a /login nella finestra tra
   // scadenza del cookie e refresh (es. click sul carrello appena riaperta
   // l'app). Il middleware è solo UX: l'auth vera resta nei route handler BFF.
-  const sessionCookie = request.cookies.get(appConfig.auth.tokenKey)?.value;
-  const refreshCookie = request.cookies.get(appConfig.auth.refreshTokenKey)?.value;
+  const sessionCookie = request.cookies.get(getAuthCookieName('access'))?.value;
+  const refreshCookie = request.cookies.get(getAuthCookieName('refresh'))?.value;
   const hasSession = !!(sessionCookie?.trim() || refreshCookie?.trim());
 
   if (!hasSession) {
-    const loginUrl = new URL(LOGIN_PATH, request.url);
+    const appOrigin = canonicalAppOrigin(request);
+    if (!appOrigin) {
+      return disablePrivateCaching(createPageResponse(
+        request,
+        () => new NextResponse(null, { status: 503 }),
+      ));
+    }
+    const loginUrl = new URL(LOGIN_PATH, appOrigin);
     loginUrl.searchParams.set('accesso', '1');
     // Sanitize redirect: solo path relativi, niente protocol/double-slash injection
     const safeRedirect =
@@ -71,28 +159,19 @@ export function middleware(request: NextRequest) {
         ? pathname
         : '/';
     loginUrl.searchParams.set('redirect', safeRedirect);
-    return NextResponse.redirect(loginUrl);
+    return disablePrivateCaching(
+      createPageResponse(request, () => NextResponse.redirect(loginUrl)),
+    );
   }
 
-  return NextResponse.next();
+  return disablePrivateCaching(createPageResponse(request));
 }
 
 export const config = {
   matcher: [
-    '/account/:path*',
-    '/admin/:path*',
-    '/ordini/:path*',
-    '/cart',
-    '/vendi/:path*',
-    '/aste/nuova',
-    '/aste/nuova/:path*',
-    '/aste/mie',
-    '/aste/mie/:path*',
-    '/aste/partecipazioni',
-    '/aste/partecipazioni/:path*',
-    '/bidding',
-    '/bidding/:path*',
-    '/scambi',
-    '/scambi/:path*',
+    // La CSP deve coprire ogni documento HTML. Escludiamo solo endpoint API e
+    // asset gestiti direttamente da Next; non escludiamo genericamente i path
+    // con un punto, perché uno slug pagina potrebbe contenerlo.
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)',
   ],
 };

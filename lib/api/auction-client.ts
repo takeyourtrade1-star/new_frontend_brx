@@ -1,6 +1,6 @@
 /**
  * Auction API client — calls same-origin proxy /api/auctions/* which forwards to auction.ebartex.com.
- * Attaches auth Bearer token when available. On 401 retries once after refreshing the token.
+ * L'autenticazione usa soltanto cookie HttpOnly same-origin. Su 401 rinnova la sessione una volta.
  */
 
 import type {
@@ -17,27 +17,10 @@ import type {
   SavedAuctionStatusResponse,
 } from '@/types/auction';
 import { tokenManager } from '@/lib/api/refresh-token';
-import { config } from '@/lib/config';
+import { createSecureIdempotencyKey } from '@/lib/security/secure-idempotency-key';
 
 export function createIdempotencyKey(): string {
-  if (
-    typeof globalThis !== 'undefined' &&
-    globalThis.crypto &&
-    typeof globalThis.crypto.randomUUID === 'function'
-  ) {
-    return globalThis.crypto.randomUUID();
-  }
-  return `bid-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(config.auth.tokenKey);
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return createSecureIdempotencyKey();
 }
 
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -100,10 +83,10 @@ async function request<T>(
   const url = `/api/auctions${path}`;
   const mergedOptions: RequestInit = {
     ...options,
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      ...authHeaders(),
       ...(options.headers as Record<string, string> | undefined),
     },
   };
@@ -124,8 +107,8 @@ async function request<T>(
 
   if (!res.ok) {
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const newToken = await tokenManager.ensureFreshToken();
-      if (newToken) {
+      const refreshed = await tokenManager.ensureFreshSession();
+      if (refreshed) {
         return request<T>(path, options, true, networkRetry);
       }
     }
@@ -255,10 +238,10 @@ async function savedRequest<T>(
   const url = `/api/saved-auctions${path}`;
   const mergedOptions: RequestInit = {
     ...options,
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      ...authHeaders(),
       ...(options.headers as Record<string, string> | undefined),
     },
   };
@@ -277,8 +260,8 @@ async function savedRequest<T>(
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const newToken = await tokenManager.ensureFreshToken();
-      if (newToken) {
+      const refreshed = await tokenManager.ensureFreshSession();
+      if (refreshed) {
         return savedRequest<T>(path, options, true, networkRetry);
       }
     }

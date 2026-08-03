@@ -26,6 +26,7 @@ import {
   parseScannerServerTiming,
   type ScannerServerTimings,
 } from '@/lib/scanner/server-timing';
+import { createSecureRandomUuid } from '@/lib/security/secure-random-id';
 
 import type { DebugInfo, ScannerState, ScanResult } from './scanner-types';
 
@@ -73,9 +74,7 @@ async function blobToBase64Strip(blob: Blob): Promise<string> {
 }
 
 function createCaptureId(): string {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return createSecureRandomUuid();
 }
 
 function buildSearchUrl(cardName: string, setName: string): string {

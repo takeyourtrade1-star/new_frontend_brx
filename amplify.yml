@@ -8,7 +8,17 @@ frontend:
   phases:
     preBuild:
       commands:
-        - npm install
+        - nvm install 24.18.1
+        - nvm use 24.18.1
+        - test "$(node --version)" = "v24.18.1"
+        - npm ci --ignore-scripts --cache .npm --prefer-offline
+        - node scripts/copy-ort-wasm.mjs
+        - node scripts/validate-scanner-edge-env.mjs
+        - npm audit --audit-level=high
+        - npm run lint
+        - npm run typecheck
+        - npm run i18n:keys
+        - npm test -- --run
     build:
       commands:
         - npm run build
@@ -18,4 +28,5 @@ frontend:
       - '**/*'
   cache:
     paths:
-      - node_modules/**/*
+      - .next/cache/**/*
+      - .npm/**/*

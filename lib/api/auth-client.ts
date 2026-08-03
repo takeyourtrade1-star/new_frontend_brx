@@ -1,7 +1,7 @@
 /**
  * Auth API Client - Axios Configuration
  * Client HTTP dedicato per il microservizio di autenticazione AWS
- * Supporta JWT RS256, refresh token automatico, e gestione errori
+ * Supporta sessioni cookie HttpOnly, refresh automatico e gestione errori.
  */
 
 import axios, {
@@ -13,12 +13,12 @@ import axios, {
 import type {
   PreAuthTokenResponse,
   RegistrationPendingResponse,
-  TokenResponse,
   VerificationSuccessResponse,
 } from '@/types';
 import { config } from '../config';
 import { isTournamentsTransitionPath } from '@/lib/config/tournaments';
 import { tokenManager } from './refresh-token';
+import { purgePrivateBrowserState } from '@/lib/auth/private-browser-state';
 
 /**
  * Endpoint auth raggiungibili da utenti non autenticati: un 401 qui significa
@@ -37,26 +37,7 @@ const REFRESH_SKIP_PATHS = [
   '/api/auth/password/reset/verify-code',
   '/api/auth/password/reset/confirm-init',
   '/api/auth/password/reset/confirm-final',
-  '/api/auth/password/reset/confirm',
-  '/api/auth/verify-email/code',
-  '/api/auth/verify-email/token',
-  '/api/auth/resend-verification',
-] as const;
-
-/** Endpoint auth che un utente anonimo (non loggato) può chiamare. */
-const ANONYMOUS_AUTH_PATHS = [
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/refresh',
-  '/api/auth/verify-mfa',
-  '/api/auth/mfa/verify',
-  '/api/auth/login/code/request',
-  '/api/auth/login/code/verify',
-  '/api/auth/password/reset/request',
-  '/api/auth/password/reset/verify-code',
-  '/api/auth/password/reset/confirm-init',
-  '/api/auth/password/reset/confirm-final',
-  '/api/auth/password/reset/confirm',
+  '/api/auth/password/reset/clear-session',
   '/api/auth/verify-email/code',
   '/api/auth/verify-email/token',
   '/api/auth/resend-verification',
@@ -75,8 +56,6 @@ function getAuthBaseURL(): string {
 
 class AuthApiClient {
   private instance: AxiosInstance;
-  private token: string | null = null;
-
   constructor() {
     const baseURL = getAuthBaseURL();
 
@@ -95,30 +74,9 @@ class AuthApiClient {
     this.setupInterceptors();
   }
 
-  private isAnonymousAuthRequest(url?: string): boolean {
-    if (!url) return false;
-    return ANONYMOUS_AUTH_PATHS.some((path) => url.includes(path));
-  }
-
   private setupInterceptors() {
-    // Request Interceptor - usa solo il token tenuto in memoria.
-    this.instance.interceptors.request.use(
-      (requestConfig: InternalAxiosRequestConfig) => {
-        if (
-          this.token &&
-          requestConfig.headers &&
-          !this.isAnonymousAuthRequest(requestConfig.url)
-        ) {
-          requestConfig.headers.Authorization = `Bearer ${this.token}`;
-        }
-        return requestConfig;
-      },
-      (error: AxiosError) => {
-        return Promise.reject(error);
-      }
-    );
-
-    // Response Interceptor - Gestisce il refresh automatico su 401
+    // Response interceptor: rinnova esclusivamente i cookie HttpOnly. Nessun
+    // bearer viene mai restituito o conservato dal client.
     this.instance.interceptors.response.use(
       (response) => response, // Se la risposta è 2xx, non fare nulla
 
@@ -139,12 +97,9 @@ class AuthApiClient {
 
           // Centralised refresh — tokenManager deduplicates concurrent callers
           // and resolves all of them once a single /api/auth/refresh completes.
-          const newToken = await tokenManager.ensureFreshToken();
-          if (newToken) {
-            this.token = newToken;
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            }
+          const refreshed = await tokenManager.ensureFreshSession();
+          if (refreshed) {
+            if (originalRequest.headers) originalRequest.headers.delete('Authorization');
             return this.instance(originalRequest);
           }
 
@@ -162,7 +117,12 @@ class AuthApiClient {
    * Forza il logout eliminando i token e reindirizzando al login
    */
   private forceLogout() {
-    this.clearToken();
+    purgePrivateBrowserState();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(config.auth.tokenKey);
+      localStorage.removeItem(config.auth.refreshTokenKey);
+      localStorage.removeItem(config.auth.userKey);
+    }
 
     // Reindirizza al login; non disturbare MFA né il video → portale tornei
     if (typeof window !== 'undefined') {
@@ -174,34 +134,6 @@ class AuthApiClient {
       ) {
         window.location.href = '/login';
       }
-    }
-  }
-
-  /** Imposta l'access token effimero per le richieste successive. */
-  setToken(accessToken: string, _legacyRefreshToken?: string) {
-    this.token = accessToken;
-    if (typeof window !== 'undefined') {
-      // Migrazione dalle versioni che esponevano il refresh token a JavaScript.
-      localStorage.removeItem(config.auth.refreshTokenKey);
-    }
-  }
-
-  /**
-   * Ottiene l'access token corrente
-   */
-  getToken(): string | null {
-    return this.token;
-  }
-
-  /**
-   * Rimuove i token (logout)
-   */
-  clearToken() {
-    this.token = null;
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(config.auth.tokenKey);
-      localStorage.removeItem(config.auth.refreshTokenKey);
-      localStorage.removeItem(config.auth.userKey);
     }
   }
 
@@ -263,14 +195,14 @@ class AuthApiClient {
   }
 
   /**
-   * Passwordless: verifica codice e restituisce token di sessione.
+   * Passwordless: verifica codice e crea la sessione cookie lato BFF.
    * POST /api/auth/login/code/verify — body: { email, code }
    */
   async verifyLoginCode(
     email: string,
     code: string
-  ): Promise<TokenResponse | PreAuthTokenResponse> {
-    return this.post<TokenResponse | PreAuthTokenResponse>(
+  ): Promise<{ authenticated?: boolean } | PreAuthTokenResponse> {
+    return this.post<{ authenticated?: boolean } | PreAuthTokenResponse>(
       '/api/auth/login/code/verify',
       {
       email,
@@ -308,38 +240,6 @@ class AuthApiClient {
   }
 
   /**
-   * Reset password: richiede invio email con codice OTP.
-   * POST /api/auth/password/reset/request — body: { email }
-   */
-  async requestPasswordResetCode(
-    email: string
-  ): Promise<OtpFlowMessageResponse> {
-    return this.post<OtpFlowMessageResponse>(
-      '/api/auth/password/reset/request',
-      { email }
-    );
-  }
-
-  /**
-   * Reset password: imposta nuova password con codice ricevuto via email.
-   * POST /api/auth/password/reset/confirm — body: { email, code, new_password }
-   */
-  async resetPasswordWithCode(
-    email: string,
-    code: string,
-    newPassword: string
-  ): Promise<OtpFlowMessageResponse> {
-    return this.post<OtpFlowMessageResponse>(
-      '/api/auth/password/reset/confirm',
-      {
-        email,
-        code,
-        new_password: newPassword,
-      }
-    );
-  }
-
-  /**
    * Reset password Step 1: richiede invio OTP1.
    * POST /api/auth/password/reset/request — body: { email }
    */
@@ -348,45 +248,49 @@ class AuthApiClient {
   }
 
   /**
-   * Reset password Step 2: verifica OTP1 e riceve reset_token.
+   * Reset password Step 2: verifica OTP1. Il BFF trattiene il reset token in
+   * un cookie HttpOnly e restituisce a JavaScript soltanto marker + TTL.
    * POST /api/auth/password/reset/verify-code — body: { email, code }
    */
   async verifyPasswordResetCode(
     email: string,
     code: string
-  ): Promise<{ token: string; token_type: 'password_reset'; expires_in_seconds: number }> {
-    return this.post<{ token: string; token_type: 'password_reset'; expires_in_seconds: number }>(
+  ): Promise<{ handoff_ready: true; expires_in_seconds: number }> {
+    return this.post<{ handoff_ready: true; expires_in_seconds: number }>(
       '/api/auth/password/reset/verify-code',
       { email, code }
     );
   }
 
   /**
-   * Reset password Step 3: invia nuova password e riceve confirm_token.
-   * POST /api/auth/password/reset/confirm-init — body: { reset_token, new_password }
+   * Reset password Step 3: il BFF inietta il reset token HttpOnly e ruota il
+   * confirm token in un secondo cookie HttpOnly.
+   * POST /api/auth/password/reset/confirm-init — body browser: { new_password }
    */
   async confirmPasswordResetInit(
-    resetToken: string,
     newPassword: string
-  ): Promise<{ token: string; token_type: 'password_reset_confirm'; expires_in_seconds: number }> {
-    return this.post<{ token: string; token_type: 'password_reset_confirm'; expires_in_seconds: number }>(
+  ): Promise<{ handoff_ready: true; expires_in_seconds: number }> {
+    return this.post<{ handoff_ready: true; expires_in_seconds: number }>(
       '/api/auth/password/reset/confirm-init',
-      { reset_token: resetToken, new_password: newPassword }
+      { new_password: newPassword }
     );
   }
 
   /**
-   * Reset password Step 4: verifica OTP2 e completa il reset.
-   * POST /api/auth/password/reset/confirm-final — body: { confirm_token, code }
+   * Reset password Step 4: il BFF inietta il confirm token HttpOnly.
+   * POST /api/auth/password/reset/confirm-final — body browser: { code }
    */
   async confirmPasswordResetFinal(
-    confirmToken: string,
     code: string
   ): Promise<OtpFlowMessageResponse> {
     return this.post<OtpFlowMessageResponse>('/api/auth/password/reset/confirm-final', {
-      confirm_token: confirmToken,
       code,
     });
+  }
+
+  /** Revoca gli hand-off HttpOnly quando l'utente abbandona o riavvia il flow. */
+  async clearPasswordResetSession(): Promise<void> {
+    await this.post<{ cleared: true }>('/api/auth/password/reset/clear-session', {});
   }
 }
 

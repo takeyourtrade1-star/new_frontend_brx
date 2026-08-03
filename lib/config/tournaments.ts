@@ -1,3 +1,5 @@
+import { sanitizeInternalReturnPath } from '@/lib/security/internal-return-path';
+
 /** Piattaforma tornei Ebartex (sottodominio esterno). */
 export const TOURNAMENTS_PORTAL_URL = 'https://tornei.ebartex.com';
 
@@ -15,8 +17,8 @@ export function isTournamentsTransitionPath(pathname?: string | null): boolean {
 /** URL diretto al portale (senza /auth/bridge che può reindirizzare al login marketplace). */
 export function getTournamentsPortalUrl(returnPath = '/'): string {
   const base = TOURNAMENTS_PORTAL_URL.replace(/\/+$/, '');
-  if (returnPath.startsWith('http')) return returnPath;
-  return `${base}${returnPath.startsWith('/') ? returnPath : `/${returnPath}`}`;
+  const safePath = sanitizeInternalReturnPath(returnPath) ?? '/';
+  return `${base}${safePath}`;
 }
 
 export const TOURNAMENTS_PORTAL_LINK_PROPS = {

@@ -4,19 +4,12 @@
  * L'URL corretto è: CDN + path senza "img/" (es. https://....cloudfront.net/cards/4/158647.webp).
  */
 
-import { ASSETS } from '@/lib/config';
+import { safePublicImageUrl } from '@/lib/security/catalog-public-data';
 
 /**
  * Rimuove il prefisso legacy "/img/" o "img/" dal path (DB/Meilisearch può avere /img/cards/6/227574.jpg).
  * Su S3/CloudFront le immagini sono senza quel prefisso: cards/6/227574.jpg.
  */
-function stripImgPrefix(path: string): string {
-  const raw = path.trim();
-  if (raw.startsWith('/img/')) return raw.replace(/^\/img\//, '');
-  if (raw.startsWith('img/')) return raw.replace(/^img\//, '');
-  return raw;
-}
-
 /**
  * Restituisce l'URL assoluto per l'icona di un set (set_icon_uri).
  * - Se raw è una URL assoluta o path relativo → gestisci come CDN.
@@ -28,11 +21,7 @@ export function getSetIconUrl(
   options?: { gameSlug?: string; setCode?: string }
 ): string | null {
   if (raw != null && raw !== '') {
-    const trimmed = raw.trim();
-    if (trimmed.startsWith('http')) return trimmed;
-    const base = (ASSETS.cdnUrl || '').replace(/\/+$/, '');
-    const pathWithSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-    return base ? `${base}${pathWithSlash}` : pathWithSlash;
+    return safePublicImageUrl(raw, 'set-icon');
   }
 
   // Fallback Scryfall per MTG: solo se game_slug è mtg e set_code è disponibile
@@ -41,8 +30,7 @@ export function getSetIconUrl(
   if (
     (gameSlug === 'mtg' || gameSlug === '') &&
     setCode &&
-    setCode.trim().length >= 2 &&
-    setCode.trim().length <= 6
+    /^[a-z0-9]{2,6}$/i.test(setCode.trim())
   ) {
     return `https://svgs.scryfall.io/sets/${setCode.trim().toLowerCase()}.svg`;
   }
@@ -66,30 +54,8 @@ export function getSetCodeDisplay(
  * Restituisce l'URL assoluto per l'immagine di una carta.
  * - Se raw è null/undefined/vuoto → null.
  * - Se raw inizia con http → restituito così com'è (normalizzando il prefisso img/).
- * - Altrimenti: si rimuove il prefisso "img/" e si prepende ASSETS.cdnUrl.
+ * - Altrimenti: accetta soltanto un path relativo risolvibile sul CDN noto.
  */
 export function getCardImageUrl(raw: string | null | undefined): string | null {
-  if (raw == null || raw === '') return null;
-  const trimmed = raw.trim();
-  if (trimmed.startsWith('http')) {
-    try {
-      const parsed = new URL(trimmed);
-      const normalizedPath = stripImgPrefix(parsed.pathname);
-      const normalizedPathWithLeadingSlash = normalizedPath.startsWith('/')
-        ? normalizedPath
-        : `/${normalizedPath}`;
-      if (normalizedPathWithLeadingSlash !== parsed.pathname) {
-        parsed.pathname = normalizedPathWithLeadingSlash;
-        return parsed.toString();
-      }
-      return trimmed;
-    } catch {
-      return trimmed;
-    }
-  }
-  const path = stripImgPrefix(trimmed);
-  if (!path) return null;
-  const base = (ASSETS.cdnUrl || '').replace(/\/+$/, '');
-  const pathWithLeadingSlash = path.startsWith('/') ? path : `/${path}`;
-  return base ? `${base}${pathWithLeadingSlash}` : pathWithLeadingSlash;
+  return safePublicImageUrl(raw, 'card');
 }

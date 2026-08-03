@@ -3,6 +3,7 @@ import { syncClient, type InventoryItemResponse } from '@/lib/api/sync-client';
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { productDetailKeys } from '@/lib/product-detail/product-detail-keys';
+import { collectBoundedInventoryPages } from '@/lib/inventory/bounded-pagination';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 
 async function fetchAuctionBlueprintInventory(
@@ -10,18 +11,13 @@ async function fetchAuctionBlueprintInventory(
   accessToken: string,
   blueprintId: number
 ): Promise<InventoryItemWithCatalog[]> {
-  const allItems: InventoryItemResponse[] = [];
   const pageSize = 500;
-  let offset = 0;
-  let totalFromApi = 0;
-  do {
-    const res = await syncClient.getInventory(userId, accessToken, pageSize, offset);
-    const items = res.items ?? [];
-    totalFromApi = res.total ?? allItems.length + items.length;
-    allItems.push(...items);
-    offset += items.length;
-    if (items.length < pageSize || offset >= totalFromApi) break;
-  } while (true);
+  const allItems = await collectBoundedInventoryPages<InventoryItemResponse>({
+    pageSize,
+    fetchPage: (_pageIndex, offset) =>
+      syncClient.getInventory(userId, accessToken, pageSize, offset),
+    itemKey: (item) => item.id,
+  });
 
   const filtered = allItems.filter((i) => i.blueprint_id === blueprintId);
   let blueprintToCard: Record<number, CardCatalogHit> = {};

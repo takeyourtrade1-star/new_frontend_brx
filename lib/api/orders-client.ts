@@ -16,16 +16,6 @@ import type {
   PayOrderResponse,
 } from '@/types/order';
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('ebartex_access_token');
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -34,10 +24,10 @@ async function request<T>(
   const url = `/api/orders${path}`;
   const res = await fetch(url, {
     ...options,
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      ...authHeaders(),
       ...(options.headers as Record<string, string> | undefined),
     },
   });
@@ -46,8 +36,8 @@ async function request<T>(
 
   if (!res.ok) {
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const newToken = await tokenManager.ensureFreshToken();
-      if (newToken) {
+      const refreshed = await tokenManager.ensureFreshSession();
+      if (refreshed) {
         return request<T>(path, options, true);
       }
     }
@@ -102,9 +92,10 @@ export const ordersApi = {
   },
 
   payOrder(orderId: number): Promise<PayOrderResponse> {
-    return request<PayOrderResponse>(`/${orderId}/pay`, {
-      method: 'POST',
-      body: JSON.stringify({ confirm: true }),
-    });
+    const error = new Error(
+      `Pagamento ordine ${orderId} non disponibile: integrazione in corso`,
+    ) as Error & { status: number };
+    error.status = 501;
+    return Promise.reject(error);
   },
 };

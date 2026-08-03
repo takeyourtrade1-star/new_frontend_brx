@@ -247,8 +247,8 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
 
   const startCounter = () => {
     const first = offered[0];
-    if (!first) return;
-    setTradeProposalContext({
+    if (!first || !user?.id) return;
+    setTradeProposalContext(user.id, {
       mode: 'counter',
       parentTradeId: trade.id,
       seller: {

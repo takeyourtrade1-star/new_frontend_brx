@@ -44,3 +44,26 @@ export function forbiddenResponse(message = 'Permessi insufficienti'): NextRespo
     { status: 403, headers: noStoreHeaders() },
   );
 }
+
+/** Convert an upstream failure to a stable public error without forwarding its body. */
+export function redactedUpstreamErrorResponse(
+  upstreamStatus: number,
+  fallbackMessage = 'Operazione non riuscita',
+): NextResponse {
+  const status = upstreamStatus >= 500 ? 502 : upstreamStatus;
+  const detail =
+    upstreamStatus === 401
+      ? 'Autenticazione richiesta'
+      : upstreamStatus === 403
+        ? 'Permessi insufficienti'
+        : upstreamStatus === 404
+          ? 'Risorsa non trovata'
+          : upstreamStatus === 409
+            ? 'Operazione in conflitto'
+            : upstreamStatus === 422
+              ? 'Dati richiesta non validi'
+              : upstreamStatus === 429
+                ? 'Troppe richieste'
+                : fallbackMessage;
+  return NextResponse.json({ detail }, { status, headers: noStoreHeaders() });
+}

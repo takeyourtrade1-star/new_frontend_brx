@@ -24,8 +24,10 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error('[ErrorBoundary]', error, errorInfo);
+  componentDidCatch(_error: Error, _errorInfo: ErrorInfo): void {
+    // Error objects and React component stacks may include request payloads or
+    // user-provided props. Keep browser/telemetry logs free of that data.
+    console.error('[ErrorBoundary] render failed');
   }
 
   handleReset = (): void => {

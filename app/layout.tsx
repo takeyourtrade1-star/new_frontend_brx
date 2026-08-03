@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Nunito } from 'next/font/google';
+import { headers } from 'next/headers';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { ConditionalFooter } from '@/components/layout/ConditionalFooter';
@@ -7,13 +7,6 @@ import { AssoGate } from '@/components/mascotte/AssoGate';
 import { BuildInfoBadge } from '@/components/dev/BuildInfoBadge';
 import { IOSInstallPromptGate } from '@/components/pwa/IOSInstallPromptGate';
 import { SITE_URL } from '@/lib/config';
-
-const nunito = Nunito({
-  subsets: ['latin'],
-  weight: ['400', '500', '700', '900'],
-  variable: '--font-sans',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -69,6 +62,10 @@ export const metadata: Metadata = {
   },
 };
 
+// La CSP a nonce richiede rendering per-request: una pagina statica verrebbe
+// generata senza conoscere il nonce creato dal middleware.
+export const dynamic = 'force-dynamic';
+
 /** URL sfondo BRX per CSS (da CDN se configurato). Sanitizza l'env con una
  *  whitelist di caratteri URL per evitare injection nel blocco <style> inline. */
 function getBrxBgCssUrl(): string {
@@ -78,16 +75,17 @@ function getBrxBgCssUrl(): string {
   return cdn ? `${cdn}/images/brx_bg.png` : '/brx_bg.png';
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get('x-nonce') || undefined;
   // Escape backslash/apici prima dell'iniezione in url("...") dentro <style>.
   const brxBgUrl = getBrxBgCssUrl().replace(/[\\"']/g, '\\$&');
 
   return (
-    <html lang="it" suppressHydrationWarning className={nunito.variable}>
+    <html lang="it" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/logo-pwa.svg" />
@@ -99,11 +97,13 @@ export default function RootLayout({
 
         {/* Display font - using existing .otf and .ttf files */}
         <style
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `:root{--brx-bg-url:url("${brxBgUrl}");}`,
           }}
         />
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){var t=localStorage.getItem('theme');document.documentElement.classList.toggle('dark',t!=='light');})();`,
           }}

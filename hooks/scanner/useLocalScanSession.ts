@@ -7,6 +7,8 @@ import {
   loadScanSession,
   saveScanSession,
 } from '@/lib/scanner/scan-session-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { createSecureRandomUuid } from '@/lib/security/secure-random-id';
 
 import type {
   ScanCatalogCard,
@@ -20,9 +22,7 @@ import type {
 export const MAX_SCAN_SESSION_ITEMS = 100;
 
 function createId(): string {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return createSecureRandomUuid();
 }
 
 function createSession(): ScanSession {
@@ -64,6 +64,9 @@ export function normalizeScanSession(stored: ScanSession): ScanSession {
 }
 
 export function useLocalScanSession() {
+  const ownerId = useAuthStore((state) =>
+    state.isAuthenticated && state.user?.id ? state.user.id : '',
+  );
   const [session, setSession] = useState<ScanSession>(() => createSession());
   const [hydrated, setHydrated] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,44 +75,42 @@ export function useLocalScanSession() {
 
   useEffect(() => {
     let cancelled = false;
-    void loadScanSession().then((stored) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setSession(createSession());
+    if (!ownerId) {
+      setHydrated(true);
+      return;
+    }
+    setHydrated(false);
+    void loadScanSession(ownerId).then((stored) => {
       if (cancelled) return;
       if (stored) {
         const normalized = normalizeScanSession(stored);
-        setSession((current) => {
-          const currentIds = new Set(current.items.map((item) => item.id));
-          const restored = normalized.items.filter((item) => !currentIds.has(item.id));
-          return current.items.length > 0
-            ? {
-                ...normalized,
-                updatedAt: current.updatedAt,
-                items: [...restored, ...current.items].slice(0, MAX_SCAN_SESSION_ITEMS),
-              }
-            : normalized;
-        });
+        setSession(normalized);
       }
       setHydrated(true);
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      void saveScanSession(latestSessionRef.current);
+      if (ownerId) void saveScanSession(ownerId, latestSessionRef.current);
     };
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
     if (!hydrated) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => void saveScanSession(session), 120);
+    if (!ownerId) return;
+    saveTimerRef.current = setTimeout(() => void saveScanSession(ownerId, session), 120);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [hydrated, session]);
+  }, [hydrated, ownerId, session]);
 
   const addResult = useCallback((result: ScanResult) => {
     const now = new Date(result.captured_at_ms ?? Date.now()).toISOString();
@@ -278,9 +279,9 @@ export function useLocalScanSession() {
 
   const resetSession = useCallback(async () => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    await clearScanSession();
+    if (ownerId) await clearScanSession(ownerId);
     setSession(createSession());
-  }, []);
+  }, [ownerId]);
 
   const totals = useMemo(
     () => ({

@@ -1,24 +1,18 @@
 /**
  * API Route: dettaglio prodotto/carta per id (es. mtg_123, op_456, sealed_10).
- * Recupera il documento da Meilisearch e restituisce dati per la pagina dettaglio (titolo, immagine, breadcrumb).
+ * Recupera il prodotto tramite l'API search: la chiave runtime resta limitata
+ * alla sola azione `search` e non necessita accesso ai documenti.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
-
-const CDN_URL = (process.env.NEXT_PUBLIC_CDN_URL || '').replace(/\/+$/, '');
-
-function buildImageUrl(raw: string | null | undefined): string | null {
-  if (raw == null || raw === '') return null;
-  const trimmed = raw.trim();
-  if (trimmed.startsWith('http')) return trimmed;
-  const path = trimmed
-    .replace(/^\/img\//, '')
-    .replace(/^img\//, '');
-  if (!path) return null;
-  const withSlash = path.startsWith('/') ? path : `/${path}`;
-  return CDN_URL ? `${CDN_URL}${withSlash}` : withSlash;
-}
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
+import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import {
+  buildCatalogIdFilter,
+  normalizeCatalogProductId,
+  safePublicImageUrl,
+} from '@/lib/security/catalog-public-data';
 
 export interface ProductDetailDoc {
   id: string;
@@ -52,50 +46,62 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  if (!id || !id.trim()) {
-    return NextResponse.json({ error: 'Id mancante' }, { status: 400 });
+  const rateLimit = await checkRateLimit(request, {
+    scope: 'catalog:product-detail',
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit);
+  if (request.nextUrl.search) {
+    return NextResponse.json({ error: 'Query non valida' }, { status: 400 });
+  }
+
+  const { id: rawId } = await context.params;
+  const id = normalizeCatalogProductId(rawId);
+  const filter = buildCatalogIdFilter(rawId);
+  if (!id || !filter) {
+    return NextResponse.json({ error: 'Id non valido' }, { status: 400 });
   }
 
   const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
 
-  if (!MEILI_URL) {
+  if (!MEILI_URL || !MEILI_KEY) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (MEILISEARCH_URL)' },
+      { error: 'Catalogo non disponibile' },
       { status: 503 }
     );
   }
 
-  const docUrl = `${MEILI_URL}/indexes/${INDEX}/documents/${encodeURIComponent(id.trim())}`;
-  const headers: Record<string, string> = {};
-  if (MEILI_KEY) headers.Authorization = `Bearer ${MEILI_KEY}`;
+  const searchUrl = `${MEILI_URL}/indexes/${INDEX}/search`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept-Encoding': 'identity',
+    Authorization: `Bearer ${MEILI_KEY}`,
+  };
 
   try {
-    let res = await fetch(docUrl, { method: 'GET', headers });
-    let doc: ProductDetailDoc | null = null;
-
-    if (res.ok) {
-      doc = (await res.json()) as ProductDetailDoc;
-    } else if (res.status === 403 || res.status === 401) {
-      // Chiave senza permesso GET document: fallback a search con filtro id (come pagina dettaglio)
-      const searchRes = await fetch(`${MEILI_URL}/indexes/${INDEX}/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify({
-          filter: `id = "${id.trim().replace(/"/g, '\\"')}"`,
-          limit: 1,
-        }),
-      });
-      if (searchRes.ok) {
-        const data = (await searchRes.json()) as { hits?: ProductDetailDoc[] };
-        doc = data.hits?.[0] ?? null;
-      }
-    }
+    const upstreamResponse = await fetch(searchUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        filter,
+        limit: 1,
+      }),
+      cache: 'no-store',
+      redirect: 'error',
+      signal: AbortSignal.timeout(5_000),
+    });
+    const data = upstreamResponse.ok
+      ? ((await readJsonResponseWithLimit(upstreamResponse, 512 * 1_024)) as {
+          hits?: ProductDetailDoc[];
+        })
+      : null;
+    const doc = data?.hits?.[0]?.id === id ? data.hits[0] : null;
 
     if (!doc) {
       return NextResponse.json({ error: 'Prodotto non trovato' }, { status: 404 });
     }
-    const imageUrl = buildImageUrl(doc.image ?? null);
+    const imageUrl = safePublicImageUrl(doc.image ?? null, 'card');
 
     const response: ProductDetailResponse = {
       id: doc.id,
@@ -116,10 +122,9 @@ export async function GET(
         'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
       },
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+  } catch {
     return NextResponse.json(
-      { error: 'Errore recupero dettaglio', detail: message },
+      { error: 'Errore recupero dettaglio' },
       { status: 502 }
     );
   }

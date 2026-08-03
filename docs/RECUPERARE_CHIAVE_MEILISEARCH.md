@@ -1,88 +1,46 @@
-# Come recuperare la chiave Meilisearch da AWS
+# Provisioning della chiave Meilisearch per il BFF
 
-La chiave Meilisearch **non** è salvata in AWS SSM/Secrets Manager (a differenza di JWT, DB password, ecc.). Viene passata al container Meilisearch tramite **variabile d’ambiente** sul server EC2.
+La chiave usata dal runtime Next.js non si “recupera” dalla master key: si crea
+una credenziale distinta e revocabile, con privilegio minimo.
 
-## Dove si trova
+## Policy obbligatoria
 
-Sul server **35.152.143.30** (o l’IP della tua istanza EC2), quando avvii i servizi con `docker-compose`, la chiave è nel file **`.env`** nella stessa cartella di `docker-compose.prod.yml` (o del compose che usi in produzione).
+Nel pannello/API amministrativa di Meilisearch, fuori dal frontend e usando un
+canale operativo autorizzato, creare una key con:
 
----
+```json
+{
+  "name": "brx-web-bff-search",
+  "description": "Search-only key for the BRX web BFF",
+  "actions": ["search"],
+  "indexes": ["cards"]
+}
+```
 
-## Opzione 1 – Recuperarla via SSH (se hai accesso al server)
+Adattare `indexes` solo se il BFF interroga altri indici pubblici. Non ampliare
+`actions`; per reindex e manutenzione esistono credenziali separate custodite
+dal Search service, mai da pagine o bundle browser.
 
-1. Connettiti all’EC2:
-   ```bash
-   ssh -i "tuo-key.pem" ubuntu@35.152.143.30
-   ```
-   (sostituisci `tuo-key.pem` e `ubuntu` se usi un altro utente)
+Salvare la chiave nel secret manager della piattaforma e iniettarla nel runtime
+Next.js con il nome esatto:
 
-2. Vai nella cartella dove gira docker-compose (es. dove c’è `docker-compose.prod.yml`):
-   ```bash
-   cd /home/ubuntu   # o il path che usi per il deploy
-   # oppure
-   cd /opt/ebartex
-   ```
+```env
+MEILISEARCH_SEARCH_API_KEY=<secret-manager-reference>
+```
 
-3. Cerca il file `.env`:
-   ```bash
-   ls -la .env
-   cat .env | grep MEILISEARCH
-   ```
-   La riga che ti interessa è tipo:
-   ```env
-   MEILISEARCH_MASTER_KEY=xxxxxxxxxxxxxxxxxxxx
-   ```
+Configurare separatamente `MEILISEARCH_URL` e `MEILISEARCH_INDEX`. Non usare
+alias generici come `MEILISEARCH_API_KEY`, `MEILI_API_KEY`, né variabili
+`NEXT_PUBLIC_*`/`VITE_*`: il codice le rifiuta intenzionalmente.
 
-4. **Per il frontend** serve la **stessa** chiave. In locale, nel `.env` del frontend metti:
-   ```env
-   NEXT_PUBLIC_MEILISEARCH_API_KEY=xxxxxxxxxxxxxxxxxxxx
-   ```
-   (il valore copiato da `MEILISEARCH_MASTER_KEY`).
+## Rotazione e verifica pre-lancio
 
----
+1. Revocare ogni vecchia key pubblicata o riutilizzata come admin/master.
+2. Distribuire la nuova search-only key tramite secret manager.
+3. Verificare che `/api/search` funzioni e che operazioni di scrittura,
+   gestione indici e gestione chiavi siano negate con quella credenziale.
+4. Controllare bundle, log e cronologia Git per identificare precedenti
+   esposizioni; ruotare nuovamente se la key compare in uno di questi canali.
+5. Documentare owner, indici consentiti, data di creazione e prossima rotazione.
 
-## Opzione 2 – Non hai accesso SSH
-
-- Se il deploy lo fa un altro team, chiedi a loro il valore di **`MEILISEARCH_MASTER_KEY`** (o “chiave Meilisearch”) usato sul server.
-- Se sei tu che deployi ma non ricordi dove l’hai messa: cerca sul PC dove tieni i file di deploy (clone del repo, script, backup del server) un file `.env` o uno script che imposta `MEILISEARCH_MASTER_KEY`.
-
----
-
-## Opzione 3 – Generare una chiave nuova (se la vecchia è persa)
-
-Se la chiave originale non si trova più:
-
-1. **Genera una nuova master key** (es. 64 caratteri hex):
-   ```bash
-   openssl rand -hex 32
-   ```
-
-2. **Sul server EC2**:
-   - Modifica il `.env` usato da docker-compose e imposta:
-     ```env
-     MEILISEARCH_MASTER_KEY=la_nuova_chiave_generata
-     ```
-   - Riavvia i container (almeno Meilisearch e search-service):
-     ```bash
-     docker-compose -f docker-compose.prod.yml down
-     docker-compose -f docker-compose.prod.yml up -d
-     ```
-
-3. **In locale (frontend)** nel `.env`:
-   ```env
-   NEXT_PUBLIC_MEILISEARCH_API_KEY=la_nuova_chiave_generata
-   ```
-
-4. Riavvia il frontend: `npm run dev`.
-
-**Nota:** con una chiave nuova, Meilisearch parte “pulito”; se avevi dati indicizzati prima, andranno re-indicizzati (es. tramite reindex del search-service).
-
----
-
-## Riepilogo
-
-| Dove | Cosa fare |
-|------|-----------|
-| **AWS SSM / Console** | La chiave Meilisearch **non** è lì. |
-| **Server EC2 (SSH)** | Leggere `MEILISEARCH_MASTER_KEY` dal `.env` nella cartella del docker-compose. |
-| **Frontend .env** | `NEXT_PUBLIC_MEILISEARCH_API_KEY` = stesso valore di `MEILISEARCH_MASTER_KEY` del server. |
+La master key resta esclusivamente nel dominio operativo di Meilisearch e non
+deve essere letta, copiata o memorizzata in questo repository.

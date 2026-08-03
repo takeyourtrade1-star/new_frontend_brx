@@ -13,7 +13,7 @@ const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 giorni
 /** 
  * Hook per rilevare il paese dell'utente tramite:
  * 1. Cache locale (7 giorni)
- * 2. Same-origin /api/geo/country (server-side ipapi, CSP-safe)
+ * 2. Same-origin /api/geo/country (trusted edge country header, CSP-safe)
  * 3. Fallback su navigator.language
  * 
  * Restituisce il codice ISO 2-lettere (es. 'IT', 'DE')
@@ -37,7 +37,7 @@ export function useUserCountry(): string | null {
         // localStorage non disponibile
       }
 
-      // 2. Prova API geolocalizzazione (BFF, nessuna chiamata diretta a ipapi.co dal browser)
+      // 2. Prova il country hint del trusted edge (il BFF non inoltra l'IP a terzi)
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 3000);

@@ -8,78 +8,13 @@
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-/**
- * Normalizza un URL rimuovendo il trailing slash
- */
-const normalizeURL = (url: string): string => {
-  if (!url) return url;
-  return url.replace(/\/+$/, '');
-};
+/** L'identificatore indice non e' sensibile; host e chiavi sono server-only. */
+export const MEILISEARCH_PUBLIC_INDEX_NAME =
+  process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || 'cards';
 
-/**
- * URL del microservizio di autenticazione (Python FastAPI su AWS EC2)
- * Usa sempre l'URL da env (NEXT_PUBLIC_AUTH_API_URL o VITE_AWS_AUTH_URL), non il proxy.
- */
-const getAuthApiURL = (): string => {
-  const envUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || process.env.VITE_AWS_AUTH_URL;
-
-  if (!envUrl) {
-    if (!isDevelopment) {
-      throw new Error('NEXT_PUBLIC_AUTH_API_URL non è configurato. Configura la variabile d\'ambiente con l\'URL AWS.');
-    }
-    console.warn('[Config] NEXT_PUBLIC_AUTH_API_URL non configurato. Imposta la variabile nel .env.local.');
-    return '';
-  }
-
-  return normalizeURL(envUrl);
-};
-
-/**
- * Meilisearch - URL e API Key per ricerca globale (react-instantsearch).
- * Usa NEXT_PUBLIC_MEILISEARCH_URL / NEXT_PUBLIC_MEILISEARCH_API_KEY (Amplify).
- */
-const getMeilisearchHost = (): string => {
-  const url =
-    process.env.NEXT_PUBLIC_MEILISEARCH_URL ||
-    process.env.NEXT_PUBLIC_MEILISEARCH_HOST ||
-    process.env.MEILISEARCH_URL ||
-    process.env.MEILI_URL;
-  if (url) return normalizeURL(url);
-  if (isDevelopment) {
-    console.warn('[Config] NEXT_PUBLIC_MEILISEARCH_URL non configurato. Imposta la variabile nel .env.local.');
-  }
-  return '';
-};
-
-const getMeilisearchApiKey = (): string => {
-  return (
-    process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
-    process.env.MEILISEARCH_API_KEY ||
-    process.env.MEILI_API_KEY ||
-    ''
-  );
-};
-
-export const MEILISEARCH = {
-  host: getMeilisearchHost(),
-  apiKey: getMeilisearchApiKey(),
-  indexName:
-    process.env.NEXT_PUBLIC_MEILISEARCH_INDEX ||
-    process.env.MEILISEARCH_INDEX ||
-    'cards',
-} as const;
-
-/** Alias usato da InstantSearch (indexName non è un segreto). */
-export const MEILISEARCH_PUBLIC_INDEX_NAME = MEILISEARCH.indexName;
-
-// URL delle API
-const authApiURL = getAuthApiURL();
-
-/**
- * Oggetto centralizzato con tutti gli URL delle API
- */
+/** Browser API traffic is always same-origin through the hardened BFF. */
 export const API_URLS = {
-  auth: authApiURL,
+  auth: '',
 } as const;
 
 /**
@@ -133,20 +68,13 @@ export function getCdnVideoUrl(path: string): string {
   return `/images/${p}`;
 }
 
-/**
- * URL del servizio Search Engine (BRX_Search) per operazioni admin (es. reindex).
- * Impostare NEXT_PUBLIC_SEARCH_API_URL nel .env (es. http://localhost:8000 o URL AWS).
- */
-export const SEARCH_ADMIN_API_URL =
-  process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL || '';
-
 export const config = {
   api: {
-    baseURL: authApiURL,
+    baseURL: '',
     timeout: 30000, // 30 secondi
   },
   auth: {
-    baseURL: authApiURL,
+    baseURL: '',
     tokenKey: 'ebartex_access_token',
     refreshTokenKey: 'ebartex_refresh_token',
     userKey: 'ebartex_user',
@@ -154,11 +82,6 @@ export const config = {
   app: {
     name: process.env.NEXT_PUBLIC_APP_NAME || 'Ebartex',
     version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
-  },
-  meilisearch: {
-    url: MEILISEARCH.host,
-    apiKey: MEILISEARCH.apiKey,
-    indexName: MEILISEARCH.indexName,
   },
   debug: {
     isDevelopment,

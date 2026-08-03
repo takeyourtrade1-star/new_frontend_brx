@@ -8,8 +8,6 @@ import type {
   LoginCredentials,
   RegisterData,
   VerifyMFAData,
-  TokenResponse,
-  PreAuthTokenResponse,
   UserResponse,
   LoginResponse,
   RegistrationPendingResponse,
@@ -18,45 +16,39 @@ import type {
 import { authApi } from '@/lib/api/auth-client';
 import { parseAuthError } from '@/lib/api/auth-error';
 import { fetchMe } from '@/lib/auth/fetch-me';
+import {
+  purgeLegacyAuthStorage,
+  purgeLegacyMfaStorage,
+} from '@/lib/auth/legacy-token-storage';
+import { purgePrivateBrowserState } from '@/lib/auth/private-browser-state';
 import { normalizeUser, DEFAULT_PREFERENCES } from '@/lib/auth/normalize-user';
-import { stopProactiveRefresh } from '@/lib/api/refresh-token';
 
 /** Promise in-flight per deduplicare chiamate concorrenti a fetchUser */
 let fetchUserPromise: Promise<User | null> | null = null;
-import { config } from '@/lib/config';
 import { isTournamentsTransitionPath } from '@/lib/config/tournaments';
-import {
-  clearMfaPreAuthToken,
-  saveMfaPreAuthToken,
-} from '@/lib/auth/mfa-session';
+
+function clearLegacyMfaPreAuthToken(): void {
+  purgeLegacyMfaStorage();
+}
 
 function clearLegacyStoredTokens(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(config.auth.tokenKey);
-  localStorage.removeItem(config.auth.refreshTokenKey);
-
-  const persistedAuth = localStorage.getItem('ebartex-auth');
-  if (!persistedAuth) return;
-  try {
-    const parsed = JSON.parse(persistedAuth) as { state?: Record<string, unknown> };
-    if (!parsed.state) return;
-    delete parsed.state.accessToken;
-    delete parsed.state.refreshToken;
-    localStorage.setItem('ebartex-auth', JSON.stringify(parsed));
-  } catch {
-    // Lo storage corrotto verrà gestito dal middleware Zustand.
-  }
+  purgeLegacyAuthStorage();
 }
 
 interface AuthState {
   // State
   user: User | null;
-  accessToken: string | null;
+  /**
+   * Compatibilita' temporanea per hook che usano la presenza del vecchio campo
+   * come feature gate. Non contiene mai un JWT o una credenziale.
+   */
+  accessToken: 'cookie-session' | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   // MFA State
-  preAuthToken: string | null;
+  /** Non-secret marker: the real short-lived MFA token is an HttpOnly cookie. */
+  preAuthToken: 'cookie-session' | null;
   mfaRequired: boolean;
   /** Messaggio one-time (es. "Login avvenuto con successo"); non persistito. */
   flashMessage: string | null;
@@ -70,7 +62,7 @@ interface AuthState {
   // Actions
   login: (
     credentials: LoginCredentials
-  ) => Promise<{ mfaRequired: boolean; preAuthToken?: string }>;
+  ) => Promise<{ mfaRequired: boolean }>;
   verifyMFA: (data: VerifyMFAData) => Promise<void>;
   register: (data: RegisterData, idempotencyKey?: string) => Promise<RegistrationResult>;
   /** `silent: true` per i logout automatici (es. sessione scaduta): niente toast di successo. */
@@ -80,7 +72,6 @@ interface AuthState {
   updateUserPreferences: (
     preferences: Partial<UserPreferences>
   ) => void;
-  setToken: (accessToken: string, refreshToken?: string) => void;
   clearError: () => void;
   setFlashMessage: (message: string | null) => void;
   setAuthError: (message: string | null) => void;
@@ -92,7 +83,7 @@ interface AuthState {
   verifyLoginCode: (
     email: string,
     code: string
-  ) => Promise<{ mfaRequired: boolean; preAuthToken?: string }>;
+  ) => Promise<{ mfaRequired: boolean }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -111,8 +102,8 @@ export const useAuthStore = create<AuthState>()(
       registrationFieldErrors: null,
       sessionExpired: false,
 
-      // Initialize auth: il bridge ruota il cookie HttpOnly e restituisce solo
-      // l'access token effimero, poi /me valida la sessione.
+      // Initialize auth: /me valida il cookie HttpOnly. L'interceptor esegue un
+      // singolo refresh cookie-only su 401, senza esporre token al browser.
       initializeAuth: async () => {
         // Elimina eventuali token leggibili lasciati da versioni precedenti.
         clearLegacyStoredTokens();
@@ -120,63 +111,22 @@ export const useAuthStore = create<AuthState>()(
           return;
         }
 
-        let accessToken: string | null = null;
-        // SSO: sessione da tornei.ebartex.com (cookie parent-domain) → stato in memoria
-        if (typeof window !== 'undefined') {
-          try {
-            const bridgeRes = await fetch('/api/auth/bridge', { credentials: 'same-origin' });
-            if (bridgeRes.ok) {
-              const bridgeData = await bridgeRes.json().catch(() => ({}));
-              const bridgedAccess =
-                (bridgeData?.access_token ?? bridgeData?.data?.access_token) as string | undefined;
-              if (bridgedAccess) {
-                authApi.setToken(bridgedAccess);
-                set({ accessToken: bridgedAccess, isAuthenticated: true, sessionExpired: false });
-                accessToken = bridgedAccess;
-              }
-            }
-          } catch {
-            // Nessuna sessione condivisa — utente ospite
-          }
-        }
-
-        if (accessToken) {
-          try {
-            authApi.setToken(accessToken);
-            const normalized = await fetchMe();
-            if (normalized) {
-              set({
-                user: normalized,
-                accessToken: accessToken,
-                isAuthenticated: true,
-                sessionExpired: false,
-              });
-            } else {
-              // Fallback a user cacheato in localStorage
-              const cached =
-                typeof window !== 'undefined'
-                  ? localStorage.getItem(config.auth.userKey)
-                  : null;
-              const cachedUser = cached ? (JSON.parse(cached) as User) : null;
-              if (cachedUser) {
-                set({
-                  user: cachedUser,
-                  accessToken: accessToken,
-                  isAuthenticated: true,
-                  sessionExpired: false,
-                });
-              } else {
-                await get().logout({ silent: true });
-              }
-            }
-          } catch {
-            await get().logout({ silent: true });
-          }
-        } else {
+        try {
+          const normalized = await fetchMe();
+          if (!normalized) throw new Error('Sessione non valida');
+          set({
+            user: normalized,
+            accessToken: 'cookie-session',
+            isAuthenticated: true,
+            isLoading: false,
+            sessionExpired: false,
+          });
+        } catch {
           set({
             user: null,
             accessToken: null,
             isAuthenticated: false,
+            isLoading: false,
             sessionExpired: false,
           });
         }
@@ -186,8 +136,7 @@ export const useAuthStore = create<AuthState>()(
       fetchUser: async (): Promise<User | null> => {
         if (fetchUserPromise) return fetchUserPromise;
 
-        const token = get().accessToken;
-        if (!token) {
+        if (!get().isAuthenticated) {
           set({ isLoading: false });
           return null;
         }
@@ -195,12 +144,11 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         fetchUserPromise = (async (): Promise<User | null> => {
           try {
-            authApi.setToken(token);
             const normalized = await fetchMe();
             if (normalized) {
               set({
                 user: normalized,
-                accessToken: token,
+                accessToken: 'cookie-session',
                 isAuthenticated: true,
                 isLoading: false,
                 error: null,
@@ -229,7 +177,7 @@ export const useAuthStore = create<AuthState>()(
 
       // Login
       login: async (credentials: LoginCredentials) => {
-        clearMfaPreAuthToken();
+        clearLegacyMfaPreAuthToken();
         set({
           isLoading: true,
           error: null,
@@ -266,16 +214,10 @@ export const useAuthStore = create<AuthState>()(
             response &&
             typeof response === 'object' &&
             'mfa_required' in response &&
-            (response as PreAuthTokenResponse).mfa_required === true &&
-            'pre_auth_token' in response &&
-            typeof (response as PreAuthTokenResponse).pre_auth_token === 'string'
+            (response as { mfa_required?: unknown }).mfa_required === true
           ) {
-            const pre = (response as PreAuthTokenResponse).pre_auth_token;
-            // Nessun access token valido in questo step: evita Bearer vecchi → 401 → forceLogout su /me
-            authApi.clearToken();
-            saveMfaPreAuthToken(pre);
             set({
-              preAuthToken: pre,
+              preAuthToken: 'cookie-session',
               mfaRequired: true,
               isLoading: false,
               error: null,
@@ -285,58 +227,40 @@ export const useAuthStore = create<AuthState>()(
             });
             return {
               mfaRequired: true,
-              preAuthToken: pre,
             };
           }
 
-          // Handle direct login response (Scenario 1)
-          if (
-            response &&
-            typeof response === 'object' &&
-            'access_token' in response
-          ) {
-            const { access_token } = response as TokenResponse;
-
-            if (access_token) {
-              authApi.setToken(access_token);
-
-              // Set authenticated immediately, fetch user in background
-              set({
-                user: null,
-                accessToken: access_token,
-                isAuthenticated: true,
-                isLoading: false,
-                error: null,
-                flashMessage: 'Login avvenuto con successo',
-              });
-
-              // Fetch user from /me endpoint with timeout
-              try {
-                const mePromise = fetchMe();
-                const timeoutPromise = new Promise<never>((_, reject) =>
-                  setTimeout(() => reject(new Error('me-timeout')), 8000)
-                );
-                const normalized = await Promise.race([mePromise, timeoutPromise]);
-                set({ user: normalized });
-              } catch (meError) {
-                console.error('[authStore.login] /me fetch failed:', meError);
-              }
-              return { mfaRequired: false };
-            } else {
-              throw new Error('Login fallito: token mancanti');
-            }
-          } else {
+          const authenticated =
+            Boolean((raw as { authenticated?: unknown })?.authenticated) ||
+            Boolean((response as { authenticated?: unknown })?.authenticated);
+          if (!authenticated) {
             throw new Error('Risposta login non valida');
           }
+
+          let normalized: User | null = null;
+          try {
+            normalized = await fetchMe();
+          } catch (meError) {
+            console.error('[authStore.login] /me fetch failed:', meError);
+          }
+          set({
+            user: normalized,
+            accessToken: 'cookie-session',
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            flashMessage: 'Login avvenuto con successo',
+          });
+          return { mfaRequired: false };
         } catch (error) {
           const parsed = parseAuthError(error);
           console.error('[authStore.login] Error:', parsed.status, parsed.message);
 
-          clearMfaPreAuthToken();
           set({
             isLoading: false,
             error: parsed.message,
             isAuthenticated: false,
+            accessToken: null,
             mfaRequired: false,
             preAuthToken: null,
           });
@@ -350,38 +274,29 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = (await authApi.post(
+          const response = (await authApi.post<{ authenticated?: boolean }>(
             '/api/auth/verify-mfa',
             data
-          )) as TokenResponse;
+          ));
+          if (!response.authenticated) throw new Error('Verifica MFA fallita');
 
-          const { access_token } = response;
-
-          if (access_token) {
-            authApi.setToken(access_token);
-
-            // Fetch user from /me endpoint
-            let normalized: User | null = null;
-            try {
-              normalized = await fetchMe();
-            } catch (meError) {
-              // If /me fails, still set authenticated but without user
-            }
-
-            clearMfaPreAuthToken();
-            set({
-              user: normalized,
-              accessToken: access_token,
-              isAuthenticated: true,
-              mfaRequired: false,
-              preAuthToken: null,
-              isLoading: false,
-              error: null,
-              flashMessage: 'Autenticazione completata con successo',
-            });
-          } else {
-            throw new Error('Verifica MFA fallita: token mancanti');
+          let normalized: User | null = null;
+          try {
+            normalized = await fetchMe();
+          } catch {
+            // La sessione cookie resta valida; /me verra' ritentato dalla UI.
           }
+
+          set({
+            user: normalized,
+            accessToken: 'cookie-session',
+            isAuthenticated: true,
+            mfaRequired: false,
+            preAuthToken: null,
+            isLoading: false,
+            error: null,
+            flashMessage: 'Autenticazione completata con successo',
+          });
         } catch (error) {
           const parsed = parseAuthError(error);
 
@@ -389,6 +304,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: parsed.message,
             isAuthenticated: false,
+            accessToken: null,
           });
 
           throw error;
@@ -407,7 +323,7 @@ export const useAuthStore = create<AuthState>()(
           };
 
           const response = await authApi.post<
-            UserResponse | TokenResponse | RegistrationPendingResponse
+            UserResponse | RegistrationPendingResponse | { authenticated: true }
           >(
             '/api/auth/register',
             payload,
@@ -425,12 +341,7 @@ export const useAuthStore = create<AuthState>()(
             return response;
           }
 
-          // Se la registrazione restituisce token (auto-login), gestiscili
-          if ('access_token' in response) {
-            const { access_token } = response;
-            authApi.setToken(access_token);
-
-            // Fetch user
+          if ('authenticated' in response && response.authenticated === true) {
             let normalized: User | null = null;
             try {
               normalized = await fetchMe();
@@ -439,7 +350,7 @@ export const useAuthStore = create<AuthState>()(
             }
             set({
               user: normalized,
-              accessToken: access_token,
+              accessToken: 'cookie-session',
               isAuthenticated: true,
               isLoading: false,
               error: null,
@@ -482,22 +393,18 @@ export const useAuthStore = create<AuthState>()(
 
       // Logout
       logout: async (opts) => {
-        const accessToken = get().accessToken;
-
+        // Purge readable/private browser state before the first network await.
+        clearLegacyStoredTokens();
+        clearLegacyMfaPreAuthToken();
+        purgePrivateBrowserState();
         // Chiama l'endpoint di logout per invalidare la sessione sul server
-        if (accessToken || get().isAuthenticated) {
+        if (get().isAuthenticated) {
           try {
             await authApi.post('/api/auth/logout', {});
           } catch (error) {
             // Anche se il logout fallisce, procediamo con la pulizia client-side
           }
         }
-
-        // Pulisci i token e lo stato (anche se il logout API è fallito)
-        authApi.clearToken();
-        clearLegacyStoredTokens();
-        stopProactiveRefresh();
-        clearMfaPreAuthToken();
 
         set({
           user: null,
@@ -515,13 +422,7 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user: User) => {
         const normalized = normalizeUser(user);
         if (normalized) {
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(
-              config.auth.userKey,
-              JSON.stringify(normalized)
-            );
-          }
-          set({ user: normalized, isAuthenticated: true });
+          set({ user: normalized, accessToken: 'cookie-session', isAuthenticated: true });
         }
       },
 
@@ -541,14 +442,6 @@ export const useAuthStore = create<AuthState>()(
                 false,
             },
           };
-          if (typeof window !== 'undefined') {
-            try {
-              localStorage.setItem(
-                config.auth.userKey,
-                JSON.stringify(updatedUser)
-              );
-            } catch (_) {}
-          }
           return { user: updatedUser };
         });
       },
@@ -557,25 +450,8 @@ export const useAuthStore = create<AuthState>()(
         set((state) => {
           if (!state.user) return state;
           const updatedUser = { ...state.user, name };
-          if (typeof window !== 'undefined') {
-            try {
-              localStorage.setItem(
-                config.auth.userKey,
-                JSON.stringify(updatedUser)
-              );
-            } catch (_) {}
-          }
           return { user: updatedUser };
         });
-      },
-
-      // Set token
-      setToken: (accessToken: string, refreshToken?: string) => {
-        authApi.setToken(accessToken, refreshToken);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(config.auth.refreshTokenKey);
-        }
-        set({ accessToken: accessToken, isAuthenticated: true });
       },
 
       // Clear error (e errori per campo registrazione)
@@ -594,7 +470,7 @@ export const useAuthStore = create<AuthState>()(
       },
       // Gestione scadenza sessione (es. 401 globali)
       handleSessionExpired: () => {
-        clearMfaPreAuthToken();
+        purgePrivateBrowserState();
         set({
           sessionExpired: true,
           user: null,
@@ -623,7 +499,7 @@ export const useAuthStore = create<AuthState>()(
 
       // Verify login code (passwordless)
       verifyLoginCode: async (email: string, code: string) => {
-        clearMfaPreAuthToken();
+        clearLegacyMfaPreAuthToken();
         set({
           isLoading: true,
           error: null,
@@ -633,10 +509,11 @@ export const useAuthStore = create<AuthState>()(
         });
 
         try {
-          const raw = (await authApi.verifyLoginCode(email, code)) as
-            | TokenResponse
-            | PreAuthTokenResponse
-            | Record<string, unknown>;
+          const raw = (await authApi.verifyLoginCode(email, code)) as {
+            authenticated?: boolean;
+            mfa_required?: boolean;
+            data?: unknown;
+          };
 
           const response = (raw as { data?: unknown }).data ?? raw;
 
@@ -645,15 +522,10 @@ export const useAuthStore = create<AuthState>()(
             response &&
             typeof response === 'object' &&
             'mfa_required' in response &&
-            (response as PreAuthTokenResponse).mfa_required === true &&
-            'pre_auth_token' in response &&
-            typeof (response as PreAuthTokenResponse).pre_auth_token === 'string'
+            (response as { mfa_required?: unknown }).mfa_required === true
           ) {
-            const pre = (response as PreAuthTokenResponse).pre_auth_token;
-            authApi.clearToken();
-            saveMfaPreAuthToken(pre);
             set({
-              preAuthToken: pre,
+              preAuthToken: 'cookie-session',
               mfaRequired: true,
               isLoading: false,
               error: null,
@@ -661,48 +533,37 @@ export const useAuthStore = create<AuthState>()(
               user: null,
               accessToken: null,
             });
-            return { mfaRequired: true, preAuthToken: pre };
+            return { mfaRequired: true };
           }
 
-          // Handle direct login response
-          if (
-            response &&
-            typeof response === 'object' &&
-            'access_token' in response
-          ) {
-            const { access_token } = response as TokenResponse;
-
-            if (access_token) {
-              authApi.setToken(access_token);
-
-              let normalized: User | null = null;
-              try {
-                normalized = await fetchMe();
-              } catch {
-                // ignore
-              }
-              set({
-                user: normalized,
-                accessToken: access_token,
-                isAuthenticated: true,
-                isLoading: false,
-                error: null,
-                flashMessage: 'Login avvenuto con successo',
-              });
-              return { mfaRequired: false };
-            } else {
-              throw new Error('Login fallito: token mancanti');
-            }
-          } else {
+          const authenticated =
+            Boolean((raw as { authenticated?: unknown })?.authenticated) ||
+            Boolean((response as { authenticated?: unknown })?.authenticated);
+          if (!authenticated) {
             throw new Error('Risposta login non valida');
           }
+          let normalized: User | null = null;
+          try {
+            normalized = await fetchMe();
+          } catch {
+            // La sessione cookie resta valida; /me verra' ritentato.
+          }
+          set({
+            user: normalized,
+            accessToken: 'cookie-session',
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            flashMessage: 'Login avvenuto con successo',
+          });
+          return { mfaRequired: false };
         } catch (error) {
           const parsed = parseAuthError(error);
-          clearMfaPreAuthToken();
           set({
             isLoading: false,
             error: parsed.message,
             isAuthenticated: false,
+            accessToken: null,
             mfaRequired: false,
             preAuthToken: null,
           });
@@ -713,20 +574,15 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'ebartex-auth',
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-        // NB: preAuthToken/mfaRequired NON vengono persistiti qui: il flusso MFA
-        // tra reload vive in sessionStorage (lib/auth/mfa-session.ts, superficie
-        // ridotta) e la pagina verify-mfa lo ripristina nello store al mount.
-      }),
-      merge: (persisted, current) => ({
+      // La sessione e i dati personali vengono sempre ricavati da /me. Lo
+      // storage serve soltanto a sovrascrivere e ripulire payload legacy.
+      partialize: () => ({}),
+      merge: (_persisted, current) => ({
         ...current,
-        user: (persisted as { user: User | null }).user ?? null,
+        user: null,
         accessToken: null,
-        isAuthenticated:
-          (persisted as { isAuthenticated: boolean }).isAuthenticated ?? false,
-        flashMessage: null, // Non persistire flashMessage
+        isAuthenticated: false,
+        flashMessage: null,
       }),
     }
   )

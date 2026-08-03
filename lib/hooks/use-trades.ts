@@ -3,21 +3,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tradesApi, type TradeListParams } from '@/lib/api/trades-client';
 import type { CreateTradeInput, TradeAddress, TradeResponse } from '@/types/trade';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 export const tradeKeys = {
   all: ['trades'] as const,
-  list: (params?: TradeListParams) => ['trades', 'list', params ?? {}] as const,
-  detail: (id: number) => ['trades', 'detail', id] as const,
-  history: (id: number) => ['trades', 'history', id] as const,
+  list: (owner: string, params?: TradeListParams) => ['trades', owner, 'list', params ?? {}] as const,
+  detail: (owner: string, id: number) => ['trades', owner, 'detail', id] as const,
+  history: (owner: string, id: number) => ['trades', owner, 'history', id] as const,
 };
 
 export function useTrades(params?: TradeListParams) {
-  return useQuery({ queryKey: tradeKeys.list(params), queryFn: () => tradesApi.list(params), staleTime: 15_000 });
+  const owner = useAuthStore((state) => state.user?.id || 'anonymous');
+  return useQuery({ queryKey: tradeKeys.list(owner, params), queryFn: () => tradesApi.list(params), staleTime: 15_000 });
 }
 
 export function useTrade(tradeId: number) {
+  const owner = useAuthStore((state) => state.user?.id || 'anonymous');
   return useQuery({
-    queryKey: tradeKeys.detail(tradeId),
+    queryKey: tradeKeys.detail(owner, tradeId),
     queryFn: () => tradesApi.get(tradeId),
     enabled: tradeId > 0,
     staleTime: 10_000,
@@ -26,8 +29,9 @@ export function useTrade(tradeId: number) {
 }
 
 export function useTradeHistory(tradeId: number) {
+  const owner = useAuthStore((state) => state.user?.id || 'anonymous');
   return useQuery({
-    queryKey: tradeKeys.history(tradeId),
+    queryKey: tradeKeys.history(owner, tradeId),
     queryFn: () => tradesApi.history(tradeId),
     enabled: tradeId > 0,
     staleTime: 30_000,

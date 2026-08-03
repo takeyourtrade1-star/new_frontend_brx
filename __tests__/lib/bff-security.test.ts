@@ -57,6 +57,13 @@ const INVALID_COOKIE = 'ebartex_access_token=';
 const VALID_PAIRING_SESSION_ID = '12345678-1234-4234-8234-123456789abc';
 const VALID_PAIRING_TOKEN = 'abcdefghijklmnopqrstuvwxyz123456';
 
+function jsonResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 // ─── env setup ────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -64,10 +71,11 @@ beforeEach(() => {
   // 1. lib/config.ts non lancia per NEXT_PUBLIC_AUTH_API_URL mancante
   // 2. Il cookie name non usa il prefisso __Host- (richiede HTTPS)
   (process.env as Record<string, string>).NODE_ENV = 'development';
-  process.env.NEXT_PUBLIC_AUTH_API_URL = 'http://auth-api.test';
-  process.env.AUCTION_API_URL = 'http://auction-api.test';
-  process.env.MARKETPLACE_API_URL = 'http://marketplace-api.test';
-  process.env.SYNC_API_URL = 'http://sync-api.test';
+  process.env.NEXT_PUBLIC_AUTH_API_URL = 'http://127.0.0.1:8000';
+  process.env.AUTH_API_URL = 'http://127.0.0.1:8000';
+  process.env.AUCTION_API_URL = 'http://127.0.0.1:8001';
+  process.env.MARKETPLACE_API_URL = 'http://127.0.0.1:8002';
+  process.env.SYNC_API_URL = 'http://127.0.0.1:8003';
   // Default fetch mock: sovrascritta nei test che simulano risposta backend
   vi.stubGlobal(
     'fetch',
@@ -76,10 +84,12 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   delete (process.env as Record<string, string | undefined>).NODE_ENV;
   delete process.env.NEXT_PUBLIC_AUTH_API_URL;
+  delete process.env.AUTH_API_URL;
   delete process.env.AUCTION_API_URL;
   delete process.env.MARKETPLACE_API_URL;
   delete process.env.SYNC_API_URL;
@@ -115,11 +125,10 @@ describe('/api/orders — sicurezza', () => {
   });
 
   it('passa al backend con cookie valido e risponde 200', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve({ id: '123', status: 'paid' }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ id: '123', status: 'paid' })),
+    );
     const { GET } = await import('@/app/api/orders/[...path]/route');
     const req = makeRequest('/api/orders/123', { cookie: VALID_COOKIE });
     const ctx = { params: Promise.resolve({ path: ['123'] }) };
@@ -154,11 +163,7 @@ describe('/api/disputes — sicurezza', () => {
   });
 
   it('passa al backend con cookie valido', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve([]),
-    }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse([])));
     const { GET } = await import('@/app/api/disputes/route');
     const req = makeRequest('/api/disputes', { cookie: VALID_COOKIE });
     const res = await GET(req);
@@ -168,8 +173,8 @@ describe('/api/disputes — sicurezza', () => {
 
   it('subpath: 401 senza cookie', async () => {
     const { GET } = await import('@/app/api/disputes/[...path]/route');
-    const req = makeRequest('/api/disputes/abc/resolve');
-    const ctx = { params: Promise.resolve({ path: ['abc', 'resolve'] }) };
+    const req = makeRequest('/api/disputes/123');
+    const ctx = { params: Promise.resolve({ path: ['123'] }) };
     const res = await GET(req, ctx);
     expect(res.status).toBe(401);
   });
@@ -187,11 +192,7 @@ describe('/api/notifications — sicurezza', () => {
   });
 
   it('passa al backend con cookie valido', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve({ items: [] }),
-    });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ items: [] }));
     vi.stubGlobal('fetch', fetchMock);
     const { GET } = await import('@/app/api/notifications/route');
     const req = makeRequest('/api/notifications', { cookie: VALID_COOKIE });
@@ -199,9 +200,36 @@ describe('/api/notifications — sicurezza', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toMatch(/no-store/);
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://auction-api.test/notifications',
+      'http://127.0.0.1:8001/notifications',
       expect.objectContaining({ method: 'GET' }),
     );
+  });
+
+  it('applica il timeout anche a un body upstream che stalla dopo gli header', async () => {
+    vi.useFakeTimers();
+    const cancel = vi.fn();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            pull: () => new Promise<void>(() => undefined),
+            cancel,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+    const { GET } = await import('@/app/api/notifications/route');
+    const responsePromise = GET(
+      makeRequest('/api/notifications', { cookie: VALID_COOKIE }),
+    );
+
+    await vi.advanceTimersByTimeAsync(12_000);
+    const response = await responsePromise;
+
+    expect(response.status).toBe(504);
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -210,22 +238,18 @@ describe('/api/notifications — sicurezza', () => {
 describe('/api/saved-auctions — sicurezza', () => {
   it('risponde 401 se nessun cookie', async () => {
     const { GET } = await import('@/app/api/saved-auctions/[...path]/route');
-    const req = makeRequest('/api/saved-auctions/list');
-    const ctx = { params: Promise.resolve({ path: ['list'] }) };
+    const req = makeRequest('/api/saved-auctions/me');
+    const ctx = { params: Promise.resolve({ path: ['me'] }) };
     const res = await GET(req, ctx);
     expect(res.status).toBe(401);
     expect(res.headers.get('cache-control')).toMatch(/no-store/);
   });
 
   it('passa al backend con cookie valido', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve([]),
-    }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse([])));
     const { GET } = await import('@/app/api/saved-auctions/[...path]/route');
-    const req = makeRequest('/api/saved-auctions/list', { cookie: VALID_COOKIE });
-    const ctx = { params: Promise.resolve({ path: ['list'] }) };
+    const req = makeRequest('/api/saved-auctions/me', { cookie: VALID_COOKIE });
+    const ctx = { params: Promise.resolve({ path: ['me'] }) };
     const res = await GET(req, ctx);
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toMatch(/no-store/);
@@ -236,11 +260,10 @@ describe('/api/saved-auctions — sicurezza', () => {
 
 describe('/api/auctions — sicurezza', () => {
   it('root GET pubblico senza cookie passa al backend e risponde 200 se il backend è raggiungibile', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve({ items: [] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ items: [] })),
+    );
     const { GET } = await import('@/app/api/auctions/route');
     const req = makeRequest('/api/auctions');
     const res = await GET(req);
@@ -249,11 +272,10 @@ describe('/api/auctions — sicurezza', () => {
   });
 
   it('subpath GET pubblico senza cookie passa al backend e risponde 200 se il backend è raggiungibile', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve({ id: 'abc123' }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ id: 'abc123' })),
+    );
     const { GET } = await import('@/app/api/auctions/[...path]/route');
     const req = makeRequest('/api/auctions/abc123');
     const ctx = { params: Promise.resolve({ path: ['abc123'] }) };
@@ -271,18 +293,17 @@ describe('/api/auctions — sicurezza', () => {
 
   it('subpath POST senza cookie → 401', async () => {
     const { POST } = await import('@/app/api/auctions/[...path]/route');
-    const req = makeRequest('/api/auctions/abc123/bid', { method: 'POST', body: '{}' });
-    const ctx = { params: Promise.resolve({ path: ['abc123', 'bid'] }) };
+    const req = makeRequest('/api/auctions/abc123/bids', { method: 'POST', body: '{}' });
+    const ctx = { params: Promise.resolve({ path: ['abc123', 'bids'] }) };
     const res = await POST(req, ctx);
     expect(res.status).toBe(401);
   });
 
   it('subpath: risponde 200 con cookie valido', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve({ id: 'abc123' }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ id: 'abc123' })),
+    );
     const { GET } = await import('@/app/api/auctions/[...path]/route');
     const req = makeRequest('/api/auctions/abc123', { cookie: VALID_COOKIE });
     const ctx = { params: Promise.resolve({ path: ['abc123'] }) };
@@ -333,14 +354,14 @@ describe('/api/auctions — guest QR pairing', () => {
     expect(res.status).toBe(502);
   });
 
-  it('GET pairing session con token vuoto viene trattato come GET pubblico → 502', async () => {
+  it('GET pairing session con token vuoto fallisce chiuso → 401', async () => {
     const { GET } = await import('@/app/api/auctions/[...path]/route');
     const req = makeRequest(`/api/auctions/photos/pairing-sessions/${VALID_PAIRING_SESSION_ID}`, {
       headers: { 'X-Pairing-Upload-Token': '' },
     });
     const ctx = { params: Promise.resolve({ path: ['photos', 'pairing-sessions', VALID_PAIRING_SESSION_ID] }) };
     const res = await GET(req, ctx);
-    expect(res.status).toBe(502);
+    expect(res.status).toBe(401);
   });
 
   it('POST photos/init con body mancante → 401', async () => {
@@ -413,8 +434,8 @@ describe('/api/auctions — guest QR pairing', () => {
 describe('/api/sync — sicurezza', () => {
   it('risponde 401 senza cookie', async () => {
     const { GET } = await import('@/app/api/sync/[...path]/route');
-    const req = makeRequest('/api/sync/status');
-    const ctx = { params: Promise.resolve({ path: ['status'] }) };
+    const req = makeRequest('/api/sync/status/user_123');
+    const ctx = { params: Promise.resolve({ path: ['status', 'user_123'] }) };
     const res = await GET(req, ctx);
     expect(res.status).toBe(401);
     expect(res.headers.get('cache-control')).toMatch(/no-store/);
@@ -427,8 +448,8 @@ describe('/api/sync — sicurezza', () => {
       return Promise.reject(err);
     }));
     const { GET } = await import('@/app/api/sync/[...path]/route');
-    const req = makeRequest('/api/sync/status', { cookie: VALID_COOKIE });
-    const ctx = { params: Promise.resolve({ path: ['status'] }) };
+    const req = makeRequest('/api/sync/status/user_123', { cookie: VALID_COOKIE });
+    const ctx = { params: Promise.resolve({ path: ['status', 'user_123'] }) };
     const res = await GET(req, ctx);
     expect(res.status).toBe(504);
   });
@@ -438,10 +459,10 @@ describe('/api/sync — sicurezza', () => {
     const req = makeRequest('/api/sync/status', { cookie: VALID_COOKIE });
     const scope = `sync-exhausted-${Date.now()}`;
     for (let i = 0; i < 30; i++) {
-      const result = checkRateLimit(req, { scope, limit: 30, windowMs: 60_000 });
+      const result = await checkRateLimit(req, { scope, limit: 30, windowMs: 60_000 });
       expect(result.allowed).toBe(true);
     }
-    const blocked = checkRateLimit(req, { scope, limit: 30, windowMs: 60_000 });
+    const blocked = await checkRateLimit(req, { scope, limit: 30, windowMs: 60_000 });
     expect(blocked.allowed).toBe(false);
     expect(blocked.remaining).toBe(0);
     expect(blocked.retryAfterSec).toBeGreaterThan(0);
@@ -452,28 +473,25 @@ describe('/api/sync — sicurezza', () => {
 
 describe('/api/auth/bridge — sicurezza', () => {
   it('risponde 401 senza refresh cookie', async () => {
-    const { GET } = await import('@/app/api/auth/bridge/route');
-    const req = makeRequest('/api/auth/bridge');
-    const res = await GET(req);
+    const { POST } = await import('@/app/api/auth/bridge/route');
+    const req = makeRequest('/api/auth/bridge', { method: 'POST' });
+    const res = await POST(req);
     expect(res.status).toBe(401);
   });
 
   it('risponde 200 con refresh cookie valido e setta i cookie di sessione', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
         access_token: 'new_access_token',
         refresh_token: 'new_refresh_token',
         expires_in: 3600,
-      }),
-    }));
-    const { GET } = await import('@/app/api/auth/bridge/route');
-    const req = makeRequest('/api/auth/bridge', { cookie: VALID_REFRESH_COOKIE });
-    const res = await GET(req);
+      })));
+    const { POST } = await import('@/app/api/auth/bridge/route');
+    const req = makeRequest('/api/auth/bridge', { method: 'POST', cookie: VALID_REFRESH_COOKIE });
+    const res = await POST(req);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.access_token).toBe('new_access_token');
+    expect(body).toEqual({ authenticated: true });
+    expect(body.access_token).toBeUndefined();
     expect(body.refresh_token).toBeUndefined();
     const setCookie = res.headers.get('set-cookie');
     expect(setCookie).toBeTruthy();
@@ -482,22 +500,21 @@ describe('/api/auth/bridge — sicurezza', () => {
   });
 
   it('risponde 502 se il backend refresh non restituisce i token', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve({ detail: 'ok' }),
-    }));
-    const { GET } = await import('@/app/api/auth/bridge/route');
-    const req = makeRequest('/api/auth/bridge', { cookie: VALID_REFRESH_COOKIE });
-    const res = await GET(req);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ detail: 'ok' })),
+    );
+    const { POST } = await import('@/app/api/auth/bridge/route');
+    const req = makeRequest('/api/auth/bridge', { method: 'POST', cookie: VALID_REFRESH_COOKIE });
+    const res = await POST(req);
     expect(res.status).toBe(502);
   });
 
   it('risponde 502 su errore di rete dal backend auth', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')));
-    const { GET } = await import('@/app/api/auth/bridge/route');
-    const req = makeRequest('/api/auth/bridge', { cookie: VALID_REFRESH_COOKIE });
-    const res = await GET(req);
+    const { POST } = await import('@/app/api/auth/bridge/route');
+    const req = makeRequest('/api/auth/bridge', { method: 'POST', cookie: VALID_REFRESH_COOKIE });
+    const res = await POST(req);
     expect(res.status).toBe(502);
     expect(await res.json()).toEqual({
       detail: 'Authentication service unavailable',
@@ -508,9 +525,9 @@ describe('/api/auth/bridge — sicurezza', () => {
     const timeoutError = new Error('upstream details must not leak');
     timeoutError.name = 'AbortError';
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(timeoutError));
-    const { GET } = await import('@/app/api/auth/bridge/route');
-    const req = makeRequest('/api/auth/bridge', { cookie: VALID_REFRESH_COOKIE });
-    const res = await GET(req);
+    const { POST } = await import('@/app/api/auth/bridge/route');
+    const req = makeRequest('/api/auth/bridge', { method: 'POST', cookie: VALID_REFRESH_COOKIE });
+    const res = await POST(req);
 
     expect(res.status).toBe(504);
     expect(await res.json()).toEqual({
@@ -523,14 +540,12 @@ describe('/api/auth/bridge — sicurezza', () => {
 
 describe('/api/marketplace — cache pubblica e sicurezza privata', () => {
   it('listings/public/* → 200 con cache pubblica s-maxage=30', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve({ items: [] }),
-    }) as typeof fetch;
+    global.fetch = vi.fn().mockResolvedValue(
+      jsonResponse({ items: [] }),
+    ) as typeof fetch;
     const { GET } = await import('@/app/api/marketplace/[...path]/route');
-    const req = makeRequest('/api/marketplace/listings/public/cards');
-    const ctx = { params: Promise.resolve({ path: ['listings', 'public', 'cards'] }) };
+    const req = makeRequest('/api/marketplace/listings/public/by-blueprint/123');
+    const ctx = { params: Promise.resolve({ path: ['listings', 'public', 'by-blueprint', '123'] }) };
     const res = await GET(req, ctx);
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toMatch(/public/);
@@ -539,8 +554,8 @@ describe('/api/marketplace — cache pubblica e sicurezza privata', () => {
 
   it('route privata senza cookie → 401', async () => {
     const { GET } = await import('@/app/api/marketplace/[...path]/route');
-    const req = makeRequest('/api/marketplace/my-listings');
-    const ctx = { params: Promise.resolve({ path: ['my-listings'] }) };
+    const req = makeRequest('/api/marketplace/listings');
+    const ctx = { params: Promise.resolve({ path: ['listings'] }) };
     const res = await GET(req, ctx);
     expect(res.status).toBe(401);
   });
@@ -548,14 +563,10 @@ describe('/api/marketplace — cache pubblica e sicurezza privata', () => {
   it('route privata con cookie valido → no-store', async () => {
     // resetModules per evitare che il modulo in cache usi il fetch precedente
     vi.resetModules();
-    global.fetch = vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve([]),
-    }) as typeof fetch;
+    global.fetch = vi.fn().mockResolvedValue(jsonResponse([])) as typeof fetch;
     const { GET } = await import('@/app/api/marketplace/[...path]/route');
-    const req = makeRequest('/api/marketplace/my-listings', { cookie: VALID_COOKIE });
-    const ctx = { params: Promise.resolve({ path: ['my-listings'] }) };
+    const req = makeRequest('/api/marketplace/listings', { cookie: VALID_COOKIE });
+    const ctx = { params: Promise.resolve({ path: ['listings'] }) };
     const res = await GET(req, ctx);
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toMatch(/no-store/);
@@ -579,7 +590,7 @@ describe('Rate limiting — checkRateLimit + rateLimitExceededResponse', () => {
   it('checkRateLimit ritorna allowed:true entro la finestra', async () => {
     const { checkRateLimit } = await import('@/app/api/_lib/rate-limit');
     const req = makeRequest('/api/orders/list', { cookie: VALID_COOKIE });
-    const result = checkRateLimit(req, { scope: 'test-scope-unique', limit: 5, windowMs: 60_000 });
+    const result = await checkRateLimit(req, { scope: 'test-scope-unique', limit: 5, windowMs: 60_000 });
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBe(4);
   });
@@ -589,9 +600,11 @@ describe('Rate limiting — checkRateLimit + rateLimitExceededResponse', () => {
     const req = makeRequest('/api/orders/list', { cookie: VALID_COOKIE });
     const scope = `test-exhausted-${Date.now()}`;
     // Consuma tutti i token
-    for (let i = 0; i < 3; i++) checkRateLimit(req, { scope, limit: 3, windowMs: 60_000 });
+    for (let i = 0; i < 3; i++) {
+      await checkRateLimit(req, { scope, limit: 3, windowMs: 60_000 });
+    }
     // La quarta deve fallire
-    const result = checkRateLimit(req, { scope, limit: 3, windowMs: 60_000 });
+    const result = await checkRateLimit(req, { scope, limit: 3, windowMs: 60_000 });
     expect(result.allowed).toBe(false);
     expect(result.remaining).toBe(0);
     expect(result.retryAfterSec).toBeGreaterThan(0);
@@ -638,12 +651,10 @@ describe('/api/trades - sicurezza privata', () => {
     expect(res.status).toBe(401);
   });
 
-  it('inoltra le chiavi di idempotenza e tracciamento', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      json: () => Promise.resolve({ success: true, data: {} }),
-    });
+  it('inoltra idempotency validata e scarta request-id controllato dal client', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ success: true, data: {} }),
+    );
     vi.stubGlobal('fetch', fetchMock);
     const { POST } = await import('@/app/api/trades/route');
     const res = await POST(makeRequest('/api/trades', {
@@ -658,9 +669,10 @@ describe('/api/trades - sicurezza privata', () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           'Idempotency-Key': 'trade-key',
-          'X-Request-ID': 'request-key',
         }),
       }),
     );
+    const forwarded = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit).headers);
+    expect(forwarded.has('X-Request-ID')).toBe(false);
   });
 });

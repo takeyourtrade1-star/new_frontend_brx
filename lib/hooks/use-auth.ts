@@ -11,6 +11,7 @@ import type {
   LoginCredentials,
   RegisterData,
   VerifyMFAData,
+  MFAEnableData,
   MFAEnableResponse,
   MFAVerifySetupData,
   MFADisableData,
@@ -69,8 +70,8 @@ export function useVerifyMFA() {
  */
 export function useEnableMFA() {
   return useMutation({
-    mutationFn: async (): Promise<MFAEnableResponse> => {
-      const response = await authApi.post<MFAEnableResponse>('/api/auth/mfa/enable', {});
+    mutationFn: async (data: MFAEnableData): Promise<MFAEnableResponse> => {
+      const response = await authApi.post<MFAEnableResponse>('/api/auth/mfa/enable', data);
       return response;
     },
   });
@@ -84,9 +85,9 @@ export function useVerifyMFASetup() {
 
   return useMutation({
     mutationFn: async (data: MFAVerifySetupData): Promise<void> => {
-      // L'API FastAPI espone mfa_code come query param, non come JSON body (vedi verify_mfa_setup_endpoint).
-      const qs = new URLSearchParams({ mfa_code: data.mfa_code });
-      await authApi.post(`/api/auth/mfa/verify?${qs.toString()}`, {});
+      // TOTP values are credentials: keep them in the no-store request body so
+      // proxies, access logs and referrers never receive them as URL data.
+      await authApi.post('/api/auth/mfa/verify', { mfa_code: data.mfa_code });
     },
     onSuccess: () => {
       // Invalida la query dell'utente per aggiornare mfa_enabled
@@ -170,4 +171,3 @@ export function useVerifyLoginCode() {
     },
   });
 }
-

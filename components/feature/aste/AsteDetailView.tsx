@@ -24,7 +24,9 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
 import { useAuctionSaved } from '@/hooks/aste/useAuctionSaved';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
+import { MissingPage } from '@/components/shared/MissingPage';
 import { useEnrichedAuction, useEnrichedAuctions, useEnrichedBidRows } from '@/lib/hooks/use-enriched-auctions';
+import { resolveAuctionDetailLoadState } from '@/lib/auction/auction-detail-load-state';
 import {
   formatAuctionEur,
   resolveShippingCost,
@@ -56,7 +58,13 @@ import { scheduleFakeOutbidNotification } from '@/lib/notifications/fake-outbid-
 export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const { t } = useTranslation();
   const numericId = parseInt(auctionId, 10);
-  const { data: detailRes, isLoading } = useAuctionDetail(Number.isNaN(numericId) ? 0 : numericId);
+  const {
+    data: detailRes,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useAuctionDetail(Number.isNaN(numericId) ? 0 : numericId);
   const { data: bidsRes } = useAuctionBids(Number.isNaN(numericId) ? 0 : numericId, { limit: 50 });
   useAuctionWebSocket(Number.isNaN(numericId) ? 0 : numericId);
   const currentUser = useAuthStore((s) => s.user);
@@ -80,7 +88,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         }),
     [bidsRes]
   );
-  const detail = useEnrichedAuction(baseDetail);
+  const enrichedDetail = useEnrichedAuction(baseDetail);
+  // Public-user enrichment is optional presentation data. The backend detail
+  // is already safe to render while enrichment is pending or unavailable.
+  const detail = enrichedDetail ?? baseDetail;
   const bidRows = useEnrichedBidRows(baseBidRows);
 
   const detailImages = useMemo(() => {
@@ -317,13 +328,42 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     previousProxyBidOutbidRef.current = proxyBidOutbid;
   }, [proxyBidOutbid]);
 
-  if (isLoading || !detail) {
+  const loadState = resolveAuctionDetailLoadState({
+    hasDetail: detail !== null,
+    isLoading,
+    isError,
+    isValidAuctionId: Number.isSafeInteger(numericId) && numericId > 0,
+  });
+
+  if (loadState === 'loading') {
     return (
       <div className="min-h-screen bg-white">
         <AsteNav />
         <div className="flex min-h-[40vh] items-center justify-center">
           <MascotteLoader size="md" />
         </div>
+      </div>
+    );
+  }
+
+  if (loadState === 'error' || !detail) {
+    return (
+      <div className="min-h-screen bg-white">
+        <AsteNav />
+        <MissingPage
+          title={t('pages.error.asteDetailTitle')}
+          description={t('pages.error.asteDetailDescription')}
+          actions={
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              disabled={isFetching || !Number.isSafeInteger(numericId) || numericId <= 0}
+              className="rounded-full bg-[#FF7300] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#e86800] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t('pages.error.retry')}
+            </button>
+          }
+        />
       </div>
     );
   }

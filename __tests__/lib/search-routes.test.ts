@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET as searchGET } from '@/app/api/search/route';
 import { POST as autocompletePOST } from '@/app/api/search/autocomplete/route';
+import { POST as cardsByIdsPOST } from '@/app/api/search/cards-by-ids/route';
 import { POST as scannerCandidatesPOST } from '@/app/api/search/scanner-candidates/route';
 import * as meiliServerEnv from '@/lib/meilisearch-server-env';
 import * as searchUtils from '@/lib/search/search-request-utils';
@@ -337,6 +338,149 @@ describe('Route: POST /api/search/autocomplete', () => {
   });
 });
 
+describe('public POST search request boundary', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(meiliServerEnv.getMeilisearchServerConfig).mockReturnValue({
+      url: 'https://meili.local',
+      apiKey: 'test-key',
+      index: 'cards',
+    });
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  const routes = [
+    {
+      name: 'autocomplete',
+      url: '/api/search/autocomplete',
+      handler: autocompletePOST,
+      body: { requests: [{ params: { query: 'bolt' } }] },
+    },
+    {
+      name: 'cards-by-ids',
+      url: '/api/search/cards-by-ids',
+      handler: cardsByIdsPOST,
+      body: { ids: [1] },
+    },
+    {
+      name: 'scanner-candidates',
+      url: '/api/search/scanner-candidates',
+      handler: scannerCandidatesPOST,
+      body: { items: [{ id: 'scan-1', cardName: 'Bolt' }] },
+    },
+  ] as const;
+
+  it.each(routes)('rejects cross-site $name before upstream work', async (route) => {
+    const request = new NextRequest(`http://localhost:3000${route.url}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://attacker.example',
+        'Sec-Fetch-Site': 'cross-site',
+      },
+      body: JSON.stringify(route.body),
+    });
+
+    const response = await route.handler(request);
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get('cache-control')).toMatch(/no-store/);
+    expect(searchUtils.fetchMeiliWithTimeout).not.toHaveBeenCalled();
+  });
+
+  it.each(routes)('rejects text/plain JSON at $name', async (route) => {
+    const request = new NextRequest(`http://localhost:3000${route.url}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+        Origin: 'http://localhost:3000',
+        'Sec-Fetch-Site': 'same-origin',
+      },
+      body: JSON.stringify(route.body),
+    });
+
+    const response = await route.handler(request);
+
+    expect(response.status).toBe(415);
+    expect(response.headers.get('cache-control')).toMatch(/no-store/);
+    expect(searchUtils.fetchMeiliWithTimeout).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: 'autocomplete unknown top-level key',
+      url: '/api/search/autocomplete',
+      handler: autocompletePOST,
+      body: { requests: [{ params: { query: 'bolt' } }], debug: true },
+    },
+    {
+      name: 'autocomplete malformed nested params',
+      url: '/api/search/autocomplete',
+      handler: autocompletePOST,
+      body: { requests: [{ params: { query: 123 } }] },
+    },
+    {
+      name: 'cards-by-ids coerced identifier',
+      url: '/api/search/cards-by-ids',
+      handler: cardsByIdsPOST,
+      body: { ids: ['1'] },
+    },
+    {
+      name: 'cards-by-ids unknown filter',
+      url: '/api/search/cards-by-ids',
+      handler: cardsByIdsPOST,
+      body: { ids: [1], filterField: 'private_field' },
+    },
+    {
+      name: 'scanner unknown item key',
+      url: '/api/search/scanner-candidates',
+      handler: scannerCandidatesPOST,
+      body: { items: [{ id: 'scan-1', cardName: 'Bolt', admin: true }] },
+    },
+    {
+      name: 'scanner malformed item shape',
+      url: '/api/search/scanner-candidates',
+      handler: scannerCandidatesPOST,
+      body: { items: [{ id: 'scan-1', cardName: 123 }] },
+    },
+  ] as const)('rejects exact-JSON violation: $name', async (testCase) => {
+    const request = new NextRequest(`http://localhost:3000${testCase.url}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testCase.body),
+    });
+
+    const response = await testCase.handler(request);
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get('cache-control')).toMatch(/no-store/);
+    expect(searchUtils.fetchMeiliWithTimeout).not.toHaveBeenCalled();
+  });
+
+  it.each(routes)('returns 408 when the $name request body stalls', async (route) => {
+    vi.useFakeTimers();
+    const stream = new ReadableStream<Uint8Array>({ pull() {} });
+    const request = new NextRequest(
+      new Request(`http://localhost:3000${route.url}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: stream,
+        duplex: 'half',
+      } as RequestInit & { duplex: 'half' }),
+    );
+
+    const pending = route.handler(request);
+    await vi.advanceTimersByTimeAsync(10_001);
+    const response = await pending;
+    vi.useRealTimers();
+
+    expect(response.status).toBe(408);
+    expect(response.headers.get('cache-control')).toMatch(/no-store/);
+    expect(searchUtils.fetchMeiliWithTimeout).not.toHaveBeenCalled();
+  });
+});
+
 describe('Route: POST /api/search/scanner-candidates', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -394,10 +538,11 @@ describe('Route: POST /api/search/scanner-candidates', () => {
     expect(searchUtils.fetchMeiliWithTimeout).toHaveBeenCalledTimes(1);
   });
 
-  it('non interroga il catalogo per un lotto vuoto o non valido', async () => {
+  it('non interroga il catalogo per un lotto vuoto', async () => {
     const request = new NextRequest('http://localhost:3000/api/search/scanner-candidates', {
       method: 'POST',
-      body: JSON.stringify({ items: [{ id: 'scan-1', cardName: '' }] }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: [] }),
     });
     const response = await scannerCandidatesPOST(request);
     expect(response.status).toBe(200);

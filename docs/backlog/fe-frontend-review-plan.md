@@ -411,14 +411,14 @@ Legenda stato: ⬜ TODO · 🔄 In corso · ✅ Fatto · ⏭️ Rimandato
 
 ## P6-A — Sicurezza & Crash (CRITICAL + HIGH)
 
-### FE-REV-024 · CRITICAL · XSS in `href={buyNowUrl}` da backend non validato
+### FE-REV-024 · CRITICAL · XSS in `href={buyNowUrl}` da backend non validato — ✅ chiuso
 | Campo | Valore |
 |-------|--------|
-| **File** | `components/feature/aste/AuctionBidPanel.tsx:506-513` |
-| **Problema** | `buyNowUrl` (campo `buy_now_url` di `AuctionUI`) passato direttamente a `<a href={buyNowUrl}>` senza validazione scheme. Se backend o MITM restituisce `javascript:alert(document.cookie)`, il click esegue codice. |
-| **Soluzione** | Helper `isSafeHref(href)` che accetta solo `^(https?:|mailto:|tel:|/)` o same-origin; guardia condizionale sul render. Aggiungere `rel="noopener noreferrer"` esplicito. |
-| **Verifica** | Unit test: passando `buyNowUrl="javascript:..."` l'`<a>` non viene renderizzato; smoke test su Network tab per assenza di redirect pericolosi. |
-| **Dipendenze** | Nessuna (issue bloccante — aprire PR subito) |
+| **File** | `lib/auction/safe-buy-now-url.ts`, `lib/auction/auction-adapter.ts`, `components/feature/aste/AuctionBidPanel.tsx` |
+| **Problema** | Storico: `buyNowUrl` poteva essere passato direttamente a un link senza validazione dello scheme. |
+| **Soluzione applicata** | Il valore attraversa `getSafeBuyNowUrl`, che accetta soltanto URL assoluti HTTP(S); il pannello renderizza il link solo dopo una seconda validazione al confine UI e usa `rel="noopener noreferrer"`. Il backend applica lo stesso vincolo e scarta i valori legacy non sicuri. |
+| **Verifica** | `__tests__/lib/safe-buy-now-url.test.ts` copre `javascript:`, `data:`, `vbscript:`, URL relativi e valori vuoti; `auction/tests/test_auction_buy_now_url_security.py` verifica anche il contratto backend. |
+| **Dipendenze** | Nessuna; chiuso e coperto da regressione. |
 
 ### FE-REV-025 · HIGH · `ErrorBoundary` assente su pagine critiche
 | Campo | Valore |
@@ -457,6 +457,8 @@ Legenda stato: ⬜ TODO · 🔄 In corso · ✅ Fatto · ⏭️ Rimandato
 | **Dipendenze** | Nessuna |
 
 ### FE-REV-029 · HIGH · `JSON.parse(event.data)` su WS senza validazione shape
+
+**Stato (2026-08-03):** ✅ chiuso. I frame asta e disputa hanno limite UTF-8, allowlist della shape e binding all'ID della risorsa prima di raggiungere lo stato UI.
 | Campo | Valore |
 |-------|--------|
 | **File** | `components/feature/dispute/DisputeDetailContent.tsx:58` |
@@ -735,12 +737,12 @@ Legenda stato: ⬜ TODO · 🔄 In corso · ✅ Fatto · ⏭️ Rimandato
 
 | ID | Sev. | Stato | Note |
 |----|------|-------|------|
-| FE-REV-024 | CRITICAL | ⬜ TODO | XSS `buyNowUrl` — aprire PR subito |
+| FE-REV-024 | CRITICAL | ✅ Fatto | URL HTTP(S) allowlistato nel backend, adapter e render boundary; regressioni frontend/backend presenti |
 | FE-REV-025 | HIGH | ⬜ TODO | ErrorBoundary su 7+ pagine |
 | FE-REV-026 | HIGH | ⬜ TODO | Helper `safeGetItem`/`safeSetItem` |
 | FE-REV-027 | HIGH | ⬜ TODO | Clamp Pagination |
 | FE-REV-028 | HIGH | ⬜ TODO | Clamp ImageLightbox |
-| FE-REV-029 | HIGH | ⬜ TODO | JSON.parse WS shape validation |
+| FE-REV-029 | HIGH | ✅ Fatto | Frame WS bounded, validati e associati alla risorsa attesa |
 | FE-REV-030 | HIGH | ⬜ TODO | `€ NaN` cart |
 | FE-REV-031 | HIGH | ⬜ TODO | Divisione per zero bid |
 | FE-REV-032 | MEDIUM | ⬜ TODO | `useShallow` cart store |
@@ -817,7 +819,7 @@ P6-A (024–031) ──► PR unico sicurezza/crash (8 issue, ~2 gg)
 
 ## Note operative (P6)
 
-- **Priorità immediata:** FE-REV-024 (XSS) → aprire PR-8 il prima possibile, idealmente prima del prossimo deploy.
+- **Stato sicurezza immediata:** FE-REV-024 (XSS URL) e FE-REV-029 (frame WS) sono chiusi e coperti da regressione; gli altri elementi di PR-8 restano backlog di resilienza/UI e vanno valutati separatamente.
 - **Dipendenze forti:** FE-REV-026 (safeStorage) è prerequisito per 027, 028, 050. FE-REV-045 (Wizard Zustand) abilita split efficace del wizard.
 - **Gate qualità per ogni PR:** `npm run typecheck` + `npm run lint` a 0 errori. Se tocchi i18n: `npm run i18n:keys`.
 - **Stima tempi P6:** ~3-4 settimane totali.

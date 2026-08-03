@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { ASSETS } from '@/lib/config';
+import { safePublicImageUrl } from '@/lib/security/catalog-public-data';
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
@@ -31,13 +31,7 @@ export function formatEurCents(cents: number, locale: string = 'it-IT'): string 
  * available. Returns null for empty/missing values.
  */
 export function buildImageUrl(raw: string | null | undefined): string | null {
-  if (raw == null || raw === '') return null;
-  const trimmed = String(raw).trim();
-  if (trimmed.startsWith('http')) return trimmed;
-  const path = trimmed.replace(/^\/img\//, '').replace(/^img\//, '');
-  if (!path) return null;
-  const withSlash = path.startsWith('/') ? path : `/${path}`;
-  return ASSETS.cdnUrl ? `${ASSETS.cdnUrl}${withSlash}` : withSlash;
+  return safePublicImageUrl(raw, 'card');
 }
 
 /**

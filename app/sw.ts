@@ -1,6 +1,10 @@
 import { defaultCache } from '@serwist/next/worker';
 import type { PrecacheEntry } from 'serwist';
 import { Serwist, NetworkOnly } from 'serwist';
+import {
+  isLegacyPrivateRuntimeCache,
+  mustBypassServiceWorkerCache,
+} from '@/lib/security/service-worker-cache-policy';
 
 const manifest = (
   self as unknown as { __SW_MANIFEST: Array<PrecacheEntry | string> | undefined }
@@ -12,15 +16,11 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
-    // Le API private NON devono mai essere cachate dal service worker (rischio di
-    // servire dati privati di altre sessioni). Deve venire PRIMA di defaultCache:
-    // Serwist usa il primo matcher che corrisponde. `/api/search` è pubblico e
-    // resta gestito da defaultCache.
+    // This must precede defaultCache: HTML/RSC/data/API payloads may vary by
+    // HttpOnly cookie while Serwist cache keys do not. Offline HTML is traded
+    // for strict account isolation; the static /offline fallback remains.
     {
-      matcher: ({ url, sameOrigin }) =>
-        sameOrigin &&
-        url.pathname.startsWith('/api/') &&
-        !url.pathname.startsWith('/api/search'),
+      matcher: mustBypassServiceWorkerCache,
       handler: new NetworkOnly(),
     },
     ...defaultCache,
@@ -38,6 +38,26 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+interface ActivateEventLike extends Event {
+  waitUntil(promise: Promise<unknown>): void;
+}
+
+const lifecycleScope = self as unknown as {
+  addEventListener(type: 'activate', listener: (event: ActivateEventLike) => void): void;
+};
+
+lifecycleScope.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((names) =>
+      Promise.all(
+        names
+          .filter(isLegacyPrivateRuntimeCache)
+          .map((name) => caches.delete(name)),
+      ),
+    ),
+  );
+});
 
 // --- Web Push -----------------------------------------------------------
 // Il tsconfig usa lib "dom" (non "webworker"): PushEvent/NotificationEvent non
@@ -106,7 +126,18 @@ swScope.addEventListener('push', (event) => {
 
 swScope.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url ?? '/';
+  const rawUrl = event.notification.data?.url;
+  let url = '/';
+  if (typeof rawUrl === 'string' && rawUrl.startsWith('/')) {
+    try {
+      const parsed = new URL(rawUrl, self.location.origin);
+      if (parsed.origin === self.location.origin) {
+        url = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      }
+    } catch {
+      // Payload invalido: resta sulla home same-origin.
+    }
+  }
   event.waitUntil(
     swScope.clients
       .matchAll({ type: 'window', includeUncontrolled: true })

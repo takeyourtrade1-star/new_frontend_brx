@@ -14,6 +14,7 @@ const withSerwist = withSerwistInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
   // Usa cwd come root per il file tracing; evita che Next.js inferisca la root
   // dalla parent directory quando c'è un package-lock.json superiore.
   outputFileTracingRoot: process.cwd().replace(/\\/g, '/'),
@@ -33,33 +34,30 @@ const nextConfig = {
     // restano `unoptimized` per scelta deliberata del codebase (già su CloudFront).
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
-      { protocol: 'https', hostname: '*.cloudfront.net', pathname: '/**' },
-      { protocol: 'https', hostname: '*.ebartex.com', pathname: '/**' },
-      { protocol: 'https', hostname: 'ebartex.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'di0y87a9s8da9.cloudfront.net', pathname: '/**' },
+      { protocol: 'https', hostname: 'cdn.ebartex.com', pathname: '/**' },
       { protocol: 'https', hostname: 'cards.scryfall.io', pathname: '/**' },
-      { protocol: 'https', hostname: '*.scryfall.io', pathname: '/**' },
-      // set_icon_uri may be stored as direct S3 URLs before/without CloudFront
-      { protocol: 'https', hostname: '*.s3.amazonaws.com', pathname: '/**' },
-      { protocol: 'https', hostname: '*.s3.eu-south-1.amazonaws.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'svgs.scryfall.io', pathname: '/**' },
+      { protocol: 'https', hostname: 'c1.scryfall.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'c2.scryfall.com', pathname: '/**' },
+      {
+        protocol: 'https',
+        hostname: 'ebartex-user-uploads-prod.s3.eu-south-1.amazonaws.com',
+        pathname: '/**',
+      },
       { protocol: 'https', hostname: 'flagcdn.com', pathname: '/**' },
     ],
   },
-  // Usa le stesse variabili del frontend Vite: mappa VITE_* su NEXT_PUBLIC_* per il client
+  // Esporre al browser soltanto configurazione realmente pubblica. Le origini
+  // HTTP dei microservizi restano variabili server-only lette dai route handler.
   env: {
-    NEXT_PUBLIC_AUTH_API_URL: process.env.NEXT_PUBLIC_AUTH_API_URL || process.env.VITE_AWS_AUTH_URL,
     NEXT_PUBLIC_CDN_URL:
       process.env.NEXT_PUBLIC_CDN_URL ||
       process.env.VITE_CDN_URL ||
       process.env.NEXT_PUBLIC_CDN_BASE_URL,
-    NEXT_PUBLIC_MEILISEARCH_URL: process.env.NEXT_PUBLIC_MEILISEARCH_URL || process.env.VITE_MEILISEARCH_URL,
-    NEXT_PUBLIC_MEILISEARCH_HOST: process.env.NEXT_PUBLIC_MEILISEARCH_HOST || process.env.VITE_MEILISEARCH_HOST,
+    NEXT_PUBLIC_AVATAR_ALLOWED_ORIGINS:
+      process.env.NEXT_PUBLIC_AVATAR_ALLOWED_ORIGINS || 'https://cdn.ebartex.com',
     NEXT_PUBLIC_MEILISEARCH_INDEX: process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || process.env.VITE_MEILISEARCH_INDEX,
-    NEXT_PUBLIC_SEARCH_API_URL: process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL,
-    NEXT_PUBLIC_SYNC_API_URL:
-      process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL,
-    NEXT_PUBLIC_AUCTION_API_URL: process.env.NEXT_PUBLIC_AUCTION_API_URL,
-    NEXT_PUBLIC_MARKETPLACE_API_URL: process.env.NEXT_PUBLIC_MARKETPLACE_API_URL,
-    MARKETPLACE_API_URL: process.env.MARKETPLACE_API_URL,
   },
   async headers() {
     // Skip security headers in development for easier debugging
@@ -78,22 +76,6 @@ const nextConfig = {
           {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload',
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
-              "worker-src 'self' blob:",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://*.cloudfront.net https://*.ebartex.com https://flagcdn.com https://cards.scryfall.io https://*.scryfall.io https://c1.scryfall.com https://c2.scryfall.com https://*.s3.amazonaws.com https://*.s3.eu-south-1.amazonaws.com",
-              "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com",
-              "media-src 'self' https://*.cloudfront.net",
-              "connect-src 'self' https://*.ebartex.com https://*.cloudfront.net https://*.meilisearch.com wss://*.ebartex.com https://ebartex-user-uploads-prod.s3.eu-south-1.amazonaws.com https://ebartex-brx-match-data.s3.eu-south-1.amazonaws.com https://ebartex-brx-match-data.s3.amazonaws.com https://*.s3.eu-south-1.amazonaws.com https://*.s3.amazonaws.com",
-              "frame-ancestors 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join('; '),
           },
         ],
       },

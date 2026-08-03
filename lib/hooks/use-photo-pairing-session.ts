@@ -77,8 +77,8 @@ export function usePhotoPairingSession({
   const phonePairingQrUrl = useMemo(() => {
     if (!pairingSessionId || !pairingUploadToken || typeof window === 'undefined') return '';
     const u = new URL(qrBasePath, window.location.origin);
-    u.searchParams.set('sid', pairingSessionId);
-    u.searchParams.set('t', pairingUploadToken);
+    // Keep the capability out of HTTP requests, access logs and Referer headers.
+    u.hash = new URLSearchParams({ sid: pairingSessionId, t: pairingUploadToken }).toString();
     return u.toString();
   }, [pairingSessionId, pairingUploadToken, qrBasePath]);
 

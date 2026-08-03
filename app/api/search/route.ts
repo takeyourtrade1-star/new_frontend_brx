@@ -3,7 +3,7 @@
  * GET /api/search?q=...&game=mtg&set=...&category_id=...&category_ids=1,2,3&page=1&limit=20&sort=...&exact_mode=true&show_similar=true
  *
  * Le credenziali Meilisearch arrivano da getMeilisearchServerConfig() (variabili
- * server-only: MEILISEARCH_URL / MEILISEARCH_API_KEY / MEILISEARCH_INDEX — mai
+ * server-only: MEILISEARCH_URL / MEILISEARCH_SEARCH_API_KEY / MEILISEARCH_INDEX — mai
  * NEXT_PUBLIC_*, che finirebbero nel bundle browser).
  *
  * Tutti i parametri pubblici sono validati/normalizzati (lib/search/search-request-utils)
@@ -13,7 +13,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
 import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
+import { sanitizeCatalogImageFields } from '@/lib/security/catalog-public-data';
 import {
   MeiliFetchError,
   escapeMeiliFilterValue,
@@ -127,11 +130,18 @@ function buildSort(sortBy: string): string[] {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimit = await checkRateLimit(request, {
+    scope: 'search',
+    limit: 120,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit);
+
   const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
 
   if (!MEILI_URL || !MEILI_KEY) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (MEILISEARCH_URL / MEILISEARCH_API_KEY)' },
+      { error: 'Ricerca non disponibile' },
       { status: 503 }
     );
   }
@@ -179,19 +189,21 @@ export async function GET(request: NextRequest) {
     }
     if (!res.ok) {
       return NextResponse.json(
-        { error: `Meilisearch error: ${res.status}` },
+        { error: 'Ricerca non disponibile' },
         { status: publicStatusForMeiliStatus(res.status) }
       );
     }
 
-    const data = (await res.json()) as {
+    const data = (await readJsonResponseWithLimit(res, 2 * 1_024 * 1_024)) as {
       hits: SearchHit[];
       estimatedTotalHits?: number;
       offset?: number;
       limit?: number;
     };
 
-    const hits = Array.isArray(data.hits) ? data.hits : [];
+    const hits = Array.isArray(data.hits)
+      ? data.hits.map((hit) => sanitizeCatalogImageFields(hit))
+      : [];
     const total =
       typeof data.estimatedTotalHits === 'number' ? data.estimatedTotalHits : hits.length;
     const totalPages = Math.ceil(total / limit) || 1;
@@ -231,11 +243,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     if (err instanceof MeiliFetchError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+      return NextResponse.json({ error: 'Ricerca non disponibile' }, { status: err.status });
     }
-    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: 'Ricerca non disponibile', detail: message },
+      { error: 'Ricerca non disponibile' },
       { status: 502 }
     );
   }

@@ -1,4 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
+import {
+  readTextBodyWithLimit,
+  RequestBodyTimeoutError,
+} from '@/app/api/_lib/request-body';
+import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response';
+import { noStoreHeaders } from '@/app/api/_lib/proxy-response';
+import {
+  enforceJsonContentType,
+  enforceSameOrigin,
+} from '@/app/api/_lib/request-security';
 
 import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
 import {
@@ -10,6 +21,7 @@ import {
   publicStatusForMeiliStatus,
 } from '@/lib/search/search-request-utils';
 import type { ScanCatalogCard } from '@/hooks/scanner/scanner-types';
+import { safePublicImageUrl } from '@/lib/security/catalog-public-data';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -48,6 +60,34 @@ export interface ScannerCatalogCandidatesResponse {
 
 function cleanString(value: unknown, maxLength: number): string {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+}
+
+function isBoundedText(value: unknown, maxLength: number, required = false): value is string {
+  if (typeof value !== 'string' || value.length > maxLength || /[\u0000-\u001f\u007f]/u.test(value)) {
+    return false;
+  }
+  return !required || value.trim().length > 0;
+}
+
+function isExactScannerBody(value: unknown): value is { items: unknown[] } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const body = value as Record<string, unknown>;
+  if (Object.keys(body).some((key) => key !== 'items')) return false;
+  if (!Array.isArray(body.items) || body.items.length > MAX_BATCH) return false;
+  const seen = new Set<string>();
+  return body.items.every((raw) => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+    const item = raw as Record<string, unknown>;
+    if (Object.keys(item).some(
+      (key) => !['id', 'cardName', 'setName', 'setCode', 'collectorNumber'].includes(key),
+    )) return false;
+    if (!isBoundedText(item.id, 128, true) || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return isBoundedText(item.cardName, 200, true)
+      && (item.setName === undefined || isBoundedText(item.setName, 200))
+      && (item.setCode === undefined || isBoundedText(item.setCode, 32))
+      && (item.collectorNumber === undefined || isBoundedText(item.collectorNumber, 32));
+  });
 }
 
 function parseDescriptors(value: unknown): ScannerCandidateDescriptor[] {
@@ -95,7 +135,7 @@ function mapHit(hit: CatalogHit): ScanCatalogCard | null {
     setName: cleanString(hit.set_name, 200),
     setCode: cleanString(hit.set_code, 32) || null,
     collectorNumber: cleanString(hit.collector_number, 32) || null,
-    image: cleanString(hit.image, 1_000) || null,
+    image: safePublicImageUrl(hit.image, 'card'),
     availableLanguages: [...new Set(languages)],
     marketPrice: finiteNumber(hit.market_price),
     foilPrice: finiteNumber(hit.foil_price),
@@ -126,11 +166,42 @@ function rankHits(
 }
 
 export async function POST(request: NextRequest) {
+  const requestViolation =
+    enforceSameOrigin(request) ?? enforceJsonContentType(request);
+  if (requestViolation) return requestViolation;
+
+  const rateLimit = await checkRateLimit(request, {
+    scope: 'search:scanner-candidates',
+    limit: 12,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit);
+
   let body: unknown;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'JSON non valido' }, { status: 400 });
+    const bodyResult = await readTextBodyWithLimit(request, 256 * 1024);
+    if (bodyResult.tooLarge) {
+      return NextResponse.json({ error: 'Payload troppo grande' }, { status: 413 });
+    }
+    const parsed = JSON.parse(bodyResult.body || '{}') as unknown;
+    if (!isExactScannerBody(parsed)) {
+      return NextResponse.json(
+        { error: 'Payload non valido' },
+        { status: 400, headers: noStoreHeaders() },
+      );
+    }
+    body = parsed;
+  } catch (error) {
+    if (error instanceof RequestBodyTimeoutError) {
+      return NextResponse.json(
+        { error: 'Timeout lettura richiesta' },
+        { status: 408, headers: noStoreHeaders() },
+      );
+    }
+    return NextResponse.json(
+      { error: 'JSON non valido' },
+      { status: 400, headers: noStoreHeaders() },
+    );
   }
   const descriptors = parseDescriptors(
     body && typeof body === 'object' ? (body as { items?: unknown }).items : null,
@@ -140,7 +211,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { url, apiKey, index } = getMeilisearchServerConfig();
-  if (!url) {
+  if (!url || !apiKey) {
     return NextResponse.json({ error: 'Catalogo non configurato' }, { status: 503 });
   }
 
@@ -182,11 +253,13 @@ export async function POST(request: NextRequest) {
     });
     if (!response.ok) {
       return NextResponse.json(
-        { error: `Catalogo non disponibile (${response.status})` },
+        { error: 'Catalogo non disponibile' },
         { status: publicStatusForMeiliStatus(response.status) },
       );
     }
-    const data = (await response.json()) as { results?: MultiSearchResult[] };
+    const data = (await readJsonResponseWithLimit(response, 4 * 1_024 * 1_024)) as {
+      results?: MultiSearchResult[];
+    };
     const results: Record<string, ScanCatalogCard[]> = {};
     descriptors.forEach((descriptor, indexPosition) => {
       const hits = data.results?.[indexPosition]?.hits ?? [];
@@ -198,7 +271,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     if (error instanceof MeiliFetchError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json({ error: 'Catalogo non disponibile' }, { status: error.status });
     }
     return NextResponse.json({ error: 'Catalogo non disponibile' }, { status: 502 });
   }

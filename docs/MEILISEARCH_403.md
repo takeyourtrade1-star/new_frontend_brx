@@ -1,37 +1,33 @@
-# Errore 403 "The provided API key is invalid"
+# Errore 403 della ricerca
 
-## Perché succede
+## Configurazione sicura
 
-Nel file **`.env`** hai:
+Il browser deve chiamare esclusivamente le route same-origin `/api/search/*`.
+Host e credenziali Meilisearch non devono mai usare variabili `NEXT_PUBLIC_*` o
+`VITE_*`, perché verrebbero incluse nel bundle JavaScript.
+
+Il runtime Next.js accetta soltanto queste variabili server-only:
+
 ```env
-NEXT_PUBLIC_MEILISEARCH_API_KEY=c6f42768c6b5dfae243b86bb87b586729a8728bfaee41df1236bc065e53a15d5
+MEILISEARCH_URL=https://search-internal.example
+MEILISEARCH_INDEX=cards
+MEILISEARCH_SEARCH_API_KEY=<secret-manager-reference>
 ```
 
-Questa chiave era del **vecchio** server Meilisearch. Il **nuovo** server (`35.152.143.30:7700`) è stato creato da Terraform e ha **chiavi diverse**. Quando il frontend invia la chiave vecchia, il nuovo server risponde **403 Forbidden**.
+`MEILISEARCH_SEARCH_API_KEY` deve essere una chiave dedicata con:
 
-## Cosa fare
+- `actions: ["search"]`;
+- `indexes` limitati agli indici pubblici realmente interrogati;
+- nessun permesso `documents.*`, `indexes.*`, `tasks.*`, `keys.*` o `settings.*`.
 
-### Opzione A – Usare la chiave del nuovo server (consigliato)
+Non usare mai la master key o una admin key nel runtime frontend/BFF. Se una
+chiave è stata inserita in una variabile pubblica, in un log o nel repository,
+revocarla e ruotarla prima del deploy: rimuoverla dal file corrente non la
+rimuove dalla cronologia Git né dai bundle già distribuiti.
 
-1. Sul server dove gira Meilisearch (35.152.143.30), recupera la **Master Key** o una **Search API Key** del nuovo Meilisearch.
-2. Nel `.env` del frontend **sostituisci** il valore di `NEXT_PUBLIC_MEILISEARCH_API_KEY` con quella nuova:
-   ```env
-   NEXT_PUBLIC_MEILISEARCH_API_KEY=la_nuova_chiave_qui
-   ```
-3. Riavvia il dev server: `npm run dev`.
+## Diagnosi
 
-### Opzione B – Provare senza chiave
-
-Se sul nuovo Meilisearch la ricerca è consentita senza chiave (configurazione “no master key” o simile):
-
-1. Nel `.env` **elimina** la riga:
-   ```env
-   NEXT_PUBLIC_MEILISEARCH_API_KEY=...
-   ```
-   oppure lasciala vuota:
-   ```env
-   NEXT_PUBLIC_MEILISEARCH_API_KEY=
-   ```
-2. Riavvia: `npm run dev`.
-
-Se dopo aver rimosso la chiave vedi ancora 403, il server richiede una chiave: usa l’**Opzione A** e configura la chiave corretta nel `.env`.
+Un 403 indica normalmente chiave revocata, indice non incluso nello scope o
+azione `search` mancante. Verificare la policy della chiave nel secret store e
+nei log server-side. Le route pubbliche restituiscono deliberatamente soltanto
+un errore generico e non inoltrano il body diagnostico di Meilisearch.

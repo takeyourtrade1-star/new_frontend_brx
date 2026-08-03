@@ -89,16 +89,19 @@ describe('useProductCart', () => {
     });
 
     expect(JSON.parse(window.sessionStorage.getItem('ebartex_trade_proposal_ctx') ?? '{}')).toMatchObject({
-      listing: {
-        id: 'mkt:listing-uuid',
-        source: 'marketplace',
-        sellerId: 's1',
-        quantity: 5,
-      },
-      card: {
-        blueprintId: 42,
-        id: 'mkt:listing-uuid',
-        name: 'Sol Ring',
+      ownerId: 'u1',
+      context: {
+        listing: {
+          id: 'mkt:listing-uuid',
+          source: 'marketplace',
+          sellerId: 's1',
+          quantity: 5,
+        },
+        card: {
+          blueprintId: 42,
+          id: 'mkt:listing-uuid',
+          name: 'Sol Ring',
+        },
       },
     });
     expect(args.router.push).toHaveBeenCalledWith('/scambi/proponi');

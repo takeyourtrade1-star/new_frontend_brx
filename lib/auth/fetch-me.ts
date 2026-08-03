@@ -1,5 +1,4 @@
 import { authApi } from '@/lib/api/auth-client';
-import { config } from '@/lib/config';
 import type { AuthMeResponse, AuthMeUser, User } from '@/types';
 import { normalizeUser } from './normalize-user';
 
@@ -19,13 +18,9 @@ function extractUserFromMeResponse(response: AuthMeResponse): unknown {
   return response;
 }
 
-/** Fetch the current user from /api/auth/me, normalize it and cache to localStorage. */
+/** Fetch and normalize the current user without persisting PII in browser storage. */
 export async function fetchMe(): Promise<User | null> {
   const response = await authApi.get<AuthMeResponse>('/api/auth/me');
   const raw = extractUserFromMeResponse(response);
-  const normalized = normalizeUser(raw as AuthMeUser | null);
-  if (normalized && typeof window !== 'undefined') {
-    localStorage.setItem(config.auth.userKey, JSON.stringify(normalized));
-  }
-  return normalized;
+  return normalizeUser(raw as AuthMeUser | null);
 }

@@ -349,7 +349,7 @@ export function TradeProposalPage() {
   const counterTrade = useCounterTrade();
 
   useEffect(() => {
-    const stored = getTradeProposalContext();
+    const stored = user?.id ? getTradeProposalContext(user.id) : null;
     setCtx(stored);
     if (stored) {
       const initial: Record<string, number> = {};
@@ -367,7 +367,7 @@ export function TradeProposalPage() {
       setRequested(initial);
     }
     setHydrated(true);
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!focusNextStepRef.current) return;
