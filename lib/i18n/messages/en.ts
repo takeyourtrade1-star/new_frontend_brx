@@ -590,6 +590,22 @@ export const en = {
   'accountPage.sellerConfirmActivate': 'Confirm – Activate my seller account',
 
   'accountPage.profilePublicLink': 'Your public profile',
+  'accountPage.profileUsername': 'Username',
+  'accountPage.profileUsernameLegacyTitle': 'Choose your username',
+  'accountPage.profileUsernameLegacyDescription':
+    'Your account was created before usernames were introduced. You can now choose a permanent one for your public profile and to sign in to Ebartex.',
+  'accountPage.profileUsernameLabel': 'New username',
+  'accountPage.profileUsernamePlaceholder': 'e.g. collector_92',
+  'accountPage.profileUsernameHint':
+    'Use 3–20 letters, numbers, or underscores. You can confirm it only once.',
+  'accountPage.profileUsernameSubmit': 'Confirm username',
+  'accountPage.profileUsernameSaving': 'Saving…',
+  'accountPage.profileUsernameInvalid':
+    'Use 3–20 characters containing only letters, numbers, and underscores.',
+  'accountPage.profileUsernameTaken': 'This username is already in use. Try another one.',
+  'accountPage.profileUsernameAlreadySet': 'Your permanent username has already been set.',
+  'accountPage.profileUsernameGenericError': 'We could not save your username. Please try again.',
+  'accountPage.profileUsernameSuccess': 'Username saved successfully.',
   'accountPage.profileName': 'Name',
   'accountPage.profileType': 'Account type',
   'accountPage.profilePrivate': 'Personal',
@@ -2741,6 +2757,7 @@ export const en = {
   'asso.bugReport.successTitle': 'Thanks for your feedback!',
   'asso.bugReport.successBody': 'We will review the report as soon as possible.',
   'asso.bugReport.previewLabel': 'Screenshot captured',
+  'asso.bugReport.loginRequired': 'Log in to send a bug report.',
 
   'asso.chat.showFullMessage': 'Show full message',
   'asso.chat.faq': 'FAQ',

@@ -592,6 +592,22 @@ export const pt: Record<MessageKey, string> = {
   'accountPage.sellerConfirmActivate': 'Confirmar – Ativar a minha conta de vendedor',
 
   'accountPage.profilePublicLink': 'O seu perfil público',
+  'accountPage.profileUsername': 'Nome de utilizador',
+  'accountPage.profileUsernameLegacyTitle': 'Escolha o seu nome de utilizador',
+  'accountPage.profileUsernameLegacyDescription':
+    'A sua conta foi criada antes da introdução dos nomes de utilizador. Agora pode escolher um definitivo para o perfil público e para iniciar sessão no Ebartex.',
+  'accountPage.profileUsernameLabel': 'Novo nome de utilizador',
+  'accountPage.profileUsernamePlaceholder': 'ex. collector_92',
+  'accountPage.profileUsernameHint':
+    'Use entre 3 e 20 letras, números ou underscores. Só o poderá confirmar uma vez.',
+  'accountPage.profileUsernameSubmit': 'Confirmar utilizador',
+  'accountPage.profileUsernameSaving': 'A guardar…',
+  'accountPage.profileUsernameInvalid':
+    'Use entre 3 e 20 caracteres, apenas letras, números e underscores.',
+  'accountPage.profileUsernameTaken': 'Este nome de utilizador já está em uso. Tente outro.',
+  'accountPage.profileUsernameAlreadySet': 'O nome de utilizador definitivo já foi definido.',
+  'accountPage.profileUsernameGenericError': 'Não foi possível guardar o nome de utilizador. Tente novamente.',
+  'accountPage.profileUsernameSuccess': 'Nome de utilizador guardado com sucesso.',
   'accountPage.profileName': 'Nome',
   'accountPage.profileType': 'Tipo de conta',
   'accountPage.profilePrivate': 'Pessoal',
@@ -2735,6 +2751,7 @@ export const pt: Record<MessageKey, string> = {
   'asso.bugReport.successTitle': 'Obrigado pelo teu feedback!',
   'asso.bugReport.successBody': 'Vamos analisar o relatório o mais rapidamente possível.',
   'asso.bugReport.previewLabel': 'Screenshot capturado',
+  'asso.bugReport.loginRequired': 'Inicia sessão para reportar um bug.',
 
   'asso.chat.showFullMessage': 'Mostrar mensagem completa',
   'asso.chat.faq': 'FAQ',

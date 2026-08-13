@@ -592,6 +592,22 @@ export const it: Record<MessageKey, string> = {
   'accountPage.sellerConfirmActivate': 'Conferma – Attiva il mio conto venditore',
 
   'accountPage.profilePublicLink': 'Il tuo profilo pubblico',
+  'accountPage.profileUsername': 'Username',
+  'accountPage.profileUsernameLegacyTitle': 'Scegli il tuo username',
+  'accountPage.profileUsernameLegacyDescription':
+    'Il tuo account è stato creato prima dell’introduzione degli username. Ora puoi sceglierne uno definitivo per il profilo pubblico e per accedere a Ebartex.',
+  'accountPage.profileUsernameLabel': 'Nuovo username',
+  'accountPage.profileUsernamePlaceholder': 'es. collector_92',
+  'accountPage.profileUsernameHint':
+    'Da 3 a 20 caratteri: lettere, numeri e underscore. Potrai confermarlo una sola volta.',
+  'accountPage.profileUsernameSubmit': 'Conferma username',
+  'accountPage.profileUsernameSaving': 'Salvataggio…',
+  'accountPage.profileUsernameInvalid':
+    'Usa da 3 a 20 caratteri, solo lettere, numeri e underscore.',
+  'accountPage.profileUsernameTaken': 'Questo username è già in uso. Provane un altro.',
+  'accountPage.profileUsernameAlreadySet': 'Lo username definitivo è già stato impostato.',
+  'accountPage.profileUsernameGenericError': 'Non è stato possibile salvare lo username. Riprova.',
+  'accountPage.profileUsernameSuccess': 'Username impostato correttamente.',
   'accountPage.profileName': 'Nome',
   'accountPage.profileType': 'Tipo di account',
   'accountPage.profilePrivate': 'Privato',
@@ -2745,6 +2761,7 @@ export const it: Record<MessageKey, string> = {
   'asso.bugReport.successTitle': 'Grazie per il feedback!',
   'asso.bugReport.successBody': 'Esamineremo la segnalazione al più presto.',
   'asso.bugReport.previewLabel': 'Screenshot catturato',
+  'asso.bugReport.loginRequired': 'Accedi per inviare una segnalazione.',
 
   'asso.chat.showFullMessage': 'Mostra tutto il messaggio',
   'asso.chat.faq': 'FAQ',

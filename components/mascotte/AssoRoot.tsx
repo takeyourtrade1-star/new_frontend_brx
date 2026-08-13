@@ -701,6 +701,10 @@ export function AssoRoot() {
         }),
       });
       const result = (await response.json().catch(() => null)) as { reportId?: unknown } | null;
+      if (response.status === 401) {
+        setBugSubmitError(t('asso.bugReport.loginRequired'));
+        return;
+      }
       if (!response.ok || (typeof result?.reportId !== 'string' && typeof result?.reportId !== 'number')) {
         setBugSubmitError(t('marketplace.report.errorGeneric'));
         return;

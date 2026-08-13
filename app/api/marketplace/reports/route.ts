@@ -1,9 +1,10 @@
 /**
  * Durable marketplace report adapter. A report is acknowledged only when the
- * trust-and-safety backend returns a receipt id; otherwise this route fails
+ * support-case backend returns a receipt id; otherwise this route fails
  * closed and the UI must not claim success.
  */
 
+import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getForwardedAuthorization, extractUserIdForRateLimit } from '@/app/api/_lib/forwarded-authorization';
@@ -22,6 +23,8 @@ export const dynamic = 'force-dynamic';
 const MARKETPLACE_API_URL = trustedMarketplaceServiceOrigin(getMarketplaceApiUrlEnv());
 const MAX_REPORT_BODY_BYTES = 32 * 1024;
 const MAX_REPORT_RESPONSE_BYTES = 256 * 1024;
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const bodySchema = z.object({
   sellerUsername: z.string().trim().min(1).max(120),
@@ -92,16 +95,39 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const { sellerUsername, sellerId, kind, referenceId, referenceLabel, reason, details } =
+    parsed.data;
+
+  const supportCase = {
+    category: 'marketplace_report',
+    subject: `Segnalazione ${kind === 'listing' ? 'annuncio' : 'asta'} - ${reason}`,
+    description: details?.trim() || 'Nessun dettaglio aggiuntivo fornito.',
+    reference_type: kind,
+    reference_id: referenceId,
+    ...(referenceLabel?.trim() ? { reference_label: referenceLabel.trim() } : {}),
+    ...(sellerId && UUID_PATTERN.test(sellerId) ? { reported_user_id: sellerId } : {}),
+    context: {
+      seller_username: sellerUsername,
+      report_reason: reason,
+    },
+  };
+
+  const userId = extractUserIdForRateLimit(auth) ?? 'anonymous';
+  const idempotencyKey = createHash('sha256')
+    .update(`${userId}:${JSON.stringify(supportCase)}`)
+    .digest('hex');
+
   try {
-    const upstream = await fetchWithBodyDeadline(`${MARKETPLACE_API_URL}/api/v1/reports`, {
+    const upstream = await fetchWithBodyDeadline(`${MARKETPLACE_API_URL}/api/v1/support/cases`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
         'Accept-Encoding': 'identity',
         Authorization: auth,
         'Content-Type': 'application/json',
+        'X-Idempotency-Key': idempotencyKey,
       },
-      body: JSON.stringify(parsed.data),
+      body: JSON.stringify(supportCase),
       cache: 'no-store',
       redirect: 'error',
     }, 10_000);

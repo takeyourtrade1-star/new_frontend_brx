@@ -592,6 +592,22 @@ export const de: Record<MessageKey, string> = {
   'accountPage.sellerConfirmActivate': 'Bestätigen – Mein Verkäuferkonto aktivieren',
 
   'accountPage.profilePublicLink': 'Ihr öffentliches Profil',
+  'accountPage.profileUsername': 'Benutzername',
+  'accountPage.profileUsernameLegacyTitle': 'Wählen Sie Ihren Benutzernamen',
+  'accountPage.profileUsernameLegacyDescription':
+    'Ihr Konto wurde erstellt, bevor Benutzernamen eingeführt wurden. Sie können jetzt einen endgültigen Namen für Ihr öffentliches Profil und die Anmeldung bei Ebartex wählen.',
+  'accountPage.profileUsernameLabel': 'Neuer Benutzername',
+  'accountPage.profileUsernamePlaceholder': 'z. B. collector_92',
+  'accountPage.profileUsernameHint':
+    'Verwenden Sie 3–20 Buchstaben, Zahlen oder Unterstriche. Sie können ihn nur einmal bestätigen.',
+  'accountPage.profileUsernameSubmit': 'Benutzernamen bestätigen',
+  'accountPage.profileUsernameSaving': 'Speichern…',
+  'accountPage.profileUsernameInvalid':
+    'Verwenden Sie 3–20 Zeichen, nur Buchstaben, Zahlen und Unterstriche.',
+  'accountPage.profileUsernameTaken': 'Dieser Benutzername ist bereits vergeben. Wählen Sie einen anderen.',
+  'accountPage.profileUsernameAlreadySet': 'Der endgültige Benutzername wurde bereits festgelegt.',
+  'accountPage.profileUsernameGenericError': 'Der Benutzername konnte nicht gespeichert werden. Versuchen Sie es erneut.',
+  'accountPage.profileUsernameSuccess': 'Benutzername erfolgreich gespeichert.',
   'accountPage.profileName': 'Name',
   'accountPage.profileType': 'Kontotyp',
   'accountPage.profilePrivate': 'Privat',
@@ -2735,6 +2751,7 @@ export const de: Record<MessageKey, string> = {
   'asso.bugReport.successTitle': 'Danke für dein Feedback!',
   'asso.bugReport.successBody': 'Wir werden den Bericht so schnell wie möglich prüfen.',
   'asso.bugReport.previewLabel': 'Screenshot aufgenommen',
+  'asso.bugReport.loginRequired': 'Melde dich an, um einen Fehler zu melden.',
 
   'asso.chat.showFullMessage': 'Ganze Nachricht anzeigen',
   'asso.chat.faq': 'FAQ',
