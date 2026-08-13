@@ -22,8 +22,8 @@ export const ASSO_MESSAGE_BUBBLE_HOLD_MS = {
 
 /** Intervallo tra un messaggio promo e il successivo (visibilità + pausa) */
 export const ASSO_MESSAGE_BUBBLE_CYCLE_MS = {
-  initialDelay: 4000,
-  gapBetween: 20000,
+  initialDelay: 8000,
+  gapBetween: 60000,
 } as const;
 
 /** Chat modale (benvenuto) */

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Trophy, X } from 'lucide-react';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
-import { dispatchPromoPopup } from '@/lib/asso-layout';
+import { ASSO_FIGHT_STARTED_EVENT, dispatchPromoPopup } from '@/lib/asso-layout';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 /** Non riproporre il popup nella stessa sessione dopo la chiusura. */
@@ -41,6 +41,14 @@ export function LiveFeaturesPopup() {
     }
     const timer = window.setTimeout(() => setVisible(true), SHOW_DELAY_MS);
     return () => window.clearTimeout(timer);
+  }, []);
+
+  // L'auto-scontro di Asso ha la priorità sull'angolo: chiudi il popup
+  // quando sta per partire (l'arena della lotta occupa la stessa zona).
+  useEffect(() => {
+    const handleFight = () => setVisible(false);
+    window.addEventListener(ASSO_FIGHT_STARTED_EVENT, handleFight);
+    return () => window.removeEventListener(ASSO_FIGHT_STARTED_EVENT, handleFight);
   }, []);
 
   const dismiss = () => {

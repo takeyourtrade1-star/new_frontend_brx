@@ -12,12 +12,12 @@ export const Z_INDEX = {
 export const CODING_PREVIEW_MS = 900;
 export const SUBMIT_FEEDBACK_MS = 1400;
 export const BUG_MODAL_FADE_MS = 220;
-export const SLEEP_DELAY_MS = 15000;
+export const SLEEP_DELAY_MS = 60000;
 
 // ── Auto-scontro (Asso si sdoppia e combatte contro di sé) ────────────────
 /** Intervallo del timer casuale che fa scattare la lotta (dopo il mount). */
-export const FIGHT_TRIGGER_MIN_MS = 60000;
-export const FIGHT_TRIGGER_MAX_MS = 120000;
+export const FIGHT_TRIGGER_MIN_MS = 45000;
+export const FIGHT_TRIGGER_MAX_MS = 90000;
 /** Ritardo del nuovo tentativo quando Asso non è in idle al momento dello scatto. */
 export const FIGHT_RETRY_MS = 30000;
 /** Durata totale dell'animazione di lotta (timeline CSS allineata). */

@@ -20,6 +20,7 @@ import {
   ASSO_MOBILE_MAX_WIDTH,
   PROMO_POPUP_EVENT,
   STICKY_BOTTOM_BAR_EVENT,
+  dispatchAssoFightStarted,
   getAssoBubbleBottom,
   type PromoPopupDetail,
 } from '@/lib/asso-layout';
@@ -494,9 +495,11 @@ export function AssoRoot() {
   }, [assoBubble, router]);
 
   // ── Auto-scontro casuale (Asso si sdoppia e combatte contro di sé) ───────
-  // Timer indipendente dal ciclo promo: scatta 60–120s dopo il mount, solo se
-  // Asso è in idle puro (niente pannelli, non dorme, non mini, tab visibile).
-  // Se le condizioni non reggono riarma e riprova; max 1 volta per sessione.
+  // Timer indipendente dal ciclo promo: scatta 45–90s dopo il mount, solo se
+  // Asso non è occupato (niente pannelli, non flipped, non mini, tab visibile).
+  // Se dorme lo sveglia (START_FIGHT azzera sleeping) e chiude i popup promo
+  // nell'angolo via ASSO_FIGHT_STARTED_EVENT. Se le condizioni non reggono
+  // riarma e riprova; max 1 volta per sessione.
   const fightTriggeredRef = useRef(false);
   const fightTimerRef = useRef<number | null>(null);
   const fightGuardRef = useRef<() => boolean>(() => false);
@@ -504,10 +507,8 @@ export function AssoRoot() {
     !overlayVisible &&
     machine.panel === 'none' &&
     !machine.flipped &&
-    !machine.sleeping &&
     !machine.mini &&
     !machine.fighting &&
-    !promoPopup.visible &&
     !machine.externalModalOpen &&
     document.visibilityState !== 'hidden';
 
@@ -534,6 +535,7 @@ export function AssoRoot() {
           // sessionStorage non disponibile: la lotta parte comunque.
         }
         fightTriggeredRef.current = true;
+        dispatchAssoFightStarted();
         dispatch({ type: 'START_FIGHT' });
         playFightSound();
       }, delay);

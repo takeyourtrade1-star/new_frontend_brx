@@ -49,6 +49,17 @@ export function dispatchPromoPopup(detail: PromoPopupDetail): void {
   window.dispatchEvent(new CustomEvent(PROMO_POPUP_EVENT, { detail }));
 }
 
+/**
+ * Evento globale: sta per partire l'auto-scontro di Asso. I popup promozionali
+ * nell'angolo (es. Live Features) devono chiudersi per non sovrapporsi.
+ */
+export const ASSO_FIGHT_STARTED_EVENT = 'assoFightStarted';
+
+export function dispatchAssoFightStarted(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(ASSO_FIGHT_STARTED_EVENT));
+}
+
 export function isAuctionDetailPath(pathname: string | null | undefined): boolean {
   return pathname != null && /^\/aste\/\d+\/?$/.test(pathname);
 }
