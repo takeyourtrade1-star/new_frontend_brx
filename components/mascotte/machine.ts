@@ -23,6 +23,8 @@ export interface AssoMachineState {
   externalModalOpen: boolean;
   /** Campo del form bug con focus (espressione bugFocus). */
   bugFormFocused: boolean;
+  /** Auto-scontro in corso: Asso si sdoppia e combatte contro di sé. */
+  fighting: boolean;
 }
 
 export const ASSO_INITIAL_STATE: AssoMachineState = {
@@ -35,6 +37,7 @@ export const ASSO_INITIAL_STATE: AssoMachineState = {
   mini: false,
   externalModalOpen: false,
   bugFormFocused: false,
+  fighting: false,
 };
 
 export type AssoMachineEvent =
@@ -54,6 +57,8 @@ export type AssoMachineEvent =
   | { type: 'SET_MINI'; mini: boolean }
   | { type: 'SET_EXTERNAL_MODAL'; open: boolean }
   | { type: 'SET_BUG_FORM_FOCUSED'; focused: boolean }
+  | { type: 'START_FIGHT' }
+  | { type: 'END_FIGHT' }
   | { type: 'CLOSE_ALL' };
 
 export function assoReducer(state: AssoMachineState, event: AssoMachineEvent): AssoMachineState {
@@ -114,7 +119,7 @@ export function assoReducer(state: AssoMachineState, event: AssoMachineEvent): A
       return { ...state, flipped: event.flipped, sleeping: false };
     case 'SLEEP':
       // Il sonno parte solo in idle puro: nessun pannello, non flipped.
-      if (state.panel !== 'none' || state.flipped || state.externalModalOpen) return state;
+      if (state.panel !== 'none' || state.flipped || state.externalModalOpen || state.fighting) return state;
       return { ...state, sleeping: true };
     case 'WAKE':
       return state.sleeping ? { ...state, sleeping: false } : state;
@@ -126,6 +131,11 @@ export function assoReducer(state: AssoMachineState, event: AssoMachineEvent): A
       return { ...state, externalModalOpen: event.open, sleeping: event.open ? false : state.sleeping };
     case 'SET_BUG_FORM_FOCUSED':
       return { ...state, bugFormFocused: event.focused };
+    case 'START_FIGHT':
+      if (state.panel !== 'none' || state.flipped) return state;
+      return { ...state, fighting: true, sleeping: false };
+    case 'END_FIGHT':
+      return state.fighting ? { ...state, fighting: false } : state;
     case 'CLOSE_ALL':
       return {
         ...state,
@@ -167,6 +177,7 @@ export function isOverlayVisible(state: AssoMachineState): boolean {
     state.panel === 'bug' ||
     state.codingTransition ||
     state.codingCompanion ||
-    state.externalModalOpen
+    state.externalModalOpen ||
+    state.fighting
   );
 }

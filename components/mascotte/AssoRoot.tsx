@@ -26,6 +26,7 @@ import {
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { AssoCard } from './AssoCard';
 import { AssoChatModal, type AssoChatMessage, type AssoChatStep } from './AssoChatModal';
+import { AssoFightOverlay } from './AssoFightOverlay';
 import { AssoHintBubble } from './AssoHintBubble';
 import { AssoMobileHelpButton } from './AssoMobileHelpButton';
 import { AssoOverlays } from './AssoOverlays';
@@ -33,6 +34,7 @@ import { AssoStyles } from './AssoStyles';
 import { BugReportModal, type BugFormState } from './BugReportModal';
 import {
   isAssoMuted,
+  playFightSound,
   playFlipSound,
   playOpenSound,
   playShutterSound,
@@ -58,6 +60,11 @@ import { MAX_EQUIPPED_OBJECTS } from './wardrobe/manifest';
 import {
   BACK_VARIANTS,
   CODING_PREVIEW_MS,
+  FIGHT_RETRY_MS,
+  FIGHT_SESSION_KEY,
+  FIGHT_TOTAL_MS,
+  FIGHT_TRIGGER_MAX_MS,
+  FIGHT_TRIGGER_MIN_MS,
   SLEEP_DELAY_MS,
   SUBMIT_FEEDBACK_MS,
   Z_INDEX,
@@ -457,7 +464,7 @@ export function AssoRoot() {
       return;
     }
 
-    let idx = 0;
+    let idx = Math.floor(Math.random() * promos.length);
     scheduleCycleRef.current(() => {
       const promo = promos[idx % promos.length];
       idx += 1;
@@ -485,6 +492,88 @@ export function AssoRoot() {
       router.push(msg.route);
     }
   }, [assoBubble, router]);
+
+  // ── Auto-scontro casuale (Asso si sdoppia e combatte contro di sé) ───────
+  // Timer indipendente dal ciclo promo: scatta 60–120s dopo il mount, solo se
+  // Asso è in idle puro (niente pannelli, non dorme, non mini, tab visibile).
+  // Se le condizioni non reggono riarma e riprova; max 1 volta per sessione.
+  const fightTriggeredRef = useRef(false);
+  const fightTimerRef = useRef<number | null>(null);
+  const fightGuardRef = useRef<() => boolean>(() => false);
+  fightGuardRef.current = () =>
+    !overlayVisible &&
+    machine.panel === 'none' &&
+    !machine.flipped &&
+    !machine.sleeping &&
+    !machine.mini &&
+    !machine.fighting &&
+    !promoPopup.visible &&
+    !machine.externalModalOpen &&
+    document.visibilityState !== 'hidden';
+
+  useEffect(() => {
+    if (!isMounted || isMobileView) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let cancelled = false;
+    const arm = (delay: number) => {
+      fightTimerRef.current = window.setTimeout(() => {
+        fightTimerRef.current = null;
+        if (cancelled || fightTriggeredRef.current) return;
+        if (!fightGuardRef.current()) {
+          arm(FIGHT_RETRY_MS);
+          return;
+        }
+        try {
+          if (sessionStorage.getItem(FIGHT_SESSION_KEY)) {
+            fightTriggeredRef.current = true;
+            return;
+          }
+          sessionStorage.setItem(FIGHT_SESSION_KEY, '1');
+        } catch {
+          // sessionStorage non disponibile: la lotta parte comunque.
+        }
+        fightTriggeredRef.current = true;
+        dispatch({ type: 'START_FIGHT' });
+        playFightSound();
+      }, delay);
+    };
+
+    arm(FIGHT_TRIGGER_MIN_MS + Math.random() * (FIGHT_TRIGGER_MAX_MS - FIGHT_TRIGGER_MIN_MS));
+    return () => {
+      cancelled = true;
+      if (fightTimerRef.current !== null) window.clearTimeout(fightTimerRef.current);
+    };
+  }, [isMounted, isMobileView]);
+
+  // Fine lotta: fa riapparire la card dopo FIGHT_TOTAL_MS.
+  useEffect(() => {
+    if (!machine.fighting) return;
+    const endTimer = window.setTimeout(() => {
+      dispatch({ type: 'END_FIGHT' });
+    }, FIGHT_TOTAL_MS);
+    return () => window.clearTimeout(endTimer);
+  }, [machine.fighting]);
+
+  // Transizione fighting→false: annuncio Tornei con bubble cliccabile (portal).
+  // Passa da un ref: enqueue deve girare DOPO il commit (enabled del ciclo promo).
+  const assoBubbleEnqueueRef = useRef(assoBubble.enqueue);
+  assoBubbleEnqueueRef.current = assoBubble.enqueue;
+  const wasFightingRef = useRef(false);
+  useEffect(() => {
+    if (wasFightingRef.current && !machine.fighting) {
+      assoBubbleEnqueueRef.current({
+        id: `fight-tornei-${Date.now()}`,
+        text: t('asso.promo.tournamentsFight'),
+        accent: '#10B981',
+        kind: 'promo',
+        priority: true,
+        promoId: 'tornei-live',
+        route: getTournamentsPortalUrl('/'),
+      });
+    }
+    wasFightingRef.current = machine.fighting;
+  }, [machine.fighting, t]);
 
   // ── Chat (senza CardLoader: click → chat subito, PLAN/13.8) ──────────────
   const [chatMessages, setChatMessages] = useState<AssoChatMessage[]>([]);
@@ -827,6 +916,11 @@ export function AssoRoot() {
         }
       />
 
+      {/* Auto-scontro: arena con i due lottatori al posto della card */}
+      {machine.fighting && (
+        <AssoFightOverlay faceColor={faceColor} isStickyBarVisible={isStickyBarVisible} />
+      )}
+
       <AssoCard
         t={t}
         cardRef={cardRef}
@@ -851,6 +945,7 @@ export function AssoRoot() {
         isExternalModalOpen={machine.externalModalOpen}
         isBugModalOpen={isBugModalOpen}
         justReappeared={justReappeared}
+        isFighting={machine.fighting}
         tilt={tilt}
         holoPos={holoPos}
         backVariant={backVariant}

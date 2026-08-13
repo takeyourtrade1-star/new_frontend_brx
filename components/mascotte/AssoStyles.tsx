@@ -246,6 +246,77 @@ export function AssoStyles({ faceColor }: { faceColor: FaceColorOption }) {
         }
         .coding-received { animation: codingReceivedIn 220ms ease-out; }
 
+        /* ── Auto-scontro (Asso si sdoppia) ────────────────────── */
+        /* Timeline unica 3200ms (FIGHT_TOTAL_MS): split → 3 assalti → merge.
+           Il clone (sinistra) carica dal bordo, Asso (destra) contrattacca. */
+        @keyframes fightSplitLungeL {
+          0% { opacity: 0; transform: translateX(0px) scale(0.5); }
+          5% { opacity: 1; transform: translateX(0px) scale(1); }
+          15% { opacity: 1; transform: translateX(-184px) scale(1); }
+          27% { opacity: 1; transform: translateX(-130px) scale(1.05); }
+          33% { opacity: 1; transform: translateX(-184px) scale(1); }
+          45% { opacity: 1; transform: translateX(-130px) scale(1.05); }
+          51% { opacity: 1; transform: translateX(-184px) scale(1); }
+          63% { opacity: 1; transform: translateX(-130px) scale(1.05); }
+          69% { opacity: 1; transform: translateX(-184px) scale(1); }
+          82% { opacity: 1; transform: translateX(-184px) scale(1); }
+          94% { opacity: 1; transform: translateX(0px) scale(0.9); }
+          100% { opacity: 0; transform: translateX(0px) scale(0.4); }
+        }
+        .fight-fighter-left { animation: fightSplitLungeL 3200ms linear both; }
+
+        @keyframes fightSplitLungeR {
+          0% { opacity: 0; transform: translateX(0px) scale(0.5); }
+          5% { opacity: 1; transform: translateX(0px) scale(1); }
+          15% { opacity: 1; transform: translateX(0px) scale(1); }
+          27% { opacity: 1; transform: translateX(-54px) scale(1.05); }
+          33% { opacity: 1; transform: translateX(0px) scale(1); }
+          45% { opacity: 1; transform: translateX(-54px) scale(1.05); }
+          51% { opacity: 1; transform: translateX(0px) scale(1); }
+          63% { opacity: 1; transform: translateX(-54px) scale(1.05); }
+          69% { opacity: 1; transform: translateX(0px) scale(1); }
+          82% { opacity: 1; transform: translateX(0px) scale(1); }
+          94% { opacity: 1; transform: translateX(0px) scale(1); }
+          100% { opacity: 0; transform: translateX(0px) scale(0.7); }
+        }
+        .fight-fighter-right { animation: fightSplitLungeR 3200ms linear both; }
+
+        /* Scossa dell'arena a ogni impatto (27%, 45%, 63% di 3200ms) */
+        @keyframes fightShake {
+          0% { transform: translateX(0); }
+          35% { transform: translateX(-3px); }
+          70% { transform: translateX(2px); }
+          100% { transform: translateX(0); }
+        }
+        .fight-arena {
+          animation:
+            fightShake 160ms ease-out 864ms,
+            fightShake 160ms ease-out 1440ms,
+            fightShake 160ms ease-out 2016ms;
+        }
+        /* Scintille d'impatto al punto di scontro */
+        @keyframes fightSpark {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
+          25% { opacity: 1; transform: translate(-50%, -50%) scale(1.35) rotate(25deg); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(90deg); }
+        }
+        .fight-spark {
+          opacity: 0;
+          transform-origin: center;
+          animation: fightSpark 420ms ease-out backwards;
+          filter: drop-shadow(0 0 4px rgba(255, 214, 102, 0.9));
+        }
+        /* Il clone è la versione "cattiva": specchiata e tinta rossa */
+        .fight-face-enemy {
+          transform: scaleX(-1) rotate(-3deg);
+        }
+        .face-fixed-neon-enemy svg {
+          filter: drop-shadow(0 0 1px rgba(248, 113, 113, 0.95)) drop-shadow(0 0 3px rgba(220, 38, 38, 0.55));
+        }
+        .face-fixed-neon-enemy .face-line { stroke: #DC2626 !important; }
+        .face-fixed-neon-enemy .pupil { fill: #7F1D1D !important; stroke: none !important; }
+        .face-fixed-neon-enemy .pupil-highlight { fill: #FECACA !important; stroke: none !important; }
+
         /* ── Sonno ────────────────────────────────────────────── */
         @keyframes sleepBubbleFloat {
           0% { opacity: 0; transform: translateY(0) translateX(0) scale(0.7); }
@@ -291,6 +362,10 @@ export function AssoStyles({ faceColor }: { faceColor: FaceColorOption }) {
           .flip-particle,
           .dressing-sparkle,
           .sleep-bubble,
+          .fight-arena,
+          .fight-fighter-left,
+          .fight-fighter-right,
+          .fight-spark,
           .coding-line, .coding-cursor,
           .typing-indicator span {
             animation: none !important;

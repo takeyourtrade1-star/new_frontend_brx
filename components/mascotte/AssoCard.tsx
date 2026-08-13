@@ -33,6 +33,8 @@ export interface AssoCardProps {
   isExternalModalOpen: boolean;
   isBugModalOpen: boolean;
   justReappeared: boolean;
+  /** Auto-scontro in corso: la card svanisce e lascia spazio ai due lottatori. */
+  isFighting: boolean;
   /** Se valorizzato, sostituisce il bottom standard (es. sopra il popup promo). */
   bottomOverridePx?: number | null;
   tilt: { x: number; y: number };
@@ -72,6 +74,7 @@ export function AssoCard({
   isExternalModalOpen,
   isBugModalOpen,
   justReappeared,
+  isFighting,
   bottomOverridePx,
   tilt,
   holoPos,
@@ -123,8 +126,8 @@ export function AssoCard({
             ? 'assoReappear 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, assoFloat 4s ease-in-out infinite 500ms'
             : 'assoFloat 4s ease-in-out infinite',
         transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-in-out, transform 300ms ease-in-out, filter 300ms ease-in-out',
-        opacity: isExternalModalOpen ? 0 : 1,
-        pointerEvents: isExternalModalOpen ? 'none' : 'auto',
+        opacity: isExternalModalOpen || isFighting ? 0 : 1,
+        pointerEvents: isExternalModalOpen || isFighting ? 'none' : 'auto',
         transform: isMini ? 'scale(0.3)' : 'translateX(0)',
         transformOrigin: 'bottom right',
       }}

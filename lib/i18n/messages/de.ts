@@ -2686,6 +2686,7 @@ export const de: Record<MessageKey, string> = {
   'asso.welcome.returning.3': 'Asso ist hier. Sprich.',
 
   'asso.promo.tournaments': 'Live-Turniere und BRX Express-Versand. Mehr erfahren.',
+  'asso.promo.tournamentsFight': 'Turniere sind live – tritt ein und fordere deine Freunde heraus',
   'asso.promo.auctions': 'Hast du schon an einer Auktion teilgenommen?',
   'asso.promo.bug': 'Bug gefunden? Hier melden.',
 

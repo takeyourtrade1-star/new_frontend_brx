@@ -2692,6 +2692,7 @@ export const en = {
   'asso.welcome.returning.3': 'Asso is here. Speak.',
 
   'asso.promo.tournaments': 'Live tournaments and BRX Express shipping. Learn more.',
+  'asso.promo.tournamentsFight': 'Tournaments are live — jump in and challenge your friends',
   'asso.promo.auctions': 'Have you joined an Auction yet?',
   'asso.promo.bug': 'Found a bug? Report it here.',
 
