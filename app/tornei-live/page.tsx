@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getTournamentsPortalUrl } from '@/lib/config/tournaments';
 
-/** /tornei-live → piattaforma tornei esterna (fallback se il redirect in next.config non applica). */
+/** /tornei-live -> bridge SSO first-party della piattaforma Tornei. */
 export default function TorneiLivePage() {
   redirect(getTournamentsPortalUrl('/'));
 }

@@ -3,10 +3,8 @@ import { getTournamentsPortalUrl } from '@/lib/config/tournaments';
 /**
  * Naviga al portale tornei esterno (tornei.ebartex.com).
  *
- * NON sincronizza la sessione SSO del marketplace: l'utente deve effettuare
- * un nuovo login sul portale tornei (comportamento voluto). In passato qui si
- * rinnovavano i cookie SSO (.ebartex.com) per riusare la sessione senza nuovo
- * login: rimosso di proposito.
+ * Il bridge usa un authorization code monouso con PKCE. I cookie restano
+ * host-only e nessun access/refresh token passa tra i siti via URL o JavaScript.
  */
 export function navigateToTournamentsPortal(returnPath = '/'): void {
   if (typeof window === 'undefined') return;

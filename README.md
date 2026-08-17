@@ -77,6 +77,9 @@ Le variabili `NEXT_PUBLIC_*` sono esposte al client (vedi `next.config.mjs`).
 Le chiavi sensibili (es. Meilisearch admin) devono restare **server-only**.
 Vedi [docs/](docs/) per i dettagli per ambiente (Amplify).
 
+Il passaggio autenticato verso il portale Tornei usa authorization code
+monouso + PKCE, documentato in [`docs/SSO_HANDOFF.md`](docs/SSO_HANDOFF.md).
+
 Il BFF richiede in produzione un rate limiter Redis distribuito e un confine
 proxy/IP esplicito; configurazione, rollout e smoke test sono descritti in
 [`docs/RATE_LIMITING.md`](docs/RATE_LIMITING.md). In assenza dello store o di un

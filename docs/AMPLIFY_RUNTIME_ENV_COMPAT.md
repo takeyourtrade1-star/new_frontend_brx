@@ -41,6 +41,10 @@ richiedere il relativo hostname in `TRUSTED_UPSTREAM_HOSTS`.
 Queste assenze non possono essere corrette nel codice senza inventare o
 riutilizzare impropriamente segreti:
 
+- `SSO_HANDOFF_ENABLED` e `SSO_MARKETPLACE_CLIENT_SECRET`: l'handoff Tornei
+  resta disabilitato finché il client secret scoped non è iniettato a runtime;
+  non esiste alcun alias `NEXT_PUBLIC_*` sicuro;
+
 - `AUTH_INTERNAL_CALLER` e `AUTH_INTERNAL_CALLER_TOKEN`: il backend Auth di
   produzione richiede un'identita' scoped. `AUTH_INTERNAL_API_TOKEN` e' un
   vecchio shared token, viene ignorato dal backend hardened e non e' un alias

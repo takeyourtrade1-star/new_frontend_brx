@@ -82,15 +82,6 @@ const nextConfig = {
     ];
   },
   // Rewrites: proxy verso servizi esterni (stesso origin per il browser, niente CORS)
-  async redirects() {
-    return [
-      {
-        source: '/tornei-live',
-        destination: 'https://tornei.ebartex.com',
-        permanent: false,
-      },
-    ];
-  },
   async rewrites() {
     // NOTA: /api/sync/*, /api/marketplace/* e /api/scanner/* NON hanno rewrite qui.
     // Esistono route handler dedicati (app/api/sync/[...path]/route.ts e

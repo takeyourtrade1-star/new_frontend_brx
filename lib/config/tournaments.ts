@@ -3,8 +3,11 @@ import { sanitizeInternalReturnPath } from '@/lib/security/internal-return-path'
 /** Piattaforma tornei Ebartex (sottodominio esterno). */
 export const TOURNAMENTS_PORTAL_URL = 'https://tornei.ebartex.com';
 
-/** Route sul portale tornei per silent login (solo lato tornei.ebartex.com). */
-export const TOURNAMENTS_AUTH_BRIDGE_PATH = '/auth/bridge';
+/** Route first-party che avvia authorization code + PKCE sul portale Tornei. */
+export const TOURNAMENTS_AUTH_BRIDGE_PATH = '/auth/bridge/sso/start';
+export const TOURNAMENTS_SSO_CALLBACK_PATH = '/auth/bridge/sso/callback';
+export const TOURNAMENTS_SSO_CALLBACK_URL =
+  `${TOURNAMENTS_PORTAL_URL}${TOURNAMENTS_SSO_CALLBACK_PATH}`;
 
 /** Path interno marketplace: video introduttivo prima del portale. */
 export const TOURNAMENTS_TRANSITION_PATH = '/tornei';
@@ -14,11 +17,12 @@ export function isTournamentsTransitionPath(pathname?: string | null): boolean {
   return path === TOURNAMENTS_TRANSITION_PATH || path.startsWith(`${TOURNAMENTS_TRANSITION_PATH}/`);
 }
 
-/** URL diretto al portale (senza /auth/bridge che può reindirizzare al login marketplace). */
+/** URL del bridge SSO; `next` resta sempre un path interno del portale. */
 export function getTournamentsPortalUrl(returnPath = '/'): string {
-  const base = TOURNAMENTS_PORTAL_URL.replace(/\/+$/, '');
   const safePath = sanitizeInternalReturnPath(returnPath) ?? '/';
-  return `${base}${safePath}`;
+  const url = new URL(TOURNAMENTS_AUTH_BRIDGE_PATH, TOURNAMENTS_PORTAL_URL);
+  url.searchParams.set('next', safePath);
+  return url.href;
 }
 
 export const TOURNAMENTS_PORTAL_LINK_PROPS = {

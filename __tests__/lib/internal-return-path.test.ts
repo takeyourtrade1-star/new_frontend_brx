@@ -30,10 +30,10 @@ describe('internal return path sanitizer', () => {
       '/registrati/verifica?flow_id=flow',
     );
     expect(getTournamentsPortalUrl('https://evil.test')).toBe(
-      'https://tornei.ebartex.com/',
+      'https://tornei.ebartex.com/auth/bridge/sso/start?next=%2F',
     );
     expect(getTournamentsPortalUrl('/\\evil.test')).toBe(
-      'https://tornei.ebartex.com/',
+      'https://tornei.ebartex.com/auth/bridge/sso/start?next=%2F',
     );
   });
 });

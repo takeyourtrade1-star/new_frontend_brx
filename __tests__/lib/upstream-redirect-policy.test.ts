@@ -29,6 +29,7 @@ describe('credentialed upstream redirect policy', () => {
     const credentialedRoutes = [
       'app/api/auth/[...path]/route.ts',
       'app/api/auth/bridge/route.ts',
+      'app/api/auth/sso/authorize/route.ts',
       'app/api/marketplace/reports/route.ts',
       'app/api/support/bug-reports/route.ts',
       'app/api/scanner/[...path]/route.ts',
