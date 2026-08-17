@@ -26,7 +26,7 @@ import { getMessage } from '@/lib/i18n/getMessage';
 import { DEFAULT_LOCALE } from '@/lib/i18n/locales';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { SearchHit } from '@/app/api/search/route';
-import { useSearchCards, type SearchApiResponse } from '@/lib/hooks/use-search';
+import { useSearchAvailability, useSearchCards, type SearchApiResponse } from '@/lib/hooks/use-search';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { SearchResultsTable } from '@/components/feature/search/SearchResultsTable';
@@ -205,8 +205,31 @@ export function SearchResults({
 
   const total = data?.total ?? 0;
   const hasExactResult = isExactMode && data?.hasExactMatch === true;
-  const primaryHits = hasExactResult ? (data.exactHits ?? []) : (data?.hits ?? []);
-  const similarHits = hasExactResult && showSimilar ? (data?.similarHits ?? []) : [];
+  const primaryHits = useMemo(
+    () => hasExactResult ? (data?.exactHits ?? []) : (data?.hits ?? []),
+    [data, hasExactResult],
+  );
+  const similarHits = useMemo(
+    () => hasExactResult && showSimilar ? (data?.similarHits ?? []) : [],
+    [data, hasExactResult, showSimilar],
+  );
+  const availabilityCards = useMemo(
+    () => [...primaryHits, ...similarHits].flatMap((hit) =>
+      Number.isSafeInteger(hit.cardtrader_id) && (hit.cardtrader_id ?? 0) > 0
+        ? [{ cardId: hit.id, blueprintId: hit.cardtrader_id as number }]
+        : [],
+    ),
+    [primaryHits, similarHits],
+  );
+  const availabilityQuery = useSearchAvailability(availabilityCards);
+  const sellerCountLabel = useCallback((hit: SearchHit) => {
+    const count = availabilityQuery.data?.availability[hit.id]?.sellerCount;
+    if (count == null) return '–';
+    if (count === 0) return t('search.noSellers');
+    return count === 1
+      ? t('search.sellerCountOne')
+      : t('search.sellerCountMany', { count });
+  }, [availabilityQuery.data, t]);
   const visibleTotal = hasExactResult && !showSimilar ? primaryHits.length : total;
   const currentPage = data?.page ?? 1;
   const totalPages = data?.totalPages ?? 1;
@@ -277,6 +300,7 @@ export function SearchResults({
           t={t}
           editionVariant="icon"
           onImagePreviewOpenChange={setImagePreviewModalOpen}
+          formatAvailable={sellerCountLabel}
           buildProductHref={sellFlow ? productHrefBuilder : undefined}
         />
       );
@@ -319,6 +343,7 @@ export function SearchResults({
                   <p className="text-[11px] text-gray-400 line-clamp-1 mt-0.5" title={setName}>{setName}</p>
                 )}
                 <p className="text-[#FF7300] font-semibold text-sm mt-1">{t('search.fromPrice')}</p>
+                <p className="mt-1 text-xs font-medium text-emerald-700">{sellerCountLabel(hit)}</p>
               </Link>
               {setPageHref && (setName || hit.set_code) && (
                 <Link

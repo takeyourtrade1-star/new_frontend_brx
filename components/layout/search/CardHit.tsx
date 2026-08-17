@@ -14,6 +14,7 @@ import type { CardSearchHit } from '@/lib/search/global-search-types';
 import { getTitleAndSubtitle } from '@/lib/search/global-search-highlight';
 import { firstNonEmptyString } from '@/lib/search/global-search-url';
 import { HighlightQueryInText, RenderHighlightedText } from '@/components/layout/search/SearchHighlightText';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export function CardHit({
   hit,
@@ -29,6 +30,7 @@ export function CardHit({
   energyLevel = 0,
   typingVelocity = 0,
   streak = 0,
+  sellerCount,
 }: {
   hit: CardSearchHit;
   index: number;
@@ -43,10 +45,12 @@ export function CardHit({
   energyLevel?: number;
   typingVelocity?: number;
   streak?: number;
+  sellerCount?: number | null;
 }) {
   const cameraButtonRef = useRef<HTMLButtonElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const { selectedLang } = useLanguage();
+  const { t } = useTranslation();
   const fullImage = useMemo(() => {
     const raw = firstNonEmptyString(
       hit.image,
@@ -235,9 +239,24 @@ export function CardHit({
       </div>
 
       <div
-        className={`flex-shrink-0 text-xs md:text-sm text-[#777777] ${(hit.type ?? 'Singles') !== 'Singles' ? 'italic' : ''}`}
+        className="flex flex-shrink-0 flex-col items-end gap-1"
       >
-        {hit.type ?? 'Singles'}
+        <span className={`text-xs md:text-sm text-[#777777] ${(hit.type ?? 'Singles') !== 'Singles' ? 'italic' : ''}`}>
+          {hit.type ?? 'Singles'}
+        </span>
+        {sellerCount != null && (
+          <span
+            className={sellerCount > 0
+              ? 'rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700'
+              : 'rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500'}
+          >
+            {sellerCount === 0
+              ? t('search.noSellers')
+              : sellerCount === 1
+                ? t('search.sellerCountOne')
+                : t('search.sellerCountMany', { count: sellerCount })}
+          </span>
+        )}
       </div>
     </div>
   );

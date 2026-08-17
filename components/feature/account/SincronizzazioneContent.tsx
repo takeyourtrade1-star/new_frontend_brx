@@ -8,6 +8,8 @@ import { syncClient } from '@/lib/api/sync-client';
 import type { SyncStatusResponse, WebhookUrlResponse, SyncProgressResponse } from '@/lib/api/sync-client';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useCardTraderLink } from '@/lib/hooks/use-cardtrader-link';
+import { classifySyncStatusLoadFailure } from '@/lib/sync/sync-status-load';
 import { SyncModeSelector } from '@/components/feature/sync/SyncModeSelector';
 import { SyncStatusOverview } from '@/components/feature/sync/SyncStatusOverview';
 import { SyncWebhookCard } from '@/components/feature/sync/SyncWebhookCard';
@@ -16,7 +18,6 @@ import { SyncManagementPanel } from '@/components/feature/sync/SyncManagementPan
 import {
   getSyncEvents,
   getMarketplaceSyncStatus,
-  MarketplaceApiError,
   type SyncEvent,
   type MarketplaceSyncStatus,
 } from '@/lib/api/marketplace-client';
@@ -34,14 +35,15 @@ export function SincronizzazioneContent() {
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [loadingWebhook, setLoadingWebhook] = useState(false);
   const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+  const [statusResolved, setStatusResolved] = useState(false);
+  const [notConfigured, setNotConfigured] = useState(false);
+  const [statusLoadError, setStatusLoadError] = useState(false);
   const [loadingSetup, setLoadingSetup] = useState(false);
   const [loadingStart, setLoadingStart] = useState(false);
   const [loadingDisconnect, setLoadingDisconnect] = useState(false);
 
-  const [marketplaceSyncLoading, setMarketplaceSyncLoading] = useState(false);
-  const [marketplaceSyncMessage, setMarketplaceSyncMessage] = useState<string | null>(null);
-  const [marketplaceSyncError, setMarketplaceSyncError] = useState<string | null>(null);
   const [linkTokenError, setLinkTokenError] = useState<string | null>(null);
+  const [linkTokenMessage, setLinkTokenMessage] = useState<string | null>(null);
   const [syncEvents, setSyncEvents] = useState<SyncEvent[]>([]);
   const [syncEventsTotal, setSyncEventsTotal] = useState<number | undefined>();
   const [syncEventsLoading, setSyncEventsLoading] = useState(false);
@@ -62,6 +64,7 @@ export function SincronizzazioneContent() {
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const userId = user?.id;
+  const cardTraderLink = useCardTraderLink({ userId, accessToken });
 
   const loadSyncEvents = useCallback(async () => {
     setSyncEventsLoading(true);
@@ -81,26 +84,54 @@ export function SincronizzazioneContent() {
     setLoadingStatus(true);
     setLoadingWebhook(true);
     setMarketplaceLoading(true);
-    try {
-      const [statusRes, webhookRes, mktRes] = await Promise.all([
-        syncClient.getSyncStatus(userId, accessToken),
-        syncClient.getWebhookUrl(userId, accessToken),
-        getMarketplaceSyncStatus().catch(() => null),
-      ]);
+    setStatusLoadError(false);
+    const [statusResult, marketplaceResult] = await Promise.allSettled([
+      syncClient.getSyncStatus(userId, accessToken),
+      getMarketplaceSyncStatus(),
+    ]);
+
+    if (statusResult.status === 'fulfilled') {
+      const statusRes = statusResult.value;
       setSyncStatus(statusRes);
-      setWebhookData(webhookRes);
-      setMarketplaceStatus(mktRes);
-      if (statusRes.sync_status === 'initial_sync') {
-        const progressRes = await syncClient.getSyncProgress(userId, accessToken);
-        setProgress(progressRes);
+      setNotConfigured(false);
+      if (statusRes.disconnected) {
+        setWebhookData(null);
+      } else {
+        const webhookResult = await Promise.allSettled([
+          syncClient.getWebhookUrl(userId, accessToken),
+        ]);
+        setWebhookData(
+          webhookResult[0].status === 'fulfilled' ? webhookResult[0].value : null,
+        );
       }
-    } catch {
-      /* partial failure ok */
-    } finally {
-      setLoadingStatus(false);
-      setLoadingWebhook(false);
-      setMarketplaceLoading(false);
+      if (statusRes.sync_status === 'initial_sync') {
+        const progressResult = await Promise.allSettled([
+          syncClient.getSyncProgress(userId, accessToken),
+        ]);
+        if (progressResult[0].status === 'fulfilled') {
+          setProgress(progressResult[0].value);
+        }
+      }
+    } else {
+      const failure = classifySyncStatusLoadFailure(statusResult.reason);
+      if (failure === 'not_configured') {
+        setSyncStatus(null);
+        setWebhookData(null);
+        setNotConfigured(true);
+      } else {
+        // Non trasformare un timeout/5xx in "non collegato": il token potrebbe
+        // essere ancora valido e non va chiesto nuovamente all'utente.
+        setStatusLoadError(true);
+      }
     }
+
+    setMarketplaceStatus(
+      marketplaceResult.status === 'fulfilled' ? marketplaceResult.value : null,
+    );
+    setStatusResolved(true);
+    setLoadingStatus(false);
+    setLoadingWebhook(false);
+    setMarketplaceLoading(false);
     void loadSyncEvents();
   }, [userId, accessToken, loadSyncEvents]);
 
@@ -119,16 +150,21 @@ export function SincronizzazioneContent() {
     if (!userId || !accessToken) return false;
     setLoadingSetup(true);
     setLinkTokenError(null);
+    setLinkTokenMessage(null);
+    setLastSyncError(null);
     try {
-      const res = await syncClient.linkCardtrader(
-        { user_id: userId, cardtrader_token: token },
-        accessToken
-      );
+      const result = await cardTraderLink.mutateAsync(token);
+      const res = result.link;
+      const importStarted = Boolean(result.syncStart?.task_id);
+      setNotConfigured(false);
+      setStatusLoadError(false);
       setSyncStatus((prev) =>
         prev
           ? {
               ...prev,
-              sync_status: res.sync_status as SyncStatusResponse['sync_status'],
+              sync_status: importStarted
+                ? 'initial_sync'
+                : (res.sync_status as SyncStatusResponse['sync_status']),
               disconnected: false,
               execution_mode: res.execution_mode,
               mode_version: res.mode_version,
@@ -136,7 +172,9 @@ export function SincronizzazioneContent() {
             }
           : {
               user_id: userId,
-              sync_status: res.sync_status as SyncStatusResponse['sync_status'],
+              sync_status: importStarted
+                ? 'initial_sync'
+                : (res.sync_status as SyncStatusResponse['sync_status']),
               last_sync_at: null,
               last_error: null,
               disconnected: false,
@@ -145,12 +183,31 @@ export function SincronizzazioneContent() {
               writes_enabled: res.writes_enabled,
             }
       );
-      const webhookRes = await syncClient.getWebhookUrl(userId, accessToken);
-      setWebhookData(webhookRes);
-      setMarketplaceStatus(await getMarketplaceSyncStatus());
+      if (result.webhook) setWebhookData(result.webhook);
+      if (result.marketplaceStatus) setMarketplaceStatus(result.marketplaceStatus);
+
+      if (importStarted) {
+        setLinkTokenMessage(t('accountPage.syncTokenLinkedAndStarted'));
+      } else if (result.followUpFailures.includes('initial_sync')) {
+        setLinkTokenMessage(t('accountPage.syncTokenLinkedOnly'));
+        setLastSyncError(t('accountPage.syncErrStartRetry'));
+      } else {
+        setLinkTokenMessage(t('accountPage.syncTokenLinked'));
+      }
       return true;
-    } catch {
-      setLinkTokenError(t('accountPage.syncErrLink'));
+    } catch (error: unknown) {
+      const status = (error as { status?: number } | null)?.status;
+      setLinkTokenError(
+        status === 401
+          ? t('accountPage.syncErrSession')
+          : status === 409
+            ? t('accountPage.syncErrConflict')
+            : status === 422
+              ? t('accountPage.syncErrTokenFormat')
+              : status === 502
+                ? t('accountPage.syncErrTokenRejected')
+                : t('accountPage.syncErrLink'),
+      );
       return false;
     } finally {
       setLoadingSetup(false);
@@ -212,7 +269,7 @@ export function SincronizzazioneContent() {
               });
               setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'active' } : null));
             } else if (taskRes.status === 'FAILURE' || taskRes.error) {
-              setLastSyncError(taskRes.error || t('accountPage.syncErrFailed'));
+              setLastSyncError(t('accountPage.syncErrFailedRetry'));
             }
             setLoadingStart(false);
             if (sessionId === pollingSessionRef.current) setCurrentTaskId(null);
@@ -226,7 +283,14 @@ export function SincronizzazioneContent() {
       };
       pollTimerRef.current = setTimeout(poll, pollIntervalMs);
     } catch (err: unknown) {
-      setLastSyncError(err instanceof Error ? err.message : t('accountPage.syncErrStart'));
+      const status = (err as { status?: number } | null)?.status;
+      setLastSyncError(
+        status === 409
+          ? t('accountPage.syncErrConflict')
+          : status === 401
+            ? t('accountPage.syncErrSession')
+            : t('accountPage.syncErrStartRetry'),
+      );
       setLoadingStart(false);
     }
   };
@@ -273,30 +337,6 @@ export function SincronizzazioneContent() {
     };
   }, [userId, accessToken, syncStatus?.sync_status]);
 
-  const handleMarketplaceSyncTrigger = async () => {
-    if (!userId || !accessToken) return;
-    setMarketplaceSyncLoading(true);
-    setMarketplaceSyncMessage(null);
-    setMarketplaceSyncError(null);
-    try {
-      const res = await syncClient.reconcileFromCardTrader(userId, accessToken);
-      setMarketplaceSyncMessage(res.message || 'Sincronizzazione marketplace avviata.');
-      const mkt = await getMarketplaceSyncStatus();
-      setMarketplaceStatus(mkt);
-      await loadSyncEvents();
-    } catch (err: unknown) {
-      setMarketplaceSyncError(
-        err instanceof MarketplaceApiError
-          ? err.detail
-          : err instanceof Error
-            ? err.message
-            : 'Sincronizzazione marketplace non riuscita.'
-      );
-    } finally {
-      setMarketplaceSyncLoading(false);
-    }
-  };
-
   const handleDisconnect = async (action: 'suspend' | 'remove') => {
     if (!userId || !accessToken) return;
     setLoadingDisconnect(true);
@@ -335,12 +375,10 @@ export function SincronizzazioneContent() {
   }
 
   const statusValue = syncStatus?.sync_status ?? 'idle';
-  const isDisconnected = syncStatus?.disconnected === true;
+  const isDisconnected = syncStatus?.disconnected === true || notConfigured;
   const webhookSecretReady = webhookData?.webhook_secret_configured === true;
-  const hasWebhookUrl = Boolean(webhookData?.webhook_url);
   const integrationReady = Boolean(syncStatus && !isDisconnected);
-  const canStartSync =
-    integrationReady && hasWebhookUrl && webhookSecretReady && statusValue !== 'initial_sync';
+  const canStartSync = integrationReady && statusValue !== 'initial_sync';
   const showProgress = statusValue === 'initial_sync' && progress;
   const etaLabel =
     etaSeconds != null
@@ -358,8 +396,7 @@ export function SincronizzazioneContent() {
             {t('accountPage.syncTitle')}
           </h1>
           <p className="mt-1 max-w-xl text-sm text-gray-600">
-            Collega CardTrader, configura il webhook e controlla come EBARTEX sincronizza il tuo
-            inventario e i listing.
+            {t('accountPage.syncSubtitle')}
           </p>
         </div>
         <Button
@@ -374,7 +411,7 @@ export function SincronizzazioneContent() {
           ) : (
             <RefreshCw className="mr-2 h-4 w-4" />
           )}
-          Aggiorna tutto
+          {t('accountPage.syncRefreshAll')}
         </Button>
       </div>
 
@@ -383,6 +420,23 @@ export function SincronizzazioneContent() {
           {t('accountPage.syncDisconnectedBanner')}
         </div>
       )}
+
+      {statusLoadError ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {t('accountPage.syncStatusUnavailable')}
+        </div>
+      ) : statusResolved ? (
+        <SyncManagementPanel
+          isDisconnected={isDisconnected}
+          loadingSetup={loadingSetup}
+          loadingDisconnect={loadingDisconnect}
+          linkError={linkTokenError}
+          linkMessage={linkTokenMessage}
+          onLinkToken={handleLinkToken}
+          onSuspend={() => handleDisconnect('suspend')}
+          onRemove={() => handleDisconnect('remove')}
+        />
+      ) : null}
 
       <SyncStatusOverview
         loading={loadingStatus}
@@ -431,9 +485,11 @@ export function SincronizzazioneContent() {
           {integrationReady && <SyncModeSelector />}
 
           <section className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5">
-            <h2 className="mb-1 text-sm font-semibold text-gray-900">Operazioni</h2>
+            <h2 className="mb-1 text-sm font-semibold text-gray-900">
+              {t('accountPage.syncOperationsTitle')}
+            </h2>
             <p className="mb-4 text-xs text-gray-500">
-              Import inventario da CardTrader e sync listing verso EBARTEX
+              {t('accountPage.syncOperationsText')}
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Button
@@ -447,47 +503,20 @@ export function SincronizzazioneContent() {
                 ) : (
                   <Play className="mr-2 h-4 w-4" />
                 )}
-                {t('accountPage.syncStartFull')}
+                {statusValue === 'active'
+                  ? t('accountPage.syncRefreshInventory')
+                  : t('accountPage.syncStartFull')}
               </Button>
-              {integrationReady && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void handleMarketplaceSyncTrigger()}
-                  disabled={marketplaceSyncLoading}
-                  className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                >
-                  {marketplaceSyncLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                  )}
-                  Sincronizza listing EBARTEX
-                </Button>
-              )}
               {integrationReady && (
                 <Link
                   href="/account/oggetti"
                   className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                   <Package className="mr-2 h-4 w-4" />
-                  Vedi inventario
+                  {t('account.syncViewInventory')}
                 </Link>
               )}
             </div>
-            {!canStartSync && integrationReady && !webhookSecretReady && (
-              <p className="mt-3 text-sm text-amber-700">{t('account.syncVerifyFirst')}</p>
-            )}
-            {marketplaceSyncMessage && (
-              <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                {marketplaceSyncMessage}
-              </p>
-            )}
-            {marketplaceSyncError && (
-              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                {marketplaceSyncError}
-              </p>
-            )}
             {lastSyncError && (
               <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {lastSyncError}
@@ -522,21 +551,12 @@ export function SincronizzazioneContent() {
           )}
         </div>
 
-        {/* Sidebar — webhook + management always visible */}
+        {/* Sidebar — webhook */}
         <div className="space-y-6 lg:col-span-1">
           <SyncWebhookCard
             loading={loadingWebhook}
             webhookData={webhookData}
             isDisconnected={isDisconnected}
-          />
-          <SyncManagementPanel
-            isDisconnected={isDisconnected}
-            loadingSetup={loadingSetup}
-            loadingDisconnect={loadingDisconnect}
-            linkError={linkTokenError}
-            onLinkToken={handleLinkToken}
-            onSuspend={() => handleDisconnect('suspend')}
-            onRemove={() => handleDisconnect('remove')}
           />
         </div>
       </div>

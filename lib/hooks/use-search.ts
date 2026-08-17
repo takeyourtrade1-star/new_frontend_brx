@@ -4,6 +4,7 @@ import {
   type UseQueryOptions,
 } from '@tanstack/react-query';
 import type { SearchApiResponse, SearchHit } from '@/app/api/search/route';
+import type { SearchAvailabilityResponse } from '@/app/api/search/availability/route';
 import type { SetResult } from '@/lib/search/global-search-types';
 import { STALE } from '@/lib/hooks/query-config';
 
@@ -58,6 +59,36 @@ export function useSearchCards(
     queryFn: () => fetchSearch(params),
     staleTime: STALE.catalog,
     ...options,
+  });
+}
+
+export interface SearchAvailabilityCard {
+  cardId: string;
+  blueprintId: number;
+}
+
+async function fetchSearchAvailability(
+  cards: SearchAvailabilityCard[],
+): Promise<SearchAvailabilityResponse> {
+  const res = await fetch('/api/search/availability', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cards }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<SearchAvailabilityResponse>;
+}
+
+/** Numero venditori reale per i risultati visibili, aggregato dal BFF. */
+export function useSearchAvailability(cards: SearchAvailabilityCard[]) {
+  return useQuery<SearchAvailabilityResponse>({
+    queryKey: ['search', 'availability', cards],
+    queryFn: () => fetchSearchAvailability(cards),
+    enabled: cards.length > 0,
+    staleTime: 60_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 }
 

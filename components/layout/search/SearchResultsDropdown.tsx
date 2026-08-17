@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -22,6 +22,7 @@ import {
 } from '@/lib/search/global-search-url';
 import { AnimatedCounter } from '@/components/layout/search/AnimatedCounter';
 import { CardHit } from '@/components/layout/search/CardHit';
+import { useSearchAvailability } from '@/lib/hooks/use-search';
 
 export function SearchResultsDropdown({
   gameSlug,
@@ -61,6 +62,27 @@ export function SearchResultsDropdown({
   const router = useRouter();
   const { query, isSearchStalled } = useSearchBox();
   const { hits } = useHits<CardSearchHit>();
+  const availabilityCards = useMemo(
+    () => hits.flatMap((hit) => {
+      const cardId = (hit.id ?? hit.card_print_id ?? hit.objectID ?? '').trim();
+      return cardId && Number.isSafeInteger(hit.cardtrader_id) && (hit.cardtrader_id ?? 0) > 0
+        ? [{ cardId, blueprintId: hit.cardtrader_id as number }]
+        : [];
+    }),
+    [hits],
+  );
+  const [debouncedAvailabilityCards, setDebouncedAvailabilityCards] = useState(availabilityCards);
+  useEffect(() => {
+    if (availabilityCards.length === 0) {
+      setDebouncedAvailabilityCards([]);
+      return;
+    }
+    // InstantSearch cambia a ogni tasto: attendiamo che la lista si stabilizzi
+    // prima del fan-out server-side verso Sync e Marketplace.
+    const timer = setTimeout(() => setDebouncedAvailabilityCards(availabilityCards), 350);
+    return () => clearTimeout(timer);
+  }, [availabilityCards]);
+  const availabilityQuery = useSearchAvailability(debouncedAvailabilityCards);
   const [inlinePreview, setInlinePreview] = useState<{
     url: string;
     name: string;
@@ -166,6 +188,11 @@ export function SearchResultsDropdown({
                 energyLevel={energyLevel}
                 typingVelocity={typingVelocity}
                 streak={streak}
+                sellerCount={
+                  availabilityQuery.data?.availability[
+                    (hit.id ?? hit.card_print_id ?? hit.objectID ?? '').trim()
+                  ]?.sellerCount
+                }
                 onNavigate={() => {
                   const slug = getCardSlugForUrl(hit as unknown as CardSearchHit);
                   router.push(productDetailPath(slug, sellFlowActive));

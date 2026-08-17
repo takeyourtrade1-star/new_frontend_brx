@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { SyncStatus } from '@/lib/api/sync-client';
 import type { MarketplaceSyncStatus, SyncMode } from '@/lib/api/marketplace-client';
 
@@ -90,6 +91,7 @@ export function SyncStatusOverview({
   lastError: string | null;
 }) {
   const intlLocale = useIntlLocale();
+  const { t } = useTranslation();
   const cardtraderState: CheckState = loading
     ? 'loading'
     : isDisconnected
@@ -183,7 +185,8 @@ export function SyncStatusOverview({
           )}
           {lastError && (
             <span className="text-red-700">
-              Errore: <strong>{lastError}</strong>
+              {t('accountPage.syncErrorTitle')}:{' '}
+              <strong>{t('accountPage.syncLastErrorSafe')}</strong>
             </span>
           )}
         </div>

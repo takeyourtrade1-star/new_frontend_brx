@@ -63,6 +63,26 @@ const PICKER_INITIAL_ITEMS = 32;
 const PICKER_ITEMS_STEP = 32;
 const PRIVATE_CASH_MAX_CENTS = 1_000_000;
 
+export function parsePrivateCashInput(value: string): number | null {
+  const normalized = value.trim().replace(',', '.');
+  if (normalized === '') return 0;
+  if (normalized === '.') return 0;
+  if (!/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(normalized)) return null;
+
+  const cents = Math.round(Number(normalized) * 100);
+  if (!Number.isFinite(cents)) return null;
+  return Math.min(PRIVATE_CASH_MAX_CENTS, Math.max(0, cents));
+}
+
+function privateCashInputValue(amountCents: number): string {
+  return amountCents > 0 ? (amountCents / 100).toFixed(2) : '';
+}
+
+export function privateCashCoinCount(amountCents: number): number {
+  if (amountCents <= 0) return 0;
+  return Math.min(8, Math.max(1, Math.ceil(amountCents / 500)));
+}
+
 function proposalItemKey(item: {
   source: 'sync' | 'marketplace';
   inventoryItemId?: number;
@@ -338,7 +358,7 @@ const ItemPicker = memo(function ItemPicker({
   );
 });
 
-function PrivateCashControls({
+export function PrivateCashControls({
   side,
   amountCents,
   onSideChange,
@@ -351,16 +371,20 @@ function PrivateCashControls({
 }) {
   const { t } = useTranslation();
   const locale = useIntlLocale();
+  const [amountInput, setAmountInput] = useState(() => privateCashInputValue(amountCents));
   const setSide = (next: Exclude<PrivateCashSide, 'none'>) => {
     if (side === next) {
       onSideChange('none');
       onAmountChange(0);
+      setAmountInput('');
       return;
     }
     onSideChange(next);
   };
   const changeAmount = (next: number) => {
-    onAmountChange(Math.min(PRIVATE_CASH_MAX_CENTS, Math.max(0, Math.round(next))));
+    const safeAmount = Math.min(PRIVATE_CASH_MAX_CENTS, Math.max(0, Math.round(next)));
+    onAmountChange(safeAmount);
+    setAmountInput(privateCashInputValue(safeAmount));
   };
 
   return (
@@ -400,17 +424,22 @@ function PrivateCashControls({
             </button>
             <label className="relative border-x border-slate-200">
               <span className="sr-only">{t('trades.privateCash.amount')}</span>
-              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">€</span>
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400" aria-hidden>€</span>
               <input
-                type="number"
-                min={0}
-                max={PRIVATE_CASH_MAX_CENTS / 100}
-                step="0.50"
+                type="text"
+                inputMode="decimal"
                 disabled={side === 'none'}
-                value={amountCents > 0 ? (amountCents / 100).toFixed(2) : ''}
-                onChange={(event) => changeAmount(Number(event.target.value) * 100)}
+                value={amountInput}
+                onChange={(event) => {
+                  const nextInput = event.target.value;
+                  const parsedCents = parsePrivateCashInput(nextInput);
+                  if (parsedCents === null) return;
+                  setAmountInput(nextInput);
+                  onAmountChange(parsedCents);
+                }}
+                onBlur={() => setAmountInput(privateCashInputValue(amountCents))}
                 placeholder="0,00"
-                className="h-11 w-24 bg-transparent pl-7 pr-2 text-right text-sm font-black tabular-nums text-slate-800 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="h-11 w-24 bg-transparent pl-7 pr-2 text-right text-sm font-black tabular-nums text-slate-800 outline-none"
               />
             </label>
             <button type="button" disabled={side === 'none'} onClick={() => changeAmount(amountCents + 500)} className="flex h-full w-9 items-center justify-center text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed" aria-label={t('common.increase')}>
@@ -432,15 +461,31 @@ function PrivateCashControls({
 
 function TableCashPile({ amountCents, side }: { amountCents: number; side: 'offered' | 'requested' }) {
   const locale = useIntlLocale();
-  if (amountCents <= 0) return null;
+  const count = privateCashCoinCount(amountCents);
   return (
-    <div className={cn('absolute top-12 z-20 flex items-center gap-2', side === 'offered' ? 'right-5' : 'left-5 flex-row-reverse')}>
-      <div className="relative h-10 w-11" aria-hidden>
-        {[0, 1, 2, 3].map((coin) => (
-          <span key={coin} className="absolute left-1/2 h-3 w-8 -translate-x-1/2 rounded-[50%] border border-amber-100/70 bg-gradient-to-b from-amber-200 to-amber-500 shadow-md" style={{ bottom: `${coin * 5}px` }} />
+    <div
+      className={cn(
+        'absolute right-4 top-1/2 z-20 flex -translate-y-1/2 items-center gap-2 transition-all duration-300 motion-reduce:transition-none',
+        amountCents > 0 ? 'scale-100 opacity-100' : 'pointer-events-none scale-90 opacity-0',
+      )}
+      data-cash-side={side}
+    >
+      <div className="relative h-14 w-11" aria-hidden>
+        {Array.from({ length: 8 }, (_, coin) => (
+          <span
+            key={coin}
+            className={cn(
+              'absolute left-1/2 h-3 w-8 -translate-x-1/2 rounded-[50%] border border-amber-100/70 bg-gradient-to-b from-amber-200 to-amber-500 shadow-md transition-all duration-300 motion-reduce:transition-none',
+              coin < count ? 'opacity-100' : 'translate-y-2 scale-75 opacity-0',
+            )}
+            style={{
+              bottom: `${coin * 5}px`,
+              transitionDelay: `${coin < count ? coin * 35 : (7 - coin) * 20}ms`,
+            }}
+          />
         ))}
       </div>
-      <span className="rounded-full border border-amber-100/25 bg-amber-300/15 px-2.5 py-1 text-[10px] font-black tabular-nums text-amber-100 backdrop-blur-sm">
+      <span className="rounded-full border border-amber-100/25 bg-amber-300/15 px-2.5 py-1 text-[10px] font-black tabular-nums text-amber-100 shadow-sm backdrop-blur-sm transition-transform duration-300 motion-reduce:transition-none">
         {formatEurCents(amountCents, locale)}
       </span>
     </div>

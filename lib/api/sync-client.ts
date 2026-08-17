@@ -88,7 +88,7 @@ export interface InventoryResponse {
   total: number;
 }
 
-interface LinkCardtraderResponse {
+export interface LinkCardtraderResponse {
   status: string;
   user_id: string;
   sync_status: string;

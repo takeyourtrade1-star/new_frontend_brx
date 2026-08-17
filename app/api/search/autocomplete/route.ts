@@ -59,6 +59,7 @@ const AUTOCOMPLETE_ATTRIBUTES_TO_RETRIEVE = [
   'rarity',
   'type',
   'keywords_localized',
+  'cardtrader_id',
 ] as const;
 
 const MAX_HITS_PER_PAGE = 20;

@@ -10,6 +10,8 @@ export interface CardSearchHit {
   set_name?: string;
   set_code?: string;
   collector_number?: string;
+  /** Blueprint CardTrader usato dal BFF per contare i venditori reali. */
+  cardtrader_id?: number;
   /** Path dall'indice Meilisearch (es. cards/4/158647.webp o img/cards/4/158647.webp; il prefisso img/ viene rimosso) */
   image?: string | null;
   image_path?: string | null;
