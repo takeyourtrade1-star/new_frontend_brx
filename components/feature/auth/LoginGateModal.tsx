@@ -70,6 +70,7 @@ export function LoginGateModal({
 
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
+  const verifyCodeInFlightRef = useRef(false);
 
   const resolveReturnTo = useCallback((): string => {
     const explicit = sanitizeInternalReturnPath(returnTo);
@@ -210,6 +211,8 @@ export function LoginGateModal({
 
   const verifyCode = useCallback(
     async (value: string) => {
+      if (verifyCodeInFlightRef.current) return;
+      verifyCodeInFlightRef.current = true;
       setError(null);
       try {
         const result = await verifyCodeMutation.mutateAsync({
@@ -225,6 +228,8 @@ export function LoginGateModal({
         onClose();
       } catch (err) {
         setError(parseAuthError(err).message);
+      } finally {
+        verifyCodeInFlightRef.current = false;
       }
     },
     [normalizedEmail, verifyCodeMutation, onClose, onSuccess, router]

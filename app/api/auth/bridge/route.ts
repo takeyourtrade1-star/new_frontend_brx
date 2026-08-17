@@ -26,7 +26,8 @@ export const dynamic = 'force-dynamic';
 const AUTH_API_URL = trustedAuthServiceOrigin(
   getAuthApiUrlEnv()
 );
-const DEFAULT_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24;
+const DEFAULT_ACCESS_TOKEN_MAX_AGE = 5 * 60;
+const MAX_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24;
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30;
 const AUTH_BRIDGE_TIMEOUT_MS = 15_000;
 const MAX_AUTH_RESPONSE_BYTES = 256 * 1024;
@@ -44,13 +45,15 @@ function expiresIn(payload: unknown): number {
   if (!payload || typeof payload !== 'object') return DEFAULT_ACCESS_TOKEN_MAX_AGE;
   const data = payload as Record<string, unknown>;
   const direct = data.expires_in;
-  if (typeof direct === 'number' && direct > 0) return Math.floor(direct);
+  if (typeof direct === 'number' && Number.isSafeInteger(direct) && direct > 0) {
+    return Math.min(MAX_ACCESS_TOKEN_MAX_AGE, direct);
+  }
   const nested = data.data;
   const value = nested && typeof nested === 'object'
     ? (nested as Record<string, unknown>).expires_in
     : undefined;
-  return typeof value === 'number' && value > 0
-    ? Math.floor(value)
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+    ? Math.min(MAX_ACCESS_TOKEN_MAX_AGE, value)
     : DEFAULT_ACCESS_TOKEN_MAX_AGE;
 }
 

@@ -64,6 +64,7 @@ describe('distributed BFF rate limiter', () => {
           scope: 'concurrency',
           limit: 10,
           windowMs: 60_000,
+          requireDistributedStore: true,
         }),
       ),
     );
@@ -210,6 +211,26 @@ describe('distributed BFF rate limiter', () => {
     warning.mockRestore();
   });
 
+  it('fails closed in production when a sensitive caller requires the distributed store', async () => {
+    vi.stubEnv('RATE_LIMIT_REDIS_REST_URL', '');
+    vi.stubEnv('RATE_LIMIT_REDIS_REST_TOKEN', '');
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const result = await checkRateLimit(request(), {
+      scope: 'auth:verify-mfa',
+      limit: 10,
+      windowMs: 5 * 60_000,
+      requireDistributedStore: true,
+    });
+
+    expect(result).toMatchObject({ allowed: false, unavailable: true });
+    expect(rateLimitExceededResponse(result).status).toBe(503);
+    expect(warning).not.toHaveBeenCalled();
+    warning.mockRestore();
+  });
+
   it('fails closed for partial Redis configuration and missing or invalid viewer IPs', async () => {
     const redisFetch = vi.fn();
     vi.stubGlobal('fetch', redisFetch);
@@ -304,7 +325,7 @@ describe('distributed BFF rate limiter', () => {
     expect(getRateLimitClientIp(request('::FFFF:192.0.2.1'))).toBe('::ffff:c000:201');
   });
 
-  it('uses the same bounded fallback semantics in development', async () => {
+  it('uses the same bounded fallback semantics in development even when distribution is required', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('RATE_LIMIT_REDIS_REST_URL', '');
     vi.stubEnv('RATE_LIMIT_REDIS_REST_TOKEN', '');
@@ -314,7 +335,12 @@ describe('distributed BFF rate limiter', () => {
     const scope = `dev-fallback-${Date.now()}`;
     const results = await Promise.all(
       Array.from({ length: 4 }, () =>
-        checkRateLimit(request(), { scope, limit: 3, windowMs: 60_000 }),
+        checkRateLimit(request(), {
+          scope,
+          limit: 3,
+          windowMs: 60_000,
+          requireDistributedStore: true,
+        }),
       ),
     );
     expect(results.map((result) => result.allowed)).toEqual([true, true, true, false]);

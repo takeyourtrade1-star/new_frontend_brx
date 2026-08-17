@@ -6,8 +6,9 @@
  * instances cannot exceed the configured quota through lost updates.
  *
  * Amplify currently has an explicit compatibility mode when *all* Redis
- * settings are absent: a bounded, per-instance in-memory limiter keeps the BFF
- * available until runtime secret injection is provisioned. Any partial/invalid
+ * settings are absent: a bounded, per-instance in-memory limiter keeps
+ * non-sensitive routes available until runtime secret injection is
+ * provisioned. Callers can require the distributed store; partial/invalid
  * Redis configuration, untrusted IP, or Redis failure still fails closed.
  */
 
@@ -361,6 +362,11 @@ export interface RateLimitOptions {
   userId?: string | number | null;
   /** Prefisso non sensibile per separare i bucket delle diverse route. */
   scope: string;
+  /**
+   * Le mutazioni di autenticazione sensibili non possono usare il fallback
+   * per-process in produzione. Dev/test conservano invece il limiter locale.
+   */
+  requireDistributedStore?: boolean;
 }
 
 export interface RateLimitResult {
@@ -374,8 +380,9 @@ export interface RateLimitResult {
 /**
  * Atomically consumes one request from the distributed bucket. When all Redis
  * variables are absent, production uses the documented bounded compatibility
- * store. Partial/invalid configuration, untrusted IPs, timeouts, and malformed
- * backend responses all fail closed.
+ * store only for callers that do not require a distributed store. Sensitive
+ * callers, partial/invalid configuration, untrusted IPs, timeouts, and
+ * malformed backend responses all fail closed.
  */
 export async function checkRateLimit(
   request: NextRequest,
@@ -388,6 +395,9 @@ export async function checkRateLimit(
 
     const config = redisRestConfig();
     if (!config) {
+      if (!localFallbackAllowed() && options.requireDistributedStore) {
+        return unavailableResult(options);
+      }
       if (!localFallbackAllowed()) warnProductionMemoryFallbackOnce();
       return checkMemoryRateLimit(ip, options);
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,6 +39,7 @@ export function LoginCodeForm() {
   const [step, setStep] = useState<'request' | 'verify'>('request');
   const [countdown, setCountdown] = useState(300);
   const [localError, setLocalError] = useState<string | null>(null);
+  const verifyInFlightRef = useRef(false);
 
   const requestForm = useForm<LoginCodeRequestValues>({
     resolver: zodResolver(loginCodeRequestSchema),
@@ -90,9 +91,10 @@ export function LoginCodeForm() {
 
   const handleVerify = useCallback(
     async (code: string) => {
-      setLocalError(null);
       const email = verifyForm.getValues('email');
-      if (!email) return;
+      if (!email || verifyInFlightRef.current) return;
+      verifyInFlightRef.current = true;
+      setLocalError(null);
 
       try {
         const result = await verifyMutation.mutateAsync({ email, code });
@@ -104,6 +106,8 @@ export function LoginCodeForm() {
       } catch (err: unknown) {
         const parsed = parseAuthError(err);
         setLocalError(parsed.message);
+      } finally {
+        verifyInFlightRef.current = false;
       }
     },
     [verifyMutation, verifyForm, router]

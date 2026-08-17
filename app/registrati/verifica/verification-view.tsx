@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertCircle, CheckCircle2, Link2, MailCheck } from 'lucide-react';
@@ -87,6 +87,7 @@ export function VerificationView() {
   const [resendAvailableAt, setResendAvailableAt] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
   const [errorKey, setErrorKey] = useState<VerificationErrorKey | null>(null);
+  const verifyCodeInFlightRef = useRef(false);
 
   const verifyCode = useVerifyRegistrationEmailCode();
   const verifyToken = useVerifyRegistrationEmailToken();
@@ -150,13 +151,21 @@ export function VerificationView() {
 
   const submitCode = useCallback(
     async (value: string) => {
-      if (!activeFlowId || value.length !== 6 || verifyCode.isPending) return;
+      if (
+        !activeFlowId ||
+        value.length !== 6 ||
+        verifyCode.isPending ||
+        verifyCodeInFlightRef.current
+      ) return;
+      verifyCodeInFlightRef.current = true;
       setErrorKey(null);
       try {
         await verifyCode.mutateAsync({ flowId: activeFlowId, code: value });
         completeVerification();
       } catch (error) {
         setVerificationError(error);
+      } finally {
+        verifyCodeInFlightRef.current = false;
       }
     },
     [activeFlowId, completeVerification, setVerificationError, verifyCode]

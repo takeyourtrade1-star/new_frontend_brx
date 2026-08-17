@@ -45,11 +45,6 @@ type MFACodeFormValues = z.infer<typeof mfaCodeSchema>;
 
 const enableMFASchema = z.object({
   password: z.string().min(1, 'La password è obbligatoria').max(128),
-  current_mfa_code: z
-    .string()
-    .regex(/^[0-9]{6}$/, 'Il codice deve essere di 6 cifre')
-    .optional()
-    .or(z.literal('')),
 });
 
 type EnableMFAFormValues = z.infer<typeof enableMFASchema>;
@@ -191,7 +186,7 @@ export function SicurezzaContent() {
     reset: resetEnable,
   } = useForm<EnableMFAFormValues>({
     resolver: zodResolver(enableMFASchema),
-    defaultValues: { password: '', current_mfa_code: '' },
+    defaultValues: { password: '' },
   });
 
   const {
@@ -231,17 +226,9 @@ export function SicurezzaContent() {
     setSetupData(null);
     resetVerify();
 
-    if (isMFAEnabled && !formData.current_mfa_code) {
-      setSetupError(t('accountPage.sec2faVerifyError'));
-      return;
-    }
-
     try {
       const data = await enableMFAMutation.mutateAsync({
         password: formData.password,
-        ...(isMFAEnabled
-          ? { current_mfa_code: formData.current_mfa_code }
-          : {}),
       });
       resetEnable();
       setSetupData(data);
@@ -515,43 +502,6 @@ export function SicurezzaContent() {
         </>
       ) : (
         <div className="space-y-6">
-          <section className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="text-lg font-bold text-[#1D3160]">{t('account.securityConfigure')}</h2>
-            {setupError && <div className="mt-4"><ErrorMessage message={setupError} /></div>}
-            <form onSubmit={handleSubmitEnable(onSubmitEnable)} className="mt-6 space-y-4">
-              <div>
-                <label htmlFor="replace-mfa-password" className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-500">
-                  {t('account.securityPassword')}
-                </label>
-                <Input
-                  id="replace-mfa-password"
-                  type="password"
-                  autoComplete="current-password"
-                  disabled={enableMFAMutation.isPending}
-                  {...registerEnable('password')}
-                />
-                {enableErrors.password && <p className="mt-2 text-xs text-red-500">{enableErrors.password.message}</p>}
-              </div>
-              <div>
-                <label htmlFor="replace-mfa-code" className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-500">
-                  {t('accountPage.secEnterCode')}
-                </label>
-                <Input
-                  id="replace-mfa-code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  disabled={enableMFAMutation.isPending}
-                  {...registerEnable('current_mfa_code')}
-                />
-                {enableErrors.current_mfa_code && <p className="mt-2 text-xs text-red-500">{enableErrors.current_mfa_code.message}</p>}
-              </div>
-              <Button type="submit" disabled={enableMFAMutation.isPending} className="h-12 w-full rounded-full bg-[#1D3160] text-sm font-bold uppercase tracking-wide text-white">
-                {enableMFAMutation.isPending ? t('accountPage.sec2faLoading') : t('account.securityConfigure')}
-              </Button>
-            </form>
-          </section>
-
           <section className="overflow-hidden rounded-2xl border border-red-100/80 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-lg font-bold text-[#1D3160]">{t('account.securityDisableTitle')}</h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-600">{t('account.securityDisableDesc')}</p>

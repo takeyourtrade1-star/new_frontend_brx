@@ -497,7 +497,39 @@ describe('/api/auth/bridge — sicurezza', () => {
     expect(setCookie).toBeTruthy();
     expect(setCookie).toMatch(/ebartex_access_token=new_access_token/);
     expect(setCookie).toMatch(/ebartex_refresh_token=new_refresh_token/);
+    expect(
+      res.headers
+        .getSetCookie()
+        .find((cookie) => cookie.startsWith('ebartex_access_token=new_access_token;')),
+    ).toContain('Max-Age=3600');
   });
+
+  it.each([
+    ['fallback', undefined, 300],
+    ['clamp', 172_800, 86_400],
+  ] as const)(
+    'applica il %s locale alla durata del cookie access',
+    async (_label, expiresIn, expectedMaxAge) => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
+        access_token: 'new_access_token',
+        refresh_token: 'new_refresh_token',
+        ...(expiresIn === undefined ? {} : { expires_in: expiresIn }),
+      })));
+      const { POST } = await import('@/app/api/auth/bridge/route');
+      const req = makeRequest('/api/auth/bridge', {
+        method: 'POST',
+        cookie: VALID_REFRESH_COOKIE,
+      });
+
+      const res = await POST(req);
+
+      expect(res.status).toBe(200);
+      const accessCookie = res.headers
+        .getSetCookie()
+        .find((cookie) => cookie.startsWith('ebartex_access_token=new_access_token;'));
+      expect(accessCookie).toContain(`Max-Age=${expectedMaxAge}`);
+    },
+  );
 
   it('risponde 502 se il backend refresh non restituisce i token', async () => {
     vi.stubGlobal(

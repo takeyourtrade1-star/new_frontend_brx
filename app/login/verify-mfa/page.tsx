@@ -2,7 +2,7 @@
 
 
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -104,6 +104,8 @@ export default function VerifyMFAPage() {
 
   const [rememberDevice, setRememberDevice] = useState(false);
 
+  const submitInFlightRef = useRef(false);
+
 
 
   const {
@@ -150,6 +152,10 @@ export default function VerifyMFAPage() {
 
   async function onSubmit(data: MFAFormValues) {
 
+    if (submitInFlightRef.current) return;
+
+    submitInFlightRef.current = true;
+
     setLocalError(null);
 
     clearError();
@@ -171,6 +177,10 @@ export default function VerifyMFAPage() {
     } catch {
 
       setLocalError(storeError ?? t('mfa.verifyFailed'));
+
+    } finally {
+
+      submitInFlightRef.current = false;
 
     }
 

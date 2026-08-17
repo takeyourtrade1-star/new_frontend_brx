@@ -97,9 +97,10 @@ const PREAUTH_TOKEN_RESPONSE_PATHS = new Set(['login', 'login/code/verify']);
 const PUBLIC_USERNAME_RE = /^[A-Za-z0-9_.-]{1,50}$/;
 const RESERVED_USER_SEGMENTS = new Set(['internal', 'public', 'search']);
 
-const DEFAULT_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24; // 24h
+const DEFAULT_ACCESS_TOKEN_MAX_AGE = 5 * 60; // fallback prudenziale durante il rollout Auth
+const MAX_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24; // clamp locale assoluto: 24h
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30; // 30 giorni
-const PREAUTH_TOKEN_MAX_AGE = 10 * 60; // MFA login hand-off only
+const PREAUTH_TOKEN_MAX_AGE = 5 * 60; // allineato alla scadenza del pre-auth JWT Auth
 const PASSWORD_RESET_TOKEN_MAX_AGE = 10 * 60;
 // Keep enough headroom below the common 4096-byte per-cookie limit for the
 // cookie name and security attributes; oversized upstream JWTs fail closed.
@@ -274,15 +275,19 @@ function passwordResetSessionClearedResponse(request: NextRequest): NextResponse
   return NextResponse.json({ cleared: true }, { status: 200, headers });
 }
 
-function appendLocalSessionDeletions(headers: Headers, secure: boolean): void {
+function appendAuthSessionCookieDeletions(headers: Headers, secure: boolean): void {
   headers.append('Set-Cookie', serializeAuthCookie('access', '', 0, secure));
   headers.append('Set-Cookie', serializeAuthCookie('refresh', '', 0, secure));
   headers.append('Set-Cookie', serializeAuthCookie('preauth', '', 0, secure));
-  appendPasswordResetCookieDeletion(headers, 'password-reset', secure);
-  appendPasswordResetCookieDeletion(headers, 'password-reset-confirm', secure);
   for (const deletion of legacyAuthCookieDeletions(secure)) {
     headers.append('Set-Cookie', deletion);
   }
+}
+
+function appendLocalSessionDeletions(headers: Headers, secure: boolean): void {
+  appendAuthSessionCookieDeletions(headers, secure);
+  appendPasswordResetCookieDeletion(headers, 'password-reset', secure);
+  appendPasswordResetCookieDeletion(headers, 'password-reset-confirm', secure);
 }
 
 function localLogoutResponse(request: NextRequest): NextResponse {
@@ -359,18 +364,44 @@ function withAuthenticatedFlag(payload: unknown, authenticated: boolean): unknow
   return { ...(redacted as Record<string, unknown>), authenticated: true };
 }
 
-function authRateLimit(path: string): { limit: number; windowMs: number } {
+const DISTRIBUTED_RATE_LIMIT_AUTH_MUTATIONS = new Set([
+  'login',
+  'login/code/request',
+  'login/code/verify',
+  'register',
+  'verify-mfa',
+  'change-password',
+  'mfa/enable',
+  'mfa/verify',
+  'mfa/disable',
+  'resend-verification',
+  'verify-email/code',
+  'verify-email/token',
+  'password/reset/request',
+  'password/reset/verify-code',
+  'password/reset/confirm-init',
+  'password/reset/confirm-final',
+]);
+
+function authRateLimit(path: string): {
+  limit: number;
+  windowMs: number;
+  requireDistributedStore: boolean;
+} {
+  const requireDistributedStore = DISTRIBUTED_RATE_LIMIT_AUTH_MUTATIONS.has(path);
   if (path === 'login' || path === 'login/code/verify' || path === 'verify-mfa') {
-    return { limit: 10, windowMs: 5 * 60_000 };
+    return { limit: 10, windowMs: 5 * 60_000, requireDistributedStore };
   }
   if (
     path.includes('request') ||
     path === 'resend-verification' ||
     path === 'register'
   ) {
-    return { limit: 5, windowMs: 15 * 60_000 };
+    return { limit: 5, windowMs: 15 * 60_000, requireDistributedStore };
   }
-  return { limit: 30, windowMs: 5 * 60_000 };
+  // Refresh usa una credenziale ad alta entropia; il logout cancella sempre
+  // prima la sessione locale. Non li rendiamo dipendenti da Redis.
+  return { limit: 30, windowMs: 5 * 60_000, requireDistributedStore };
 }
 
 function scopedInternalHeaders(path: string): Record<string, string> {
@@ -393,15 +424,19 @@ function extractExpiresIn(payload: unknown): number {
   const data = payload as Record<string, unknown>;
 
   const direct = data.expires_in;
-  if (typeof direct === 'number' && Number.isFinite(direct) && direct > 0) {
-    return Math.min(DEFAULT_ACCESS_TOKEN_MAX_AGE, Math.floor(direct));
+  if (typeof direct === 'number' && Number.isSafeInteger(direct) && direct > 0) {
+    return Math.min(MAX_ACCESS_TOKEN_MAX_AGE, direct);
   }
 
   const nested = data.data;
   if (!nested || typeof nested !== 'object') return DEFAULT_ACCESS_TOKEN_MAX_AGE;
   const nestedExpires = (nested as Record<string, unknown>).expires_in;
-  if (typeof nestedExpires === 'number' && Number.isFinite(nestedExpires) && nestedExpires > 0) {
-    return Math.min(DEFAULT_ACCESS_TOKEN_MAX_AGE, Math.floor(nestedExpires));
+  if (
+    typeof nestedExpires === 'number' &&
+    Number.isSafeInteger(nestedExpires) &&
+    nestedExpires > 0
+  ) {
+    return Math.min(MAX_ACCESS_TOKEN_MAX_AGE, nestedExpires);
   }
 
   return DEFAULT_ACCESS_TOKEN_MAX_AGE;
@@ -752,6 +787,19 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
         // Keep the HttpOnly confirm cookie for bounded OTP2 retries.
         browserPayload = { detail: 'Password reset confirmation failed' };
       }
+    }
+
+    if (
+      res.ok &&
+      (path === 'change-password' || path === 'mfa/verify' || path === 'mfa/disable')
+    ) {
+      // Auth ruota lo stamp e revoca sessioni e dispositivi attendibili dopo
+      // queste mutazioni: lo stato locale non deve restare apparentemente valido.
+      appendAuthSessionCookieDeletions(responseHeaders, isSecure);
+      responseHeaders.append(
+        'Set-Cookie',
+        serializeTrustedDeviceCookie({ value: '', maxAge: 0 }),
+      );
     }
 
     if (path === 'login' || path === 'login/code/verify') {

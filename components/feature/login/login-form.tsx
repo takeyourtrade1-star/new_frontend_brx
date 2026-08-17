@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
@@ -36,6 +36,7 @@ export function LoginForm({ variant = 'default' }: LoginFormProps) {
   const loginMutation = useLogin();
   const authError = useAuthError();
   const [showPassword, setShowPassword] = useState(false);
+  const submitInFlightRef = useRef(false);
 
   const {
     register,
@@ -47,6 +48,8 @@ export function LoginForm({ variant = 'default' }: LoginFormProps) {
   });
 
   async function onSubmit(data: LoginValues) {
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
     authError.clearError();
     try {
       const input = data.identifier.trim();
@@ -65,6 +68,8 @@ export function LoginForm({ variant = 'default' }: LoginFormProps) {
       }
     } catch (err: unknown) {
       authError.setError(err);
+    } finally {
+      submitInFlightRef.current = false;
     }
   }
 

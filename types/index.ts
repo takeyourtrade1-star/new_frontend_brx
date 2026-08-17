@@ -206,7 +206,6 @@ export interface MFAEnableResponse {
 
 export interface MFAEnableData {
   password: string;
-  current_mfa_code?: string;
 }
 
 export interface MFAVerifySetupData {

@@ -280,6 +280,38 @@ describe('auth verification BFF', () => {
     expect(body.refresh_token).toBeUndefined();
   });
 
+  it.each([
+    ['uses the Auth TTL', 3_600, 3_600],
+    ['uses the safe fallback when Auth omits TTL', undefined, 300],
+    ['clamps an excessive Auth TTL', 172_800, 86_400],
+  ] as const)(
+    '%s for the access cookie',
+    async (_label, expiresIn, expectedMaxAge) => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        Response.json({
+          access_token: 'access-token',
+          refresh_token: 'refresh-token',
+          ...(expiresIn === undefined ? {} : { expires_in: expiresIn }),
+        }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const { POST } = await import('@/app/api/auth/[...path]/route');
+
+      const response = await POST(
+        postRequest('/api/auth/login', {
+          email: 'test@example.com',
+          password: 'correct horse battery staple',
+        }),
+        { params: Promise.resolve({ path: ['login'] }) },
+      );
+
+      const accessCookie = response.headers
+        .getSetCookie()
+        .find((cookie) => cookie.startsWith('ebartex_access_token=access-token;'));
+      expect(accessCookie).toContain(`Max-Age=${expectedMaxAge}`);
+    },
+  );
+
   it('refreshes from the HttpOnly cookie, ignores the browser body and redacts refresh_token', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
@@ -335,6 +367,143 @@ describe('auth verification BFF', () => {
     expect(response.headers.get('cache-control')).toMatch(/no-store/);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('fails closed without Redis only for sensitive auth mutations in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('AUTH_API_URL', 'https://auth.example.test');
+    vi.stubEnv('TRUSTED_UPSTREAM_HOSTS', 'auth.example.test');
+    vi.stubEnv('TRUSTED_CLIENT_IP_HEADER', 'cloudfront-viewer-address');
+    vi.stubEnv('RATE_LIMIT_REDIS_REST_URL', '');
+    vi.stubEnv('RATE_LIMIT_REDIS_REST_TOKEN', '');
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
+    vi.resetModules();
+
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: 'rotated-access',
+          refresh_token: 'rotated-refresh',
+          token_type: 'bearer',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+    const productionHeaders = {
+      origin: 'https://www.ebartex.com',
+      'sec-fetch-site': 'same-origin',
+      'cloudfront-viewer-address': '203.0.113.10:43120',
+    };
+    const sensitiveRoutes = [
+      ['/api/auth/login', ['login']],
+      ['/api/auth/login/code/request', ['login', 'code', 'request']],
+      ['/api/auth/login/code/verify', ['login', 'code', 'verify']],
+      ['/api/auth/register', ['register']],
+      ['/api/auth/verify-mfa', ['verify-mfa']],
+      ['/api/auth/change-password', ['change-password']],
+      ['/api/auth/mfa/enable', ['mfa', 'enable']],
+      ['/api/auth/mfa/verify', ['mfa', 'verify']],
+      ['/api/auth/mfa/disable', ['mfa', 'disable']],
+      ['/api/auth/resend-verification', ['resend-verification']],
+      ['/api/auth/verify-email/code', ['verify-email', 'code']],
+      ['/api/auth/verify-email/token', ['verify-email', 'token']],
+      ['/api/auth/password/reset/request', ['password', 'reset', 'request']],
+      ['/api/auth/password/reset/verify-code', ['password', 'reset', 'verify-code']],
+      ['/api/auth/password/reset/confirm-init', ['password', 'reset', 'confirm-init']],
+      ['/api/auth/password/reset/confirm-final', ['password', 'reset', 'confirm-final']],
+    ] as const;
+
+    for (const [requestPath, path] of sensitiveRoutes) {
+      const response = await POST(
+        postRequest(requestPath, {}, productionHeaders),
+        { params: Promise.resolve({ path: [...path] }) },
+      );
+      expect(response.status, requestPath).toBe(503);
+      expect(response.headers.get('cache-control'), requestPath).toMatch(/no-store/);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const refreshed = await POST(
+      postRequest('/api/auth/refresh', {}, {
+        ...productionHeaders,
+        cookie: '__Host-ebartex_refresh_token=refresh-token',
+      }),
+      { params: Promise.resolve({ path: ['refresh'] }) },
+    );
+    const loggedOut = await POST(
+      postRequest('/api/auth/logout', {}, {
+        ...productionHeaders,
+        cookie: '__Host-ebartex_refresh_token=logout-refresh-token',
+      }),
+      { params: Promise.resolve({ path: ['logout'] }) },
+    );
+
+    expect(refreshed.status).toBe(200);
+    expect(loggedOut.status).toBe(200);
+    expect(await loggedOut.json()).toEqual({ logged_out: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(warning).toHaveBeenCalledTimes(1);
+    warning.mockRestore();
+  });
+
+  it.each([
+    ['/api/auth/change-password', ['change-password']],
+    ['/api/auth/mfa/verify', ['mfa', 'verify']],
+    ['/api/auth/mfa/disable', ['mfa', 'disable']],
+  ] as const)(
+    'clears rotated local auth and trusted-device state after successful %s',
+    async (requestPath, path) => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        Response.json({ completed: true }, { status: 200 }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const { POST } = await import('@/app/api/auth/[...path]/route');
+
+      const response = await POST(
+        postRequest(requestPath, {
+          password: 'correct horse battery staple',
+          current_mfa_code: '123456',
+          mfa_code: '123456',
+        }),
+        { params: Promise.resolve({ path: [...path] }) },
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.getSetCookie()).toEqual([
+        'ebartex_access_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0',
+        'ebartex_refresh_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0',
+        'ebartex_pre_auth_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0',
+        '__Host-ebartex_mfa_trust=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0',
+      ]);
+    },
+  );
+
+  it.each([
+    ['/api/auth/mfa/enable', ['mfa', 'enable'], 200],
+    ['/api/auth/change-password', ['change-password'], 400],
+    ['/api/auth/mfa/verify', ['mfa', 'verify'], 400],
+    ['/api/auth/mfa/disable', ['mfa', 'disable'], 401],
+  ] as const)(
+    'does not clear the local auth session for %s when no rotation succeeds',
+    async (requestPath, path, status) => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        Response.json({ detail: 'unchanged session' }, { status }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const { POST } = await import('@/app/api/auth/[...path]/route');
+
+      const response = await POST(
+        postRequest(requestPath, { password: 'correct horse battery staple' }),
+        { params: Promise.resolve({ path: [...path] }) },
+      );
+
+      expect(response.status).toBe(status);
+      expect(response.headers.getSetCookie()).toEqual([]);
+    },
+  );
 
   it('logs out locally without a refresh cookie or a functioning rate limiter', async () => {
     const checkRateLimit = vi.fn().mockRejectedValue(new Error('rate limit unavailable'));
@@ -904,7 +1073,7 @@ describe('auth verification BFF', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('propagates la cancellazione del cookie trusted-device', async () => {
+  it('propagates trusted-device deletion and caps pre-auth at five minutes', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ mfa_required: true, pre_auth_token: 'pre-auth' }), {
         status: 200,
@@ -926,7 +1095,12 @@ describe('auth verification BFF', () => {
       params: Promise.resolve({ path: ['login'] }),
     });
 
-    expect(response.headers.getSetCookie()).toContain(
+    const cookies = response.headers.getSetCookie();
+    expect(cookies).toContain(
+      'ebartex_pre_auth_token=pre-auth; Path=/; HttpOnly; SameSite=Lax; Max-Age=300'
+    );
+    expect(cookies.join('\n')).not.toContain('Max-Age=600');
+    expect(cookies).toContain(
       '__Host-ebartex_mfa_trust=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'
     );
   });
