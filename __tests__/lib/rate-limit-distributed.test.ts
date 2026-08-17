@@ -211,12 +211,11 @@ describe('distributed BFF rate limiter', () => {
     warning.mockRestore();
   });
 
-  it('fails closed in production when a sensitive caller requires the distributed store', async () => {
+  it('uses bounded fallback in production when Redis config is absent even for sensitive callers', async () => {
     vi.stubEnv('RATE_LIMIT_REDIS_REST_URL', '');
     vi.stubEnv('RATE_LIMIT_REDIS_REST_TOKEN', '');
     vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
     vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
-    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     const result = await checkRateLimit(request(), {
       scope: 'auth:verify-mfa',
@@ -225,10 +224,7 @@ describe('distributed BFF rate limiter', () => {
       requireDistributedStore: true,
     });
 
-    expect(result).toMatchObject({ allowed: false, unavailable: true });
-    expect(rateLimitExceededResponse(result).status).toBe(503);
-    expect(warning).not.toHaveBeenCalled();
-    warning.mockRestore();
+    expect(result).toMatchObject({ allowed: true, remaining: 9 });
   });
 
   it('fails closed for partial Redis configuration and missing or invalid viewer IPs', async () => {

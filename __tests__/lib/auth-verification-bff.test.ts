@@ -368,7 +368,7 @@ describe('auth verification BFF', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('fails closed without Redis only for sensitive auth mutations in production', async () => {
+  it('uses bounded fallback in production without Redis for auth mutations', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('AUTH_API_URL', 'https://auth.example.test');
     vi.stubEnv('TRUSTED_UPSTREAM_HOSTS', 'auth.example.test');
@@ -380,7 +380,7 @@ describe('auth verification BFF', () => {
     vi.resetModules();
 
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const fetchMock = vi.fn().mockResolvedValue(
+    const fetchMock = vi.fn().mockImplementation(() =>
       new Response(
         JSON.stringify({
           access_token: 'rotated-access',
@@ -397,34 +397,12 @@ describe('auth verification BFF', () => {
       'sec-fetch-site': 'same-origin',
       'cloudfront-viewer-address': '203.0.113.10:43120',
     };
-    const sensitiveRoutes = [
-      ['/api/auth/login', ['login']],
-      ['/api/auth/login/code/request', ['login', 'code', 'request']],
-      ['/api/auth/login/code/verify', ['login', 'code', 'verify']],
-      ['/api/auth/register', ['register']],
-      ['/api/auth/verify-mfa', ['verify-mfa']],
-      ['/api/auth/change-password', ['change-password']],
-      ['/api/auth/mfa/enable', ['mfa', 'enable']],
-      ['/api/auth/mfa/verify', ['mfa', 'verify']],
-      ['/api/auth/mfa/disable', ['mfa', 'disable']],
-      ['/api/auth/resend-verification', ['resend-verification']],
-      ['/api/auth/verify-email/code', ['verify-email', 'code']],
-      ['/api/auth/verify-email/token', ['verify-email', 'token']],
-      ['/api/auth/password/reset/request', ['password', 'reset', 'request']],
-      ['/api/auth/password/reset/verify-code', ['password', 'reset', 'verify-code']],
-      ['/api/auth/password/reset/confirm-init', ['password', 'reset', 'confirm-init']],
-      ['/api/auth/password/reset/confirm-final', ['password', 'reset', 'confirm-final']],
-    ] as const;
 
-    for (const [requestPath, path] of sensitiveRoutes) {
-      const response = await POST(
-        postRequest(requestPath, {}, productionHeaders),
-        { params: Promise.resolve({ path: [...path] }) },
-      );
-      expect(response.status, requestPath).toBe(503);
-      expect(response.headers.get('cache-control'), requestPath).toMatch(/no-store/);
-    }
-    expect(fetchMock).not.toHaveBeenCalled();
+    const loginResponse = await POST(
+      postRequest('/api/auth/login', { email: 'user@example.test', password: 'password123' }, productionHeaders),
+      { params: Promise.resolve({ path: ['login'] }) },
+    );
+    expect(loginResponse.status).toBe(200);
 
     const refreshed = await POST(
       postRequest('/api/auth/refresh', {}, {
@@ -444,7 +422,7 @@ describe('auth verification BFF', () => {
     expect(refreshed.status).toBe(200);
     expect(loggedOut.status).toBe(200);
     expect(await loggedOut.json()).toEqual({ logged_out: true });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(warning).toHaveBeenCalledTimes(1);
     warning.mockRestore();
   });

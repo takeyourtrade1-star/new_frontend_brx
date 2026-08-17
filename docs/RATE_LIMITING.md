@@ -5,36 +5,18 @@ le istanze tramite un endpoint REST compatibile Redis. L'incremento e
 l'impostazione del TTL sono eseguiti in un singolo script Lua `EVAL`, quindi
 restano atomici anche con richieste concorrenti e scaling orizzontale.
 
-Per mantenere disponibili le route non sensibili dell'attuale deploy Amplify
-finché non è pronto il provider di segreti runtime, esiste una modalità di
-compatibilità esplicita: **solo quando tutte e quattro** le variabili URL/token
-Redis dedicate e Upstash sono assenti o vuote, il processo usa un limiter in
-memoria limitato a 5.000 chiavi ed emette un solo warning statico (senza IP, URL
-o segreti). Quota e finestra configurate dalle route restano identiche.
+Per mantenere disponibile l'attuale deploy Amplify finché non è pronto il
+provider di segreti runtime, esiste una modalità di compatibilità esplicita:
+**solo quando tutte e quattro** le variabili URL/token Redis dedicate e Upstash
+sono assenti o vuote, il processo usa un limiter in memoria limitato a 5.000
+chiavi ed emette un solo warning statico (senza IP, URL o segreti). Quota e
+finestra configurate dalle route restano identiche.
 
-Le mutazioni auth che permettono tentativi su password, codici o account non
-usano mai tale fallback in produzione. Senza Redis rispondono 503 `no-store`:
-
-- `login`, `login/code/request`, `login/code/verify`, `register`, `verify-mfa`;
-- `change-password`, `mfa/enable`, `mfa/verify`, `mfa/disable`;
-- `resend-verification`, `verify-email/code`, `verify-email/token`;
-- `password/reset/request`, `password/reset/verify-code`,
-  `password/reset/confirm-init`, `password/reset/confirm-final`.
-
-`refresh` e il bridge di refresh restano sul fallback di compatibilità perché
-validano token ad alta entropia già emessi; renderli dipendenti da Redis
-causerebbe un logout generalizzato durante un outage. Il logout locale cancella
-sempre i cookie prima della revoca remota best-effort e non dipende dal limiter.
-`password/reset/clear-session` è una cancellazione locale e non consuma quota.
-In sviluppo e test il fallback locale resta disponibile anche per le route
-sensibili.
-
-Il fallback residuo è per-instance: cold start, riavvii e scaling creano
-contatori separati e permettono quindi di superare la quota globale distribuendo
+Questo fallback è per-instance: cold start, riavvii e scaling creano contatori
+separati e permettono quindi di superare la quota globale distribuendo
 richieste tra istanze. Non va descritto come protezione distribuita né
-considerato lo stato finale, ma non protegge più le mutazioni auth elencate
-sopra. Va rimosso non appena il provider runtime può consegnare token Redis e
-chiave HMAC senza inserirli negli artifact.
+considerato lo stato finale. Va rimosso non appena il provider runtime può
+consegnare token Redis e chiave HMAC senza inserirli negli artifact.
 
 Qualsiasi coppia Redis parziale, configurazione invalida, IP non attendibile,
 timeout, errore dello store o risposta malformata causa invece una risposta 503
