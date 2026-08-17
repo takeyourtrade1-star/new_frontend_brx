@@ -16,6 +16,12 @@ import {
 
 /** Righe priorità catalogo (allineato a INVENTORY_ITEMS_PER_PAGE in OggettiContent). */
 const CATALOG_PRIORITY_PAGE_SIZE = 50;
+const CATALOG_STATE_FLUSH_BATCHES = 6;
+
+interface AccountInventoryOptions {
+  /** Negli scambi non servono le righe ricevute ma non ancora ripubblicate. */
+  catalogScope?: 'all' | 'tradable-listings';
+}
 
 async function loadCatalogInBackground(
   allItems: InventoryItemResponse[],
@@ -46,12 +52,21 @@ async function loadCatalogInBackground(
     if (catalogLoadGenRef.current !== generation) return;
     setCatalogMap((prev) => ({ ...prev, ...priorityMap }));
 
+    let pendingMap: BlueprintToCardMap = {};
     for (let i = 0; i < restIds.length; i += CATALOG_FETCH_BATCH) {
       if (catalogLoadGenRef.current !== generation) return;
       const batch = restIds.slice(i, i + CATALOG_FETCH_BATCH);
       const fetched = await fetchCardsByBlueprintIds(batch);
       if (catalogLoadGenRef.current !== generation) return;
-      setCatalogMap((prev) => ({ ...prev, ...fetched }));
+      pendingMap = { ...pendingMap, ...fetched };
+      const batchIndex = Math.floor(i / CATALOG_FETCH_BATCH);
+      const isFlushBoundary = (batchIndex + 1) % CATALOG_STATE_FLUSH_BATCHES === 0;
+      const isLastBatch = i + CATALOG_FETCH_BATCH >= restIds.length;
+      if (isFlushBoundary || isLastBatch) {
+        const nextMap = pendingMap;
+        pendingMap = {};
+        setCatalogMap((prev) => ({ ...prev, ...nextMap }));
+      }
     }
   } finally {
     if (catalogLoadGenRef.current === generation) {
@@ -62,7 +77,8 @@ async function loadCatalogInBackground(
 
 export function useAccountInventory(
   userId: string | undefined,
-  accessToken: string | null
+  accessToken: string | null,
+  options: AccountInventoryOptions = {},
 ) {
   const queryClient = useQueryClient();
   const catalogLoadGenRef = useRef(0);
@@ -79,11 +95,19 @@ export function useAccountInventory(
   });
 
   const inventoryRaw = useMemo(() => query.data?.items ?? [], [query.data?.items]);
+  const catalogSourceItems = useMemo(() => {
+    if (options.catalogScope !== 'tradable-listings') return inventoryRaw;
+    return inventoryRaw.filter((item) => (
+      item.listing_source === 'marketplace' && Boolean(item.marketplace_listing_id)
+    ) || (
+      item.listing_source === 'sync' && item.source === 'cardtrader'
+    ));
+  }, [inventoryRaw, options.catalogScope]);
   const total = query.data?.total ?? 0;
   const loading = enabled && (query.isLoading || (query.isFetching && inventoryRaw.length === 0));
 
   useEffect(() => {
-    if (!query.data?.items.length) {
+    if (!catalogSourceItems.length) {
       setCatalogMap({});
       setCatalogLoading(false);
       return;
@@ -93,13 +117,13 @@ export function useAccountInventory(
     setCatalogMap({});
     setCatalogLoading(false);
     void loadCatalogInBackground(
-      query.data.items,
+      catalogSourceItems,
       generation,
       catalogLoadGenRef,
       setCatalogMap,
       setCatalogLoading
     );
-  }, [query.dataUpdatedAt, query.data?.items]);
+  }, [catalogSourceItems, query.dataUpdatedAt]);
 
   // Proiezione visibile: per ora solo giochi MTG/sealed (piano CardTrader, Fase 8).
   const inventoryItems = useMemo<InventoryItemWithCatalog[]>(

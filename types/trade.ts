@@ -78,7 +78,6 @@ export interface CreateTradeInput {
   delivery_method: 'direct';
   offered_credits_cents: 0;
   requested_credits_cents: 0;
-  ship_address: TradeAddress;
 }
 
 export interface TradeResponse { success: boolean; data: Trade }

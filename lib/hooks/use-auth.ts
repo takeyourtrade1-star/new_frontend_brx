@@ -15,6 +15,7 @@ import type {
   MFAEnableResponse,
   MFAVerifySetupData,
   MFADisableData,
+  UserResponse,
 } from '@/types';
 
 /**
@@ -30,6 +31,20 @@ export function useCurrentUser() {
     enabled: isAuthenticated,
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minuti
+  });
+}
+
+/** Assegna una sola volta lo username definitivo a un account legacy. */
+export function useClaimUsername() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (username: string) =>
+      authApi.patch<UserResponse>('/api/auth/username', { username }),
+    onSuccess: async () => {
+      await useAuthStore.getState().fetchUser();
+      await queryClient.invalidateQueries({ queryKey: ['auth', 'user'] });
+    },
   });
 }
 

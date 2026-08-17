@@ -73,8 +73,9 @@ export const tradesApi = {
   get: (tradeId: number) => request<TradeResponse>(`/${tradeId}`),
   history: (tradeId: number) => request<TradeHistoryResponse>(`/${tradeId}/history`),
   create: (body: CreateTradeInput) => post('', body, true),
-  accept: (tradeId: number, shipAddress: TradeAddress) =>
-    post(`/${tradeId}/accept`, { ship_address: shipAddress }),
+  accept: (tradeId: number) => post(`/${tradeId}/accept`),
+  submitAddress: (tradeId: number, shipAddress: TradeAddress) =>
+    post(`/${tradeId}/address`, { ship_address: shipAddress }),
   decline: (tradeId: number, reason?: string) => post(`/${tradeId}/decline`, { reason }),
   cancel: (tradeId: number, reason?: string) => post(`/${tradeId}/cancel`, { reason }),
   counter: (tradeId: number, body: Omit<CreateTradeInput, 'receiver_id' | 'delivery_method'>) =>

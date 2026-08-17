@@ -37,6 +37,42 @@ describe('client BFF con cookie HttpOnly', () => {
     expect(requestHeaders(fetchMock).has('Authorization')).toBe(false);
   });
 
+  it('accetta lo scambio senza chiedere un indirizzo', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okJson({ success: true, data: {} }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await tradesApi.accept(17);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/trades/17/accept',
+      expect.objectContaining({ method: 'POST', body: '{}' }),
+    );
+  });
+
+  it('invia l’indirizzo solo tramite l’endpoint post-accettazione', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okJson({ success: true, data: {} }));
+    vi.stubGlobal('fetch', fetchMock);
+    const address = {
+      full_name: 'Mario Rossi',
+      street: 'Via Roma 1',
+      city: 'Milano',
+      zip: '20100',
+      province: 'MI',
+      country: 'IT',
+      phone: null,
+    };
+
+    await tradesApi.submitAddress(17, address);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/trades/17/address',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ ship_address: address }),
+      }),
+    );
+  });
+
   it('marketplace non costruisce Authorization dal localStorage', async () => {
     const fetchMock = vi.fn().mockResolvedValue(okJson({}));
     vi.stubGlobal('fetch', fetchMock);

@@ -651,6 +651,36 @@ describe('/api/trades - sicurezza privata', () => {
     expect(res.status).toBe(401);
   });
 
+  it('consente l’endpoint indirizzo post-accettazione e lo mantiene privato', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ success: true, data: {} }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/trades/[...path]/route');
+    const addressBody = JSON.stringify({
+      ship_address: {
+        full_name: 'Mario Rossi',
+        street: 'Via Roma 1',
+        city: 'Milano',
+        zip: '20100',
+        country: 'IT',
+      },
+    });
+    const res = await POST(makeRequest('/api/trades/17/address', {
+      method: 'POST',
+      cookie: VALID_COOKIE,
+      body: addressBody,
+    }), {
+      params: Promise.resolve({ path: ['17', 'address'] }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:8001/trades/17/address',
+      expect.objectContaining({ method: 'POST', body: addressBody, cache: 'no-store' }),
+    );
+  });
+
   it('inoltra idempotency validata e scarta request-id controllato dal client', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({ success: true, data: {} }),

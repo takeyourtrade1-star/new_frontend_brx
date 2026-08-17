@@ -16,6 +16,7 @@ import {
   useDeclineTrade,
   useRequestTradeCancel,
   useShipTrade,
+  useSubmitTradeAddress,
   useTrade,
   useTradeAssistance,
 } from '@/lib/hooks/use-trades';
@@ -160,6 +161,7 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
   const [confirmAction, setConfirmAction] = useState<'decline' | 'cancel' | null>(null);
 
   const accept = useAcceptTrade();
+  const submitAddress = useSubmitTradeAddress();
   const decline = useDeclineTrade();
   const cancel = useCancelTrade();
   const ship = useShipTrade();
@@ -167,7 +169,7 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
   const requestCancel = useRequestTradeCancel();
   const confirmCancel = useConfirmTradeCancel();
   const assistance = useTradeAssistance();
-  const busy = [accept, decline, cancel, ship, confirmReceipt, requestCancel, confirmCancel, assistance]
+  const busy = [accept, submitAddress, decline, cancel, ship, confirmReceipt, requestCancel, confirmCancel, assistance]
     .some((mutation) => mutation.isPending);
 
   const blueprintIds = useMemo(
@@ -225,6 +227,7 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
   const other = trade.parties?.find((party) => party.user_id !== user?.id);
   const anyShipped = Boolean(me?.shipped_at || other?.shipped_at);
   const validAddress = Boolean(address.full_name && address.street && address.city && address.zip && address.country);
+  const addressesReady = Boolean(me?.address && other?.address);
 
   const perform = async (operation: () => Promise<unknown>) => {
     setActionError(null);
@@ -280,6 +283,8 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
         blueprintId: item.blueprint_id,
         quantity: item.quantity,
         name: catalog[item.blueprint_id]?.name,
+        priceCents: item.price_cents,
+        properties: item.properties,
       })),
     });
     router.push('/scambi/proponi');
@@ -348,17 +353,13 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
         </div>
 
         {trade.status === 'PROPOSED' && isReceiver && (
-          <form
+          <section
             className={cn(scambiGlassLight, 'mt-4 animate-in rounded-[1.4rem] p-5 fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none')}
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (validAddress && !busy) void perform(() => accept.mutateAsync({ tradeId, address }));
-            }}
           >
-            <h2 className="mb-4 text-sm font-black uppercase text-[#1D3160]">{t('trades.acceptTitle')}</h2>
-            <AddressFields value={address} onChange={setAddress} />
+            <h2 className="text-sm font-black uppercase text-[#1D3160]">{t('trades.acceptProposalTitle')}</h2>
+            <p className="mt-1 text-sm text-slate-500">{t('trades.acceptAddressLater')}</p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <button type="submit" disabled={busy || !validAddress} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-black text-white shadow-md shadow-emerald-600/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 disabled:translate-y-0 disabled:opacity-40 motion-reduce:transform-none">
+              <button type="button" onClick={() => void perform(() => accept.mutateAsync(tradeId))} disabled={busy} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-black text-white shadow-md shadow-emerald-600/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 disabled:translate-y-0 disabled:opacity-40 motion-reduce:transform-none">
                 {t('trades.accept')}
               </button>
               <button
@@ -384,7 +385,7 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
                 {t('trades.counter')}
               </button>
             </div>
-          </form>
+          </section>
         )}
 
         {trade.status === 'PROPOSED' && isProposer && (
@@ -414,7 +415,28 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
         {(trade.status === 'ACCEPTED' || trade.status === 'DISPUTED') && (isProposer || isReceiver) && (
           <section className={cn(scambiGlassLight, 'mt-4 animate-in space-y-4 rounded-[1.4rem] p-5 fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none')}>
             <h2 className="text-sm font-black uppercase text-[#1D3160]">{t('trades.shippingTitle')}</h2>
-            {!me?.shipped_at && trade.status === 'ACCEPTED' && (
+            {!me?.address && (
+              <form
+                className="rounded-2xl border border-orange-200 bg-orange-50/70 p-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (validAddress && !busy) void perform(() => submitAddress.mutateAsync({ tradeId, address }));
+                }}
+              >
+                <h3 className="text-sm font-black uppercase text-[#1D3160]">{t('trades.addressAfterAcceptTitle')}</h3>
+                <p className="mb-4 mt-1 text-xs text-slate-500">{t('trades.addressAfterAcceptNote')}</p>
+                <AddressFields value={address} onChange={setAddress} />
+                <button type="submit" disabled={busy || !validAddress} className="mt-4 rounded-xl bg-[#FF7300] px-5 py-2.5 text-sm font-black text-white shadow-sm transition-colors hover:bg-[#e66800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/35 disabled:opacity-40">
+                  {t('trades.saveTradeAddress')}
+                </button>
+              </form>
+            )}
+            {me?.address && !other?.address && (
+              <div className="rounded-2xl border border-sky-200 bg-sky-50/75 p-4 text-sm font-semibold text-sky-800" role="status">
+                {t('trades.waitingOtherAddress')}
+              </div>
+            )}
+            {!me?.shipped_at && addressesReady && trade.status === 'ACCEPTED' && (
               <form
                 className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
                 onSubmit={(event) => {

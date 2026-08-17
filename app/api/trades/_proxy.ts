@@ -50,7 +50,7 @@ function isAllowedTradePath(path: string, method: string): boolean {
   if (!path) return method === 'GET' || method === 'POST';
   if (method === 'GET' && /^\d{1,18}(?:\/history)?$/.test(path)) return true;
   if (method !== 'POST') return false;
-  return /^\d{1,18}\/(?:accept|decline|cancel|counter|ship|confirm-receipt|request-cancel|confirm-cancel|assistance)$/.test(path);
+  return /^\d{1,18}\/(?:accept|address|decline|cancel|counter|ship|confirm-receipt|request-cancel|confirm-cancel|assistance)$/.test(path);
 }
 
 export async function proxyTrade(request: NextRequest, pathSegments: string[]) {

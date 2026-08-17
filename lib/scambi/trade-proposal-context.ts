@@ -48,6 +48,9 @@ export interface TradeProposalContext {
     blueprintId: number;
     quantity: number;
     name?: string;
+    /** Prezzo congelato della proposta, in centesimi. */
+    priceCents?: number;
+    properties?: Record<string, unknown> | null;
   }>;
 }
 

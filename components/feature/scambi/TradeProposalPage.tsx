@@ -1,36 +1,46 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
-  ArrowLeftRight,
   ArrowRight,
   Check,
+  ChevronDown,
+  Clock3,
+  Coins,
   Loader2,
   LockKeyhole,
+  Minus,
+  Plus,
+  Search,
   Send,
+  SlidersHorizontal,
   Sparkles,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatEurCents } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useAccountInventory } from '@/lib/hooks/use-account-inventory';
-import { usePublicUserCollection } from '@/lib/hooks/use-public-user-collection';
+import { useInfinitePublicUserCollection } from '@/lib/hooks/use-public-user-collection';
 import { useMeilisearchCards } from '@/lib/hooks/use-meilisearch-cards';
+import { getCardLanguageLabel } from '@/lib/card-languages';
 import { useCounterTrade, useCreateTrade } from '@/lib/hooks/use-trades';
 import {
   clearTradeProposalContext,
   getTradeProposalContext,
   type TradeProposalContext,
 } from '@/lib/scambi/trade-proposal-context';
-import type { TradeAddress, TradeItemInput } from '@/types/trade';
+import type { TradeItemInput } from '@/types/trade';
 import { ScambiShell, TradeCardThumb, scambiGlass } from './ScambiShell';
+import { TradeBalanceIndicator } from './TradeBalanceIndicator';
 
-type ProposalStep = 'cards' | 'address' | 'review';
+type ProposalStep = 'cards' | 'review';
 type StepDirection = 'forward' | 'backward';
+type PrivateCashSide = 'none' | 'offered' | 'requested';
 
-const PROPOSAL_STEP_ORDER: ProposalStep[] = ['cards', 'address', 'review'];
+const PROPOSAL_STEP_ORDER: ProposalStep[] = ['cards', 'review'];
 
 interface PickerItem {
   id: string;
@@ -41,22 +51,17 @@ interface PickerItem {
   name: string;
   image?: string | null;
   setName?: string;
+  condition?: string;
+  language?: string;
+  priceCents: number;
   source: 'cardtrader' | 'marketplace';
 }
 
-const EMPTY_ADDRESS: TradeAddress = {
-  full_name: '', street: '', city: '', zip: '', province: '', country: 'IT', phone: '',
-};
+type PickerSort = 'default' | 'price-desc' | 'price-asc' | 'name-asc';
 
-const ADDRESS_FIELDS = [
-  { key: 'full_name', label: 'trades.address.fullName', autoComplete: 'name' },
-  { key: 'street', label: 'trades.address.street', autoComplete: 'street-address', wide: true },
-  { key: 'city', label: 'trades.address.city', autoComplete: 'address-level2' },
-  { key: 'zip', label: 'trades.address.zip', autoComplete: 'postal-code', inputMode: 'numeric' },
-  { key: 'province', label: 'trades.address.province', autoComplete: 'address-level1' },
-  { key: 'country', label: 'trades.address.country', autoComplete: 'country-name' },
-  { key: 'phone', label: 'trades.address.phone', autoComplete: 'tel', inputMode: 'tel' },
-] as const;
+const PICKER_INITIAL_ITEMS = 32;
+const PICKER_ITEMS_STEP = 32;
+const PRIVATE_CASH_MAX_CENTS = 1_000_000;
 
 function proposalItemKey(item: {
   source: 'sync' | 'marketplace';
@@ -88,16 +93,73 @@ function toTradeItems(selected: Record<string, number>, items: PickerItem[]): Tr
   return result;
 }
 
-function ItemPicker({ title, empty, items, selected, locked, onChange }: {
+function inventoryProperty(
+  properties: Record<string, unknown> | null | undefined,
+  key: string,
+): string | undefined {
+  const value = properties?.[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function selectedValueCents(selected: Record<string, number>, items: PickerItem[]): number {
+  return items.reduce((total, item) => total + item.priceCents * (selected[item.id] ?? 0), 0);
+}
+
+const ItemPicker = memo(function ItemPicker({
+  title,
+  empty,
+  items,
+  selected,
+  locked,
+  totalCount,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+  onChange,
+}: {
   title: string;
   empty: string;
   items: PickerItem[];
   selected: Record<string, number>;
   locked?: Set<string>;
+  totalCount?: number;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
   onChange: (next: Record<string, number>) => void;
 }) {
   const { t } = useTranslation();
+  const locale = useIntlLocale();
+  const [query, setQuery] = useState('');
+  const [condition, setCondition] = useState('all');
+  const [language, setLanguage] = useState('all');
+  const [sort, setSort] = useState<PickerSort>('default');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [visibleLimit, setVisibleLimit] = useState(PICKER_INITIAL_ITEMS);
+  const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase(locale));
   const selectedCount = Object.values(selected).reduce((sum, quantity) => sum + quantity, 0);
+  const conditions = useMemo(() => [...new Set(items.flatMap((item) => item.condition ? [item.condition] : []))].sort(), [items]);
+  const languages = useMemo(() => [...new Set(items.flatMap((item) => item.language ? [item.language] : []))]
+    .sort((left, right) => getCardLanguageLabel(left).localeCompare(getCardLanguageLabel(right), locale)), [items, locale]);
+  const filteredItems = useMemo(() => {
+    const matches = items.filter((item) => {
+      if (condition !== 'all' && item.condition !== condition) return false;
+      if (language !== 'all' && item.language !== language) return false;
+      if (!deferredQuery) return true;
+      return `${item.name} ${item.setName ?? ''}`.toLocaleLowerCase(locale).includes(deferredQuery);
+    });
+    if (sort === 'price-desc') return [...matches].sort((a, b) => b.priceCents - a.priceCents);
+    if (sort === 'price-asc') return [...matches].sort((a, b) => a.priceCents - b.priceCents);
+    if (sort === 'name-asc') return [...matches].sort((a, b) => a.name.localeCompare(b.name, locale));
+    return matches;
+  }, [condition, deferredQuery, items, language, locale, sort]);
+  const visibleItems = filteredItems.slice(0, visibleLimit);
+  const activeFilterCount = Number(query.trim().length > 0) + Number(condition !== 'all') + Number(language !== 'all') + Number(sort !== 'default');
+
+  useEffect(() => {
+    setVisibleLimit(PICKER_INITIAL_ITEMS);
+  }, [deferredQuery, condition, language, sort]);
+
   const toggle = (item: PickerItem) => {
     if (locked?.has(item.id)) return;
     const next = { ...selected };
@@ -110,7 +172,9 @@ function ItemPicker({ title, empty, items, selected, locked, onChange }: {
       <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-5">
         <div>
           <h2 className="text-sm font-black uppercase tracking-wide text-white">{title}</h2>
-          <p className="mt-0.5 text-[11px] font-semibold text-white/40">{t('trades.availableCount', { count: items.length })}</p>
+          <p className="mt-0.5 text-[11px] font-semibold text-white/40">
+            {t('trades.inventoryResults', { shown: filteredItems.length, total: totalCount ?? items.length })}
+          </p>
         </div>
         <span className={cn(
           'rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide',
@@ -120,13 +184,77 @@ function ItemPicker({ title, empty, items, selected, locked, onChange }: {
         </span>
       </div>
 
+      <div className="border-b border-white/10 bg-black/10 p-3 sm:p-4">
+        <div className="flex gap-2">
+          <label className="relative min-w-0 flex-1">
+            <span className="sr-only">{t('trades.searchInventory')}</span>
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" aria-hidden />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t('trades.searchInventory')}
+              className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.07] pl-9 pr-3 text-sm font-semibold text-white outline-none placeholder:text-white/30 focus:border-[#FF8A26]/60 focus:ring-2 focus:ring-[#FF7300]/15"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((current) => !current)}
+            aria-expanded={filtersOpen}
+            className={cn(
+              'relative inline-flex h-10 items-center gap-1.5 rounded-xl border px-3 text-xs font-black uppercase tracking-wide outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF8A26]/60',
+              filtersOpen || activeFilterCount > 0
+                ? 'border-[#FF8A26]/55 bg-[#FF7300]/15 text-orange-100'
+                : 'border-white/10 bg-white/[0.07] text-white/55 hover:bg-white/[0.1]',
+            )}
+          >
+            <SlidersHorizontal className="h-4 w-4" aria-hidden />
+            <span className="hidden xl:inline">{t('trades.filters')}</span>
+            {activeFilterCount > 0 && <span className="rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] text-white">{activeFilterCount}</span>}
+          </button>
+        </div>
+
+        {filtersOpen && (
+          <div className="mt-2 grid gap-2 animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none sm:grid-cols-3">
+            <label className="relative">
+              <span className="sr-only">{t('trades.filterCondition')}</span>
+              <select value={condition} onChange={(event) => setCondition(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60">
+                <option value="all">{t('trades.allConditions')}</option>
+                {conditions.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" aria-hidden />
+            </label>
+            <label className="relative">
+              <span className="sr-only">{t('trades.filterLanguage')}</span>
+              <select value={language} onChange={(event) => setLanguage(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60">
+                <option value="all">{t('trades.allLanguages')}</option>
+                {languages.map((value) => <option key={value} value={value}>{getCardLanguageLabel(value)}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" aria-hidden />
+            </label>
+            <label className="relative">
+              <span className="sr-only">{t('trades.sortInventory')}</span>
+              <select value={sort} onChange={(event) => setSort(event.target.value as PickerSort)} className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60">
+                <option value="default">{t('trades.sortDefault')}</option>
+                <option value="price-desc">{t('trades.sortPriceDesc')}</option>
+                <option value="price-asc">{t('trades.sortPriceAsc')}</option>
+                <option value="name-asc">{t('trades.sortNameAsc')}</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" aria-hidden />
+            </label>
+          </div>
+        )}
+      </div>
+
       {items.length === 0 ? (
         <div className="flex min-h-52 items-center justify-center px-6 py-10 text-center">
           <p className="max-w-xs text-sm font-semibold text-white/45">{empty}</p>
         </div>
       ) : (
         <div className="max-h-[430px] space-y-2 overflow-y-auto p-3 sm:p-4">
-          {items.map((item) => {
+          {visibleItems.length === 0 && (
+            <p className="py-10 text-center text-sm font-semibold text-white/45">{t('trades.noFilterResults')}</p>
+          )}
+          {visibleItems.map((item) => {
             const quantity = selected[item.id] ?? 0;
             const isSelected = quantity > 0;
             const isLocked = Boolean(locked?.has(item.id));
@@ -155,8 +283,9 @@ function ItemPicker({ title, empty, items, selected, locked, onChange }: {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-black text-white">{item.name}</span>
                     <span className="mt-0.5 block truncate text-[11px] font-semibold text-white/40">
-                      {item.setName || t('trades.availableCount', { count: item.quantity })}
+                      {[item.setName, item.condition, item.language ? getCardLanguageLabel(item.language) : null].filter(Boolean).join(' · ') || t('trades.availableCount', { count: item.quantity })}
                     </span>
+                    <span className="mt-1 block text-[10px] font-black tabular-nums text-orange-200/75">{formatEurCents(item.priceCents, locale)}</span>
                     {isLocked && (
                       <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-[#FF7300]">
                         <LockKeyhole className="h-3 w-3" aria-hidden /> {t('trades.lockedCard')}
@@ -186,9 +315,135 @@ function ItemPicker({ title, empty, items, selected, locked, onChange }: {
               </div>
             );
           })}
+          {(visibleLimit < filteredItems.length || hasMore) && (
+            <button
+              type="button"
+              disabled={loadingMore}
+              onClick={() => {
+                if (visibleLimit < filteredItems.length) {
+                  setVisibleLimit((current) => current + PICKER_ITEMS_STEP);
+                } else {
+                  onLoadMore?.();
+                }
+              }}
+              className="mt-2 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-4 text-xs font-black uppercase tracking-wide text-white/65 transition-colors hover:bg-white/[0.1] hover:text-white disabled:cursor-wait disabled:opacity-50"
+            >
+              {loadingMore && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+              {t('trades.showMoreCards')}
+            </button>
+          )}
         </div>
       )}
     </section>
+  );
+});
+
+function PrivateCashControls({
+  side,
+  amountCents,
+  onSideChange,
+  onAmountChange,
+}: {
+  side: PrivateCashSide;
+  amountCents: number;
+  onSideChange: (side: PrivateCashSide) => void;
+  onAmountChange: (amountCents: number) => void;
+}) {
+  const { t } = useTranslation();
+  const locale = useIntlLocale();
+  const setSide = (next: Exclude<PrivateCashSide, 'none'>) => {
+    if (side === next) {
+      onSideChange('none');
+      onAmountChange(0);
+      return;
+    }
+    onSideChange(next);
+  };
+  const changeAmount = (next: number) => {
+    onAmountChange(Math.min(PRIVATE_CASH_MAX_CENTS, Math.max(0, Math.round(next))));
+  };
+
+  return (
+    <section className="mb-4 overflow-hidden rounded-[1.3rem] border border-amber-200/20 bg-amber-300/[0.07]">
+      <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-amber-100">
+            <Coins className="h-4 w-4 text-amber-300" aria-hidden /> {t('trades.privateCash.title')}
+          </div>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-amber-50/60">{t('trades.privateCash.warning')}</p>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="grid grid-cols-2 rounded-xl border border-white/10 bg-black/15 p-1">
+            {([
+              ['offered', t('trades.privateCash.offer')],
+              ['requested', t('trades.privateCash.request')],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setSide(value)}
+                aria-pressed={side === value}
+                className={cn(
+                  'rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-wide transition-colors',
+                  side === value ? 'bg-[#FF7300] text-white shadow-sm' : 'text-white/45 hover:bg-white/[0.06] hover:text-white/75',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className={cn('flex h-11 items-center overflow-hidden rounded-xl border bg-white/95 transition-opacity', side === 'none' ? 'border-white/10 opacity-45' : 'border-amber-300/60')}>
+            <button type="button" disabled={side === 'none'} onClick={() => changeAmount(amountCents - 500)} className="flex h-full w-9 items-center justify-center text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed" aria-label={t('common.decrease')}>
+              <Minus className="h-3.5 w-3.5" aria-hidden />
+            </button>
+            <label className="relative border-x border-slate-200">
+              <span className="sr-only">{t('trades.privateCash.amount')}</span>
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">€</span>
+              <input
+                type="number"
+                min={0}
+                max={PRIVATE_CASH_MAX_CENTS / 100}
+                step="0.50"
+                disabled={side === 'none'}
+                value={amountCents > 0 ? (amountCents / 100).toFixed(2) : ''}
+                onChange={(event) => changeAmount(Number(event.target.value) * 100)}
+                placeholder="0,00"
+                className="h-11 w-24 bg-transparent pl-7 pr-2 text-right text-sm font-black tabular-nums text-slate-800 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              />
+            </label>
+            <button type="button" disabled={side === 'none'} onClick={() => changeAmount(amountCents + 500)} className="flex h-full w-9 items-center justify-center text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed" aria-label={t('common.increase')}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          </div>
+        </div>
+      </div>
+      {side !== 'none' && amountCents > 0 && (
+        <p className="border-t border-amber-100/10 px-4 py-2 text-center text-[11px] font-bold text-amber-100/75" aria-live="polite">
+          {side === 'offered'
+            ? t('trades.privateCash.offerSummary', { amount: formatEurCents(amountCents, locale) })
+            : t('trades.privateCash.requestSummary', { amount: formatEurCents(amountCents, locale) })}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function TableCashPile({ amountCents, side }: { amountCents: number; side: 'offered' | 'requested' }) {
+  const locale = useIntlLocale();
+  if (amountCents <= 0) return null;
+  return (
+    <div className={cn('absolute top-12 z-20 flex items-center gap-2', side === 'offered' ? 'right-5' : 'left-5 flex-row-reverse')}>
+      <div className="relative h-10 w-11" aria-hidden>
+        {[0, 1, 2, 3].map((coin) => (
+          <span key={coin} className="absolute left-1/2 h-3 w-8 -translate-x-1/2 rounded-[50%] border border-amber-100/70 bg-gradient-to-b from-amber-200 to-amber-500 shadow-md" style={{ bottom: `${coin * 5}px` }} />
+        ))}
+      </div>
+      <span className="rounded-full border border-amber-100/25 bg-amber-300/15 px-2.5 py-1 text-[10px] font-black tabular-nums text-amber-100 backdrop-blur-sm">
+        {formatEurCents(amountCents, locale)}
+      </span>
+    </div>
   );
 }
 
@@ -197,18 +452,24 @@ function TradeTableSide({
   selected,
   label,
   side,
+  valueCents,
+  cashCents,
 }: {
   items: PickerItem[];
   selected: Record<string, number>;
   label: string;
   side: 'offered' | 'requested';
+  valueCents: number;
+  cashCents: number;
 }) {
   const { t } = useTranslation();
+  const locale = useIntlLocale();
   const visibleItems = items.slice(0, 5);
   const totalCards = items.reduce((sum, item) => sum + (selected[item.id] ?? 0), 0);
 
   return (
     <div className="relative h-full min-w-0">
+      <TableCashPile amountCents={cashCents} side={side} />
       <div className={cn(
         'absolute inset-x-8 bottom-5 flex items-center gap-3',
         side === 'requested' && 'flex-row-reverse text-right',
@@ -222,7 +483,9 @@ function TradeTableSide({
             'text-[10px] font-black uppercase tracking-[0.16em]',
             side === 'offered' ? 'text-sky-100/75' : 'text-orange-100/80',
           )}>{label}</p>
-          <p className="mt-0.5 text-xs font-black text-white/90">{t('trades.cardsCount', { count: totalCards })}</p>
+          <p className="mt-0.5 text-xs font-black text-white/90">
+            {t('trades.cardsCount', { count: totalCards })} · {formatEurCents(valueCents, locale)}
+          </p>
         </div>
       </div>
 
@@ -281,11 +544,21 @@ function TradeProposalTable({
   requestedItems,
   offered,
   requested,
+  offeredValueCents,
+  requestedValueCents,
+  offeredCashCents,
+  requestedCashCents,
+  otherName,
 }: {
   offeredItems: PickerItem[];
   requestedItems: PickerItem[];
   offered: Record<string, number>;
   requested: Record<string, number>;
+  offeredValueCents: number;
+  requestedValueCents: number;
+  offeredCashCents: number;
+  requestedCashCents: number;
+  otherName: string;
 }) {
   const { t } = useTranslation();
 
@@ -307,13 +580,16 @@ function TradeProposalTable({
         </div>
 
         <div className="absolute inset-y-14 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/18 to-transparent" aria-hidden />
-        <div className="absolute left-1/2 top-1/2 z-20 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#071E22]/80 text-orange-200 shadow-[0_8px_25px_rgba(0,0,0,.32)] backdrop-blur-md" aria-hidden>
-          <ArrowLeftRight className="h-5 w-5" />
-        </div>
+        <TradeBalanceIndicator
+          offeredCents={offeredValueCents}
+          requestedCents={requestedValueCents}
+          otherName={otherName}
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        />
 
         <div className="grid h-full grid-cols-2">
-          <TradeTableSide items={offeredItems} selected={offered} label={t('trades.youOffer')} side="offered" />
-          <TradeTableSide items={requestedItems} selected={requested} label={t('trades.youReceive')} side="requested" />
+          <TradeTableSide items={offeredItems} selected={offered} label={t('trades.youOffer')} side="offered" valueCents={offeredValueCents} cashCents={offeredCashCents} />
+          <TradeTableSide items={requestedItems} selected={requested} label={t('trades.youReceive')} side="requested" valueCents={requestedValueCents} cashCents={requestedCashCents} />
         </div>
 
         {[[18, 18], [82, 18], [18, 82], [82, 82]].map(([left, top]) => (
@@ -331,6 +607,7 @@ function TradeProposalTable({
 
 export function TradeProposalPage() {
   const { t } = useTranslation();
+  const locale = useIntlLocale();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -338,7 +615,8 @@ export function TradeProposalPage() {
   const [hydrated, setHydrated] = useState(false);
   const [offered, setOffered] = useState<Record<string, number>>({});
   const [requested, setRequested] = useState<Record<string, number>>({});
-  const [address, setAddress] = useState<TradeAddress>(EMPTY_ADDRESS);
+  const [privateCashSide, setPrivateCashSide] = useState<PrivateCashSide>('none');
+  const [privateCashCents, setPrivateCashCents] = useState(0);
   const [message, setMessage] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [step, setStep] = useState<ProposalStep>('cards');
@@ -377,18 +655,25 @@ export function TradeProposalPage() {
   }, [step]);
 
   const isCounter = ctx?.mode === 'counter';
-  const inventory = useAccountInventory(user?.id, accessToken);
-  const publicCollection = usePublicUserCollection(
+  const inventory = useAccountInventory(user?.id, accessToken, { catalogScope: 'tradable-listings' });
+  const publicCollection = useInfinitePublicUserCollection(
     ctx?.seller.name ?? '',
-    { limit: 100, offset: 0 },
     Boolean(ctx && !isCounter),
   );
 
+  const publicItems = useMemo(() => publicCollection.data?.pages.flatMap((page) => page.items) ?? [], [publicCollection.data?.pages]);
+  const publicTotal = publicCollection.data?.pages[0]?.total ?? publicItems.length;
+
   const requestedBlueprintIds = useMemo(() => [
-    ...(publicCollection.data?.items ?? []).map((item) => item.blueprint_id),
+    ...publicItems.map((item) => item.blueprint_id),
     ...(ctx?.requestedItems ?? []).map((item) => item.blueprintId),
-  ].filter((id) => id > 0), [ctx?.requestedItems, publicCollection.data?.items]);
-  const { data: requestedCatalog = {} } = useMeilisearchCards([...new Set(requestedBlueprintIds)]);
+  ].filter((id) => id > 0), [ctx?.requestedItems, publicItems]);
+  const uniqueRequestedBlueprintIds = useMemo(() => [...new Set(requestedBlueprintIds)], [requestedBlueprintIds]);
+  const { data: requestedCatalog = {} } = useMeilisearchCards(
+    uniqueRequestedBlueprintIds,
+    'cardtrader_id',
+    { placeholderData: (previous) => previous ?? {} },
+  );
 
   const myItems = useMemo<PickerItem[]>(() => inventory.inventoryRaw
     .filter((item) => item.quantity > 0)
@@ -409,6 +694,9 @@ export function TradeProposalPage() {
         name: card?.name || item.description || t('trades.cardFallback', { id: item.blueprint_id }),
         image: card?.image,
         setName: card?.set_name,
+        condition: inventoryProperty(item.properties, 'condition'),
+        language: inventoryProperty(item.properties, 'mtg_language'),
+        priceCents: Math.max(0, item.price_cents),
         source: isMarketplace ? 'marketplace' : 'cardtrader',
       };
     }), [inventory.catalogMap, inventory.inventoryRaw, t]);
@@ -428,11 +716,14 @@ export function TradeProposalPage() {
           name: item.name || card?.name || t('trades.cardFallback', { id: item.blueprintId }),
           image: card?.image,
           setName: card?.set_name,
+          condition: inventoryProperty(item.properties, 'condition'),
+          language: inventoryProperty(item.properties, 'mtg_language'),
+          priceCents: Math.max(0, item.priceCents ?? 0),
           source: item.source === 'marketplace' ? 'marketplace' as const : 'cardtrader' as const,
         }];
       });
     }
-    const items: PickerItem[] = (publicCollection.data?.items ?? [])
+    const items: PickerItem[] = publicItems
       .filter((item) => item.quantity > 0)
       .map((item) => {
       const card = requestedCatalog[item.blueprint_id];
@@ -444,6 +735,9 @@ export function TradeProposalPage() {
         name: card?.name || t('trades.cardFallback', { id: item.blueprint_id }),
         image: card?.image,
         setName: card?.set_name,
+        condition: inventoryProperty(item.properties, 'condition'),
+        language: inventoryProperty(item.properties, 'mtg_language'),
+        priceCents: Math.max(0, item.price_cents),
         source: 'cardtrader',
       };
     });
@@ -461,12 +755,14 @@ export function TradeProposalPage() {
           quantity: ctx.listing.quantity,
           name: ctx.card.name,
           image: ctx.card.image,
+          condition: ctx.card.condition || undefined,
+          priceCents: Math.max(0, Math.round(ctx.card.priceEur * 100)),
           source: isMarketplace ? 'marketplace' : 'cardtrader',
         });
       }
     }
     return items;
-  }, [ctx, publicCollection.data?.items, requestedCatalog, t]);
+  }, [ctx, publicItems, requestedCatalog, t]);
 
   const lockedRequested = useMemo(() => {
     if (ctx?.mode === 'counter') return new Set<string>();
@@ -483,26 +779,37 @@ export function TradeProposalPage() {
     return new Set([id]);
   }, [ctx]);
 
-  const validAddress = Boolean(address.full_name && address.street && address.city && address.zip && address.country);
   const offeredPayload = useMemo(() => toTradeItems(offered, myItems), [myItems, offered]);
   const requestedPayload = useMemo(() => toTradeItems(requested, otherItems), [otherItems, requested]);
   const offeredCount = offeredPayload.reduce((sum, item) => sum + item.quantity, 0);
   const requestedCount = requestedPayload.reduce((sum, item) => sum + item.quantity, 0);
-  const canSubmit = Boolean(ctx && offeredPayload.length && requestedPayload.length && validAddress);
+  const offeredCardsValueCents = useMemo(() => selectedValueCents(offered, myItems), [myItems, offered]);
+  const requestedCardsValueCents = useMemo(() => selectedValueCents(requested, otherItems), [otherItems, requested]);
+  const offeredCashCents = privateCashSide === 'offered' ? privateCashCents : 0;
+  const requestedCashCents = privateCashSide === 'requested' ? privateCashCents : 0;
+  const offeredValueCents = offeredCardsValueCents + offeredCashCents;
+  const requestedValueCents = requestedCardsValueCents + requestedCashCents;
+  const canSubmit = Boolean(ctx && offeredPayload.length && requestedPayload.length);
   const busy = createTrade.isPending || counterTrade.isPending;
-
-  const updateAddress = (key: keyof TradeAddress, value: string) => setAddress((current) => ({ ...current, [key]: value }));
 
   const submit = async () => {
     if (!ctx || !canSubmit || busy) return;
     setSubmitError(null);
+    const privateCashNote = privateCashCents > 0 && privateCashSide !== 'none'
+      ? t(
+          privateCashSide === 'offered'
+            ? 'trades.privateCash.messageOffered'
+            : 'trades.privateCash.messageRequested',
+          { amount: formatEurCents(privateCashCents, locale) },
+        )
+      : '';
+    const submittedMessage = [message.trim(), privateCashNote].filter(Boolean).join('\n\n');
     const common = {
       offered: offeredPayload,
       requested: requestedPayload,
-      message: message.trim() || undefined,
+      message: submittedMessage || undefined,
       offered_credits_cents: 0 as const,
       requested_credits_cents: 0 as const,
-      ship_address: address,
     };
     try {
       const response = isCounter && ctx.parentTradeId
@@ -532,7 +839,6 @@ export function TradeProposalPage() {
 
   const steps: Array<{ id: ProposalStep; label: string; ready: boolean }> = [
     { id: 'cards', label: t('trades.stepCards'), ready: offeredCount > 0 && requestedCount > 0 },
-    { id: 'address', label: t('trades.stepAddress'), ready: validAddress },
     { id: 'review', label: t('trades.stepSend'), ready: canSubmit },
   ];
   const activeStepIndex = steps.findIndex((item) => item.id === step);
@@ -570,14 +876,14 @@ export function TradeProposalPage() {
               <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.045] p-1 backdrop-blur-md">
                 <span className="pointer-events-none absolute inset-1" aria-hidden>
                   <span
-                    className="block h-full w-1/3 rounded-lg bg-white shadow-sm transition-transform duration-300 ease-out motion-reduce:transition-none"
+                    className="block h-full w-1/2 rounded-lg bg-white shadow-sm transition-transform duration-300 ease-out motion-reduce:transition-none"
                     style={{ transform: `translateX(${activeStepIndex * 100}%)` }}
                   />
                 </span>
-                <div className="relative grid grid-cols-3">
+                <div className="relative grid grid-cols-2">
                   {steps.map(({ id, label, ready }, index) => {
                     const active = step === id;
-                    const accessible = index <= activeStepIndex || (index === 1 && steps[0].ready) || (index === 2 && steps[0].ready && steps[1].ready);
+                    const accessible = index <= activeStepIndex || (index === 1 && steps[0].ready);
                     return (
                       <button
                         key={id}
@@ -632,75 +938,58 @@ export function TradeProposalPage() {
                   requestedItems={selectedRequestedItems}
                   offered={offered}
                   requested={requested}
+                  offeredValueCents={offeredValueCents}
+                  requestedValueCents={requestedValueCents}
+                  offeredCashCents={offeredCashCents}
+                  requestedCashCents={requestedCashCents}
+                  otherName={ctx.seller.name}
                 />
-                <div className="relative grid gap-4 md:grid-cols-2">
-                  <ItemPicker title={t('trades.chooseOffered')} empty={t('trades.noTradableInventory')} items={myItems} selected={offered} onChange={setOffered} />
+                <TradeBalanceIndicator
+                  offeredCents={offeredValueCents}
+                  requestedCents={requestedValueCents}
+                  otherName={ctx.seller.name}
+                  className="mb-4 lg:hidden"
+                />
+                <PrivateCashControls
+                  side={privateCashSide}
+                  amountCents={privateCashCents}
+                  onSideChange={setPrivateCashSide}
+                  onAmountChange={setPrivateCashCents}
+                />
+                <div className="relative grid gap-4 sm:grid-cols-2">
+                  <ItemPicker title={t('trades.chooseOffered')} empty={t('trades.noTradableInventory')} items={myItems} selected={offered} onChange={setOffered} totalCount={myItems.length} />
                   <span
                     className={cn(
-                      'scambi-flow-track pointer-events-none absolute left-1/2 top-1/2 z-10 hidden h-0.5 w-8 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 md:block',
+                      'scambi-flow-track pointer-events-none absolute left-1/2 top-1/2 z-10 hidden h-0.5 w-8 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 sm:block',
                       offeredCount > 0 && requestedCount > 0 ? 'opacity-100' : 'opacity-25',
                     )}
                     data-active={offeredCount > 0 && requestedCount > 0}
                     aria-hidden
                   />
-                  <ItemPicker title={t('trades.chooseRequested')} empty={t('trades.noRequestedInventory')} items={otherItems} selected={requested} locked={lockedRequested} onChange={setRequested} />
+                  <ItemPicker
+                    title={t('trades.chooseRequested')}
+                    empty={t('trades.noRequestedInventory')}
+                    items={otherItems}
+                    selected={requested}
+                    locked={lockedRequested}
+                    onChange={setRequested}
+                    totalCount={isCounter ? otherItems.length : Math.max(publicTotal, otherItems.length)}
+                    hasMore={Boolean(publicCollection.hasNextPage)}
+                    loadingMore={publicCollection.isFetchingNextPage}
+                    onLoadMore={() => { void publicCollection.fetchNextPage(); }}
+                  />
                 </div>
                 <div className="mt-5 flex justify-end">
                   <button
                     type="button"
                     disabled={!steps[0].ready}
-                    onClick={() => goToStep('address')}
+                    onClick={() => goToStep('review')}
                     className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-xs font-black uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8A26]/60 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30 disabled:shadow-none motion-reduce:transform-none"
                   >
                     {t('trades.continue')} <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-              )}
-
-              {step === 'address' && (
-              <form
-                className={cn('mx-auto max-w-3xl animate-in fade-in duration-300 motion-reduce:animate-none', stepMotionClass)}
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (validAddress) goToStep('review');
-                }}
-              >
-                <div className="mb-5">
-                  <h2 className="text-lg font-black uppercase tracking-wide text-white">{t('trades.yourShippingAddress')}</h2>
-                  <p className="mt-1 text-sm text-white/50">{t('trades.shippingNote')}</p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {ADDRESS_FIELDS.map(({ key, label, autoComplete, ...field }) => (
-                    <label key={key} className={cn('text-[10px] font-black uppercase tracking-wide text-white/50', 'wide' in field && field.wide && 'sm:col-span-2')}>
-                      {t(label)}
-                      <input
-                        required={['full_name', 'street', 'city', 'zip', 'country'].includes(key)}
-                        value={address[key] ?? ''}
-                        onChange={(event) => updateAddress(key, event.target.value)}
-                        autoComplete={autoComplete}
-                        inputMode={'inputMode' in field ? field.inputMode : undefined}
-                        className="mt-1.5 h-11 w-full rounded-xl border border-white/10 bg-white/[0.07] px-3 text-sm font-semibold normal-case tracking-normal text-white outline-none transition-all duration-200 placeholder:text-white/25 hover:bg-white/[0.10] focus:border-[#FF8A26]/60 focus:bg-white/[0.12] focus:ring-2 focus:ring-[#FF7300]/15"
-                      />
-                    </label>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <label className="block text-[10px] font-black uppercase tracking-wide text-white/50">
-                    {t('trades.message')}
-                    <textarea value={message} maxLength={1000} onChange={(event) => setMessage(event.target.value)} className="mt-1.5 min-h-24 w-full rounded-xl border border-white/10 bg-white/[0.07] p-3 text-sm font-semibold normal-case tracking-normal text-white outline-none transition-all duration-200 hover:bg-white/[0.10] focus:border-[#FF8A26]/60 focus:bg-white/[0.12] focus:ring-2 focus:ring-[#FF7300]/15" />
-                  </label>
-                  <p className="mt-1 text-right text-[10px] font-semibold tabular-nums text-white/35">{message.length}/1000</p>
-                </div>
-                <div className="mt-5 flex items-center justify-between gap-3">
-                  <button type="button" onClick={() => goToStep('cards')} className="rounded-xl border border-white/10 px-4 py-3 text-xs font-black uppercase tracking-wide text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white">
-                    {t('trades.previous')}
-                  </button>
-                  <button type="submit" disabled={!validAddress} className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-xs font-black uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8A26]/60 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30 disabled:shadow-none motion-reduce:transform-none">
-                    {t('trades.continue')} <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </form>
               )}
 
               {step === 'review' && (
@@ -713,13 +1002,15 @@ export function TradeProposalPage() {
               >
                 <div className="grid gap-4 md:grid-cols-2">
                   {[
-                    { label: t('trades.youOffer'), items: selectedOfferedItems, quantities: offered, count: offeredCount },
-                    { label: t('trades.youReceive'), items: selectedRequestedItems, quantities: requested, count: requestedCount },
+                    { label: t('trades.youOffer'), items: selectedOfferedItems, quantities: offered, count: offeredCount, valueCents: offeredValueCents, cashCents: offeredCashCents },
+                    { label: t('trades.youReceive'), items: selectedRequestedItems, quantities: requested, count: requestedCount, valueCents: requestedValueCents, cashCents: requestedCashCents },
                   ].map((group) => (
                     <section key={group.label} className="rounded-[1.3rem] border border-white/10 bg-white/[0.05] p-4">
                       <div className="flex items-center justify-between gap-3">
                         <h2 className="text-sm font-black uppercase tracking-wide text-white">{group.label}</h2>
-                        <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-white/60">{t('trades.cardsCount', { count: group.count })}</span>
+                        <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-white/60">
+                          {t('trades.cardsCount', { count: group.count })} · {formatEurCents(group.valueCents, locale)}
+                        </span>
                       </div>
                       <div className="mt-3 space-y-2">
                         {group.items.map((item) => (
@@ -732,27 +1023,50 @@ export function TradeProposalPage() {
                             <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-black text-white">× {group.quantities[item.id]}</span>
                           </div>
                         ))}
+                        {group.cashCents > 0 && (
+                          <div className="flex items-center gap-3 rounded-xl border border-amber-200/20 bg-amber-300/10 p-2.5 text-amber-100">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-300/15">
+                              <Coins className="h-5 w-5" aria-hidden />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-black uppercase tracking-wide">{t('trades.privateCash.privateAgreement')}</p>
+                              <p className="text-[10px] text-amber-50/55">{t('trades.privateCash.notProcessed')}</p>
+                            </div>
+                            <span className="text-sm font-black tabular-nums">{formatEurCents(group.cashCents, locale)}</span>
+                          </div>
+                        )}
                       </div>
                     </section>
                   ))}
                 </div>
 
                 <div className="mt-4 rounded-[1.3rem] border border-white/10 bg-white/[0.05] p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-wide text-white/40">{t('trades.yourShippingAddress')}</p>
-                      <p className="mt-1 text-sm font-bold text-white">{address.full_name}</p>
-                      <p className="text-sm text-white/55">{address.street}, {address.zip} {address.city} ({address.country})</p>
-                    </div>
-                    <button type="button" onClick={() => goToStep('address')} className="text-left text-xs font-black uppercase tracking-wide text-[#FF9B45] hover:text-[#FFB477]">{t('trades.edit')}</button>
+                  <label className="block text-[10px] font-black uppercase tracking-wide text-white/50">
+                    {t('trades.message')}
+                    <textarea value={message} maxLength={1000} onChange={(event) => setMessage(event.target.value)} className="mt-1.5 min-h-24 w-full rounded-xl border border-white/10 bg-white/[0.07] p-3 text-sm font-semibold normal-case tracking-normal text-white outline-none transition-all duration-200 hover:bg-white/[0.10] focus:border-[#FF8A26]/60 focus:bg-white/[0.12] focus:ring-2 focus:ring-[#FF7300]/15" />
+                  </label>
+                  <p className="mt-1 text-right text-[10px] font-semibold tabular-nums text-white/35">{message.length}/1000</p>
+                </div>
+
+                {privateCashCents > 0 && privateCashSide !== 'none' && (
+                  <div className="mt-4 flex items-start gap-3 rounded-[1.3rem] border border-amber-200/20 bg-amber-300/10 p-4 text-amber-50">
+                    <Coins className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden />
+                    <p className="text-xs font-semibold leading-relaxed">{t('trades.privateCash.warning')}</p>
                   </div>
-                  {message && <p className="mt-3 break-words border-t border-white/10 pt-3 text-sm italic text-white/55">“{message}”</p>}
+                )}
+
+                <div className="mt-4 flex items-start gap-3 rounded-[1.3rem] border border-sky-200/20 bg-sky-300/10 p-4 text-sky-50">
+                  <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" aria-hidden />
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wide">{t('trades.expiry48Title')}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-sky-50/65">{t('trades.expiry48Notice')}</p>
+                  </div>
                 </div>
 
                 <p className="mt-4 text-center text-[11px] leading-relaxed text-white/45">{t('trades.directOnly')}</p>
                 {submitError && <p className="mt-4 rounded-xl border border-red-300/20 bg-red-400/15 p-3 text-xs text-red-100" role="alert">{submitError}</p>}
                 <div className="mt-5 flex items-center justify-between gap-3">
-                  <button type="button" onClick={() => goToStep('address')} className="rounded-xl border border-white/10 px-4 py-3 text-xs font-black uppercase tracking-wide text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white">
+                  <button type="button" onClick={() => goToStep('cards')} className="rounded-xl border border-white/10 px-4 py-3 text-xs font-black uppercase tracking-wide text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white">
                     {t('trades.previous')}
                   </button>
                   <button

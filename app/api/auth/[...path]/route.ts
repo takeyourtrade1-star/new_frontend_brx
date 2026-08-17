@@ -66,6 +66,7 @@ const EXACT_AUTH_ROUTES: Readonly<Record<string, readonly AllowedMethod[]>> = {
   register: ['POST'],
   refresh: ['POST'],
   me: ['GET'],
+  username: ['PATCH'],
   logout: ['POST'],
   'username-available': ['GET'],
   'change-password': ['POST'],
