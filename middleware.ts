@@ -23,20 +23,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthCookieName } from '@/app/api/_lib/auth-cookies';
+import { isProtectedRoutePath } from '@/lib/auth/protected-routes';
 import { resolveProductionAppOrigins } from '@/lib/production-app-origin';
-
-const PROTECTED_PREFIXES = [
-  '/account',
-  '/admin',
-  '/ordini',
-  '/cart',
-  '/vendi',
-  '/aste/nuova',
-  '/aste/mie',
-  '/aste/partecipazioni',
-  '/bidding',
-  '/scambi',
-];
 
 const LOGIN_PATH = '/login';
 const PRIVATE_CACHE_CONTROL = 'private, no-store, max-age=0';
@@ -104,9 +92,7 @@ function createPageResponse(
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isProtected = PROTECTED_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
+  const isProtected = isProtectedRoutePath(pathname);
 
   if (!isProtected) {
     const response = createPageResponse(request);

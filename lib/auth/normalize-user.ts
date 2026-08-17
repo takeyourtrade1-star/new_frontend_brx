@@ -28,6 +28,7 @@ export function normalizeUser(
   const u = user as UserResponse & {
     name?: string | null;
     username?: string | null;
+    can_claim_username?: boolean;
     image?: string | null;
     country?: string;
   };
@@ -36,6 +37,7 @@ export function normalizeUser(
     id: user.id,
     email: user.email,
     username: u.username ?? null,
+    can_claim_username: u.can_claim_username ?? false,
     /** Backend può esporre `username` senza `name`: usiamolo come display name */
     name: u.name ?? u.username ?? null,
     image: u.image ?? null,

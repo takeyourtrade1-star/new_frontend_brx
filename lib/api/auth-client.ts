@@ -19,6 +19,7 @@ import { config } from '../config';
 import { isTournamentsTransitionPath } from '@/lib/config/tournaments';
 import { tokenManager } from './refresh-token';
 import { purgePrivateBrowserState } from '@/lib/auth/private-browser-state';
+import { isProtectedRoutePath } from '@/lib/auth/protected-routes';
 
 /**
  * Endpoint auth raggiungibili da utenti non autenticati: un 401 qui significa
@@ -124,10 +125,13 @@ class AuthApiClient {
       localStorage.removeItem(config.auth.userKey);
     }
 
-    // Reindirizza al login; non disturbare MFA né il video → portale tornei
+    // Il 401 di /api/auth/me durante il bootstrap anonimo è normale sulle
+    // pagine pubbliche (in particolare sulla landing). Reindirizziamo solo
+    // se l'utente si trova già in una route protetta.
     if (typeof window !== 'undefined') {
       const p = window.location.pathname;
       if (
+        isProtectedRoutePath(p) &&
         p !== '/login' &&
         !p.startsWith('/login/verify-mfa') &&
         !isTournamentsTransitionPath(p)

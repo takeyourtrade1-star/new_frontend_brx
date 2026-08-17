@@ -60,8 +60,8 @@
 | **D6** | Nuova colonna **`source`** su `user_inventory_items`: `cardtrader` (backfill: external NOT NULL), `internal_test` (backfill: external NULL esistenti), `trade` (accrediti scambi) | Distingue stock pubblicato, accrediti da scambio e test. Le API pubbliche espongono solo stock realmente messo in vendita; una riga `trade` ricevuta resta una registrazione interna finché l'utente non ripubblica manualmente. |
 | **D7** | **Niente prenotazione alla proposta**; vince il primo che accetta; stessa carta ammessa in più proposte | Prenotare alla proposta bloccherebbe l'inventario per giorni. All'accettazione si rivalida tutto; le proposte concorrenti falliranno con errore chiaro. |
 | **D8** | **Controproposta = nuovo scambio** con `parent_trade_id`; l'originale passa a `COUNTERED` | Scambi immutabili dopo la creazione → storico pulito, catena consultabile. |
-| **D9** | **Indirizzi snapshot per-scambio** (proposer alla proposta, receiver all'accettazione; visibili all'altro solo da ACCEPTED) | La rubrica indirizzi è un progetto a sé (servirà anche ai pagamenti). |
-| **D10** | **Crediti rinviati**: colonne a schema vincolate a 0; UI dietro flag `scambiCreditsEnabled=false`. **Consegna v1 solo `direct`** (l'intermediario Ebartex resta a schema) | Richiesta esplicita; l'intermediario richiede operatività che non esiste. |
+| **D9** | **Indirizzi snapshot per-scambio** inseriti da entrambe le parti soltanto dopo l'accettazione; visibili nell'ambito dello scambio confermato | La rubrica indirizzi è un progetto a sé (servirà anche ai pagamenti). |
+| **D10** | **Crediti backend rinviati**: colonne a schema vincolate a 0; l'eventuale conguaglio è solo estetico/informativo nel frontend e resta un accordo privato. **Consegna v1 solo `direct`** (l'intermediario Ebartex resta a schema) | Richiesta esplicita; pagamenti e intermediario richiedono operatività che non esiste. |
 | **D11** | Il **valore €** mostrato è il `price_cents` dichiarato, informativo; la regola ±10/15% non è imposta dal server | Non esiste un servizio prezzi di mercato; restano i limiti strutturali. |
 | **D12** | **Le inserzioni Ebartex-only sono scambiabili dalla v1**; quelle CardTrader-linked continuano a usare il sync | Gli scambi non richiedono vendite o pagamenti attivi. L'escrow marketplace decrementa atomicamente `mkt_listings.quantity`; la vendita Ebartex e lo scambio competono sulla stessa riga. |
 
@@ -72,7 +72,7 @@
 ### Nel servizio **auction** (migrazione Alembic nuova) — 4 tabelle
 Stile esistente: id `BigInteger`, utenti `UUID` senza FK (dal JWT), timestamptz.
 
-**`trades`** — `id`; `proposer_id`, `receiver_id` (+ display name snapshot); `status`; `message` (≤2000); `delivery_method` (`direct`); `parent_trade_id` FK→trades; `offered_credits_cents`/`requested_credits_cents` (default 0, **check = 0 in v1**); `due_at` (default +7gg); `accepted_at`, `completed_at`, `cancelled_at`, `cancellation_reason`; timestamps.
+**`trades`** — `id`; `proposer_id`, `receiver_id` (+ display name snapshot); `status`; `message` (≤2000); `delivery_method` (`direct`); `parent_trade_id` FK→trades; `offered_credits_cents`/`requested_credits_cents` (default 0, **check = 0 in v1**); `due_at` (default +48h); `accepted_at`, `completed_at`, `cancelled_at`, `cancellation_reason`; timestamps.
 
 **`trade_items`** — `trade_id` FK CASCADE; `direction` (`offered`/`requested`); `owner_user_id`; `inventory_source` (`sync`/`marketplace`) e riferimento esclusivo `inventory_item_id` oppure `marketplace_listing_id`; `quantity` (>0, anche parziale); **snapshot congelato alla proposta**: `blueprint_id`, `price_cents`, `properties` JSONB, `description`, `graded`, `was_cardtrader_linked` bool; **tracking escrow**: `escrowed_at`, `released_at`, `release_target` (`receiver_credited`/`returned_to_owner`/`returned_as_new_row`) — garantiscono rilascio **una volta sola**.
 
@@ -117,10 +117,10 @@ Stile esistente: id `BigInteger`, utenti `UUID` senza FK (dal JWT), timestamptz.
 - `SHIPPED` non è uno stato globale: `shipped_at` per-partecipante (le due spedizioni sono indipendenti).
 
 ### Accettazione (saga a 2 gambe, sincrona nella richiesta)
-1. Lock trade; verifica: `PROPOSED`, chiamante=receiver, non scaduto, crediti=0. Rivalidazione item vs snapshot nel provider proprietario (esistenza, proprietario, sorgente tradabile, quantità, `blueprint_id`+`properties` invariati — se cambiati → `TRADE_ITEM_CHANGED`). Salva indirizzo receiver. Stato → `ACCEPTING`.
+1. Lock trade; verifica: `PROPOSED`, chiamante=receiver, non scaduto, crediti=0. Rivalidazione item vs snapshot nel provider proprietario (esistenza, proprietario, sorgente tradabile, quantità, `blueprint_id`+`properties` invariati — se cambiati → `TRADE_ITEM_CHANGED`). Stato → `ACCEPTING`, senza chiedere indirizzi.
 2. **Gamba A**: partiziona gli item del proposer per provider. Il sync prenota le righe inventario e propaga il decremento CT quando serve; marketplace prenota atomicamente le inserzioni Ebartex-only. Ogni gruppo ha un `op_key` distinto.
 3. **Gamba B**: idem per gli item del receiver. Se fallisce → release della gamba A (`op_key …:release`) e trade torna `PROPOSED` con motivo.
-4. Entrambe ok → stato `ACCEPTED`, `escrowed_at` sugli item, storico, notifiche, email con indirizzi e istruzioni.
+4. Entrambe ok → stato `ACCEPTED`, `escrowed_at` sugli item, storico e notifiche. Da questo momento entrambe le parti possono inserire l'indirizzo; la spedizione resta bloccata finché non sono presenti entrambi.
 5. **Recupero**: un job interno rilascia e riporta a `PROPOSED` gli scambi rimasti in `ACCEPTING` oltre N minuti (crash a metà saga). Tutte le chiamate sono idempotenti per `op_key` → retry sicuri.
 
 ### Completamento
@@ -151,7 +151,7 @@ L'annullo consensuale è ammesso solo prima della prima spedizione. Dopo una spe
 | Annullamento prima della spedizione | Consenso di entrambe le parti → `release`; la quantità riservata torna acquistabile, anche su CT quando collegata |
 | Annullamento dopo una spedizione | Annullo diretto bloccato; contestazione obbligatoria. Nessun ripristino finché l'operatore non conferma il rientro fisico |
 | Scambio completato | La vecchia inserzione consuma la quantità scambiata. Le carte ricevute sono accreditate internamente ma non tornano in vendita automaticamente |
-| Proposta ignorata | `EXPIRED` via job schedulato su `due_at` (+7gg), promemoria a −24h; niente escrow da ripulire |
+| Proposta ignorata | `EXPIRED` via job schedulato su `due_at` (+48h), promemoria a −24h; la riserva della proposta viene ripristinata |
 | Proposer ci ripensa / receiver rifiuta | `cancel` (solo PROPOSED) / `decline` con motivo opzionale |
 | Uno dei due non spedisce mai | Promemoria; dopo N giorni ciascuno può chiedere assistenza → `DISPUTED`, risoluzione manuale (mai auto-assegnazione) |
 | Annullo dopo l'accettazione | Solo consensuale (richiesta + conferma dell'altro) o via assistenza → ripristino esatto |
@@ -167,10 +167,11 @@ L'annullo consensuale è ammesso solo prima della prima spedizione. Dopo una spe
 ### Servizio auction — router `/trades` (JWT utente obbligatorio ovunque)
 | Endpoint | Chi | Cosa |
 |---|---|---|
-| `POST /trades` | proposer | Crea proposta `{receiver_id, offered[], requested[], message?, delivery_method, ship_address}` + `Idempotency-Key` |
+| `POST /trades` | proposer | Crea proposta `{receiver_id, offered[], requested[], message?, delivery_method}` + `Idempotency-Key` |
 | `GET /trades?role=&status=` | partecipante | Liste paginate (richieste/inviate/conclusi) |
 | `GET /trades/{id}` (+`/history`) | partecipante | Dettaglio (indirizzi solo da ACCEPTED) / storico |
-| `POST /trades/{id}/accept` | receiver | Accettazione (body: indirizzo) — saga §4 |
+| `POST /trades/{id}/accept` | receiver | Accettazione con body vuoto — saga §4 |
+| `POST /trades/{id}/address` | ciascuno, dopo ACCEPTED | Salva il proprio indirizzo per questo scambio; richiesto prima della spedizione |
 | `POST /trades/{id}/decline` / `cancel` / `counter` | receiver / proposer / receiver | Rifiuto / ritiro (solo PROPOSED) / controproposta |
 | `POST /trades/{id}/ship` / `confirm-receipt` | ciascuno | Spedito (+tracking) / ricevuto (alla 2ª → COMPLETED) |
 | `POST /trades/{id}/request-cancel` / `confirm-cancel` / `assistance` | ciascuno | Annullo consensuale / segnalazione → DISPUTED |
@@ -195,10 +196,10 @@ Errori `{detail, code}` (catalogo `AppError` esistente) + codici `TRADE_*`.
 
 1. `lib/api/trades-client.ts` (retry 401 via `tokenManager`) + `lib/hooks/use-trades.ts` (React Query: liste, dettaglio, mutazioni con invalidation).
 2. **Tab reali** in `ScambiContent` (richieste/inviate/conclusi), senza mock.
-3. **Dettaglio**: accetta (con form indirizzo), rifiuta, contro-proponi; sezione consegna con lista corrieri italiani, tracking cliccabile, "ho ricevuto" e stato altro lato.
+3. **Dettaglio**: accetta senza indirizzo, poi raccoglie l'indirizzo di entrambe le parti nello scambio confermato; sezione consegna con lista corrieri italiani, tracking cliccabile, "ho ricevuto" e stato altro lato.
 4. **Composer unificato** (`TradeProposalPage`+`TradeComposer`, ritiro di `ScambiProponiModal`): lato "offro" = sole inserzioni pubblicate e disponibili (`cardtrader` oppure marketplace Ebartex-only); lato "chiedo" = collezione pubblica del receiver con la stessa regola. Una riga ricevuta `source='trade'` richiede una nuova inserzione manuale.
 5. **Inventario/vendita**: le righe in escrow restano visibili con badge “In scambio”; se il blocco è parziale il residuo resta acquistabile. Modifica e cancellazione sono disabilitate finché esiste quantità riservata.
-6. **Crediti nascosti** dietro `scambiCreditsEnabled=false`; bilancia informativa sui `price_cents` reali o rimossa.
+6. **Conguaglio privato solo frontend**: monete e importo partecipano esclusivamente alla bilancia visiva e vengono riportati come accordo tra utenti, con avviso esplicito che Ebartex non incassa, trasferisce o protegge il denaro. I campi `*_credits_cents` restano sempre a `0`.
 7. Notifiche `trade_*` in `types/notification.ts` + deep-link; i18n in **tutti e 6** i locale + `npm run i18n:keys`.
 
 ---

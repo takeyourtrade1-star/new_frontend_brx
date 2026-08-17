@@ -10,9 +10,7 @@ export const metadata = {
 export default function ProfiloPage() {
   return (
     <Suspense fallback={<div className="p-8 flex justify-center"><MascotteLoader size="sm" /></div>}>
-      <div className="pointer-events-none opacity-60">
-        <ProfiloContent />
-      </div>
+      <ProfiloContent />
     </Suspense>
   );
 }

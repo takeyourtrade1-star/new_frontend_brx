@@ -60,8 +60,11 @@ export function useCounterTrade() {
   }>(({ tradeId, input }) => tradesApi.counter(tradeId, input));
 }
 export function useAcceptTrade() {
+  return useTradeMutation<number>((tradeId) => tradesApi.accept(tradeId));
+}
+export function useSubmitTradeAddress() {
   return useTradeMutation<{ tradeId: number; address: TradeAddress }>(({ tradeId, address }) =>
-    tradesApi.accept(tradeId, address));
+    tradesApi.submitAddress(tradeId, address));
 }
 export function useDeclineTrade() {
   return useTradeMutation<{ tradeId: number; reason?: string }>(({ tradeId, reason }) =>

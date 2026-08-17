@@ -50,6 +50,8 @@ export interface User {
   email: string;
   /** Username pubblico scelto in registrazione (se restituito dal backend) */
   username?: string | null;
+  /** Gli account precedenti al cutover possono scegliere lo username una volta. */
+  can_claim_username?: boolean;
   name: string | null;
   image: string | null;
   account_status?: string;
@@ -230,6 +232,8 @@ export interface PreAuthTokenResponse {
 export interface UserResponse {
   id: string;
   email: string;
+  username?: string | null;
+  can_claim_username?: boolean;
   account_status: string;
   mfa_enabled: boolean;
   created_at: string;
