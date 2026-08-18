@@ -23,14 +23,20 @@ afterEach(() => {
 });
 
 describe('SyncManagementPanel', () => {
-  it('apre il form token quando lo stato asincrono conferma che non è configurato', () => {
-    const { rerender } = render(<SyncManagementPanel {...defaultProps} />);
-    expect(screen.queryByLabelText('accountPage.syncTokenLabel')).not.toBeInTheDocument();
-
-    rerender(<SyncManagementPanel {...defaultProps} isDisconnected />);
+  it('mostra il campo token in alto con bottone Aggiungi quando disconnesso', () => {
+    render(<SyncManagementPanel {...defaultProps} isDisconnected />);
 
     expect(screen.getByLabelText('accountPage.syncTokenLabel')).toBeInTheDocument();
     expect(screen.getByLabelText('accountPage.syncProviderLabel')).toHaveValue('cardtrader');
+    expect(screen.getByRole('button', { name: 'Aggiungi' })).toBeInTheDocument();
+  });
+
+  it('mostra il campo token in alto con bottoni Aggiorna e Rimuovi quando connesso', () => {
+    render(<SyncManagementPanel {...defaultProps} isDisconnected={false} />);
+
+    expect(screen.getByLabelText('accountPage.syncTokenLabel')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Aggiorna' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rimuovi' })).toBeInTheDocument();
   });
 
   it('mostra la guida ufficiale senza esporre il token', () => {
