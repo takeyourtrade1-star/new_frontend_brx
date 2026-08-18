@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { RefreshCw, Loader2, Play, Package } from 'lucide-react';
+import { RefreshCw, Loader2, Play, Package, ArrowRight, Zap, Layers } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { syncClient } from '@/lib/api/sync-client';
 import type { SyncStatusResponse, WebhookUrlResponse, SyncProgressResponse } from '@/lib/api/sync-client';
@@ -60,7 +60,6 @@ export function SincronizzazioneContent() {
   const [etaSeconds, setEtaSeconds] = useState<number | null>(null);
   const pollingSessionRef = useRef(0);
   const progressSampleRef = useRef<{ ts: number; pct: number } | null>(null);
-  // Timer del polling ricorsivo: tracciato per fermarlo allo smontaggio.
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const userId = user?.id;
@@ -119,8 +118,6 @@ export function SincronizzazioneContent() {
         setWebhookData(null);
         setNotConfigured(true);
       } else {
-        // Non trasformare un timeout/5xx in "non collegato": il token potrebbe
-        // essere ancora valido e non va chiesto nuovamente all'utente.
         setStatusLoadError(true);
       }
     }
@@ -140,10 +137,11 @@ export function SincronizzazioneContent() {
     void refreshAll();
   }, [userId, accessToken, refreshAll]);
 
-  // Ferma il polling ricorsivo allo smontaggio: evita timer orfani.
-  useEffect(() => () => {
-    pollingSessionRef.current += 1;
-    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+  useEffect(() => {
+    return () => {
+      pollingSessionRef.current += 1;
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    };
   }, []);
 
   const startPollingTask = useCallback(
@@ -387,7 +385,7 @@ export function SincronizzazioneContent() {
       <div className="flex min-h-[40vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-[#FF7300]" />
-          <p className="text-sm text-gray-500">{t('accountPage.syncLoadingAccount')}</p>
+          <p className="text-sm font-medium text-gray-500">{t('accountPage.syncLoadingAccount')}</p>
         </div>
       </div>
     );
@@ -409,39 +407,34 @@ export function SincronizzazioneContent() {
   return (
     <div className="space-y-6 text-gray-900">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">
             {t('accountPage.syncTitle')}
           </h1>
-          <p className="mt-1 max-w-xl text-sm text-gray-600">
-            {t('accountPage.syncSubtitle')}
+          <p className="mt-1 text-sm text-gray-600">
+            Collega CardTrader e mantieni il tuo inventario sincronizzato in tempo reale con Ebartex.
           </p>
         </div>
         <Button
           type="button"
           variant="outline"
+          size="sm"
           onClick={() => void refreshAll()}
           disabled={loadingStatus}
-          className="shrink-0 border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+          className="shrink-0 border-gray-300 bg-white font-semibold text-gray-700 shadow-2xs hover:bg-gray-50"
         >
           {loadingStatus ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin text-[#FF7300]" />
           ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
+            <RefreshCw className="mr-2 h-3.5 w-3.5 text-gray-500" />
           )}
           {t('accountPage.syncRefreshAll')}
         </Button>
       </div>
 
-      {isDisconnected && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {t('accountPage.syncDisconnectedBanner')}
-        </div>
-      )}
-
       {statusLoadError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-800 shadow-2xs">
           {t('accountPage.syncStatusUnavailable')}
         </div>
       ) : statusResolved ? (
@@ -457,6 +450,7 @@ export function SincronizzazioneContent() {
         />
       ) : null}
 
+      {/* Overview Metric Matrix */}
       <SyncStatusOverview
         loading={loadingStatus}
         brxStatus={syncStatus?.sync_status ?? null}
@@ -468,98 +462,129 @@ export function SincronizzazioneContent() {
         lastError={syncStatus?.last_error ?? null}
       />
 
+      {/* Main Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Main column */}
+        {/* Left Column (2 Cols) */}
         <div className="space-y-6 lg:col-span-2">
+          {/* Active Progress Banner */}
           {showProgress && progress && (
-            <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5">
+            <div className="overflow-hidden rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50/50 to-white p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-amber-900">
-                  {t('accountPage.syncProgressTitle')}
-                </p>
-                <span className="text-lg font-bold text-[#FF7300]">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-[#FF7300]" />
+                  <p className="text-sm font-bold text-orange-950">
+                    {t('accountPage.syncProgressTitle')}
+                  </p>
+                </div>
+                <span className="font-mono text-base font-extrabold text-[#FF7300]">
                   {progress.progress_percent ?? 0}%
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-amber-100">
+              <div className="h-2.5 overflow-hidden rounded-full bg-orange-100/80">
                 <div
                   className="h-full rounded-full bg-[#FF7300] transition-all duration-500"
                   style={{ width: `${Math.min(100, progress.progress_percent ?? 0)}%` }}
                 />
               </div>
-              <p className="mt-3 text-sm text-amber-800">
-                {t('accountPage.syncProgressLine', {
-                  pct: progress.progress_percent ?? 0,
-                  processed: progress.processed ?? 0,
-                  totalPart:
-                    progress.total_products != null
-                      ? t('accountPage.syncTotalPart', { total: progress.total_products })
-                      : '',
-                })}
-                {etaLabel ? ` · ETA: ${etaLabel}` : ''}
-              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-orange-900">
+                <span>
+                  {t('accountPage.syncProgressLine', {
+                    pct: progress.progress_percent ?? 0,
+                    processed: progress.processed ?? 0,
+                    totalPart:
+                      progress.total_products != null
+                        ? t('accountPage.syncTotalPart', { total: progress.total_products })
+                        : '',
+                  })}
+                </span>
+                {etaLabel && (
+                  <span className="rounded bg-orange-200/60 px-2 py-0.5 font-bold text-orange-950">
+                    ETA stimata: {etaLabel}
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
+          {/* Mode Selector */}
           {integrationReady && <SyncModeSelector />}
 
-          <section className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5">
-            <h2 className="mb-1 text-sm font-semibold text-gray-900">
-              {t('accountPage.syncOperationsTitle')}
-            </h2>
-            <p className="mb-4 text-xs text-gray-500">
-              {t('accountPage.syncOperationsText')}
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button
-                type="button"
-                onClick={() => void handleStartSync()}
-                disabled={loadingStart || !canStartSync}
-                className="bg-[#FF7300] font-semibold text-white hover:bg-[#e66a00] disabled:opacity-50"
-              >
-                {loadingStart ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Play className="mr-2 h-4 w-4" />
-                )}
-                {statusValue === 'active'
-                  ? t('accountPage.syncRefreshInventory')
-                  : t('accountPage.syncStartFull')}
-              </Button>
-              {integrationReady && (
-                <Link
-                  href="/account/oggetti"
-                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          {/* Operations Card */}
+          <section className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm transition-all">
+            <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50/70 via-white to-white px-4 py-4 sm:px-6">
+              <h2 className="text-base font-semibold text-gray-900">
+                {t('accountPage.syncOperationsTitle')}
+              </h2>
+              <p className="mt-0.5 text-xs text-gray-500">
+                {t('accountPage.syncOperationsText')}
+              </p>
+            </div>
+
+            <div className="space-y-4 p-4 sm:p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Button
+                  type="button"
+                  onClick={() => void handleStartSync()}
+                  disabled={loadingStart || !canStartSync}
+                  className="h-10 bg-[#FF7300] px-5 font-bold text-white shadow-sm transition hover:bg-[#e66a00] disabled:opacity-50"
                 >
-                  <Package className="mr-2 h-4 w-4" />
-                  {t('account.syncViewInventory')}
-                </Link>
+                  {loadingStart ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="mr-2 h-4 w-4" />
+                  )}
+                  {statusValue === 'active'
+                    ? t('accountPage.syncRefreshInventory')
+                    : t('accountPage.syncStartFull')}
+                </Button>
+
+                {integrationReady && (
+                  <Link
+                    href="/account/oggetti"
+                    className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 text-xs font-bold text-gray-700 shadow-2xs transition hover:bg-gray-50"
+                  >
+                    <Package className="mr-2 h-4 w-4 text-gray-500" />
+                    {t('account.syncViewInventory')}
+                  </Link>
+                )}
+              </div>
+
+              {lastSyncError && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50/90 px-4 py-3 text-xs font-medium text-red-800 shadow-2xs"
+                >
+                  {lastSyncError}
+                </div>
+              )}
+
+              {lastSyncResult && (
+                <div
+                  role="status"
+                  className="rounded-xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-xs font-medium text-emerald-900 shadow-2xs"
+                >
+                  {t('accountPage.syncProcessedLine', {
+                    processed: lastSyncResult.processed,
+                    totalPart:
+                      lastSyncResult.total_products > 0
+                        ? t('accountPage.syncTotalPart', { total: lastSyncResult.total_products })
+                        : '',
+                    created: lastSyncResult.created,
+                    updated: lastSyncResult.updated,
+                    skipped: lastSyncResult.skipped,
+                  })}
+                </div>
+              )}
+
+              {currentTaskId && (
+                <p className="font-mono text-[11px] text-gray-400">
+                  Task Celery attivo: {currentTaskId}
+                </p>
               )}
             </div>
-            {lastSyncError && (
-              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {lastSyncError}
-              </p>
-            )}
-            {lastSyncResult && (
-              <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                {t('accountPage.syncProcessedLine', {
-                  processed: lastSyncResult.processed,
-                  totalPart:
-                    lastSyncResult.total_products > 0
-                      ? t('accountPage.syncTotalPart', { total: lastSyncResult.total_products })
-                      : '',
-                  created: lastSyncResult.created,
-                  updated: lastSyncResult.updated,
-                  skipped: lastSyncResult.skipped,
-                })}
-              </p>
-            )}
-            {currentTaskId && (
-              <p className="mt-2 font-mono text-xs text-gray-400">Task: {currentTaskId}</p>
-            )}
           </section>
 
+          {/* Sync History */}
           {integrationReady && (
             <SyncHistorySection
               events={syncEvents}
@@ -570,7 +595,7 @@ export function SincronizzazioneContent() {
           )}
         </div>
 
-        {/* Sidebar — webhook */}
+        {/* Right Sidebar */}
         <div className="space-y-6 lg:col-span-1">
           <SyncWebhookCard
             loading={loadingWebhook}
