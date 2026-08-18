@@ -130,9 +130,25 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   try {
     const res = await fetchWithTimeout(url.toString(), { method: request.method, headers, body }, PROXY_TIMEOUT_MS);
     if (!res.ok) {
+      let upstreamDetail: string | undefined;
+      try {
+        const errJson = await readJsonResponseWithLimit(res, 64 * 1024);
+        if (errJson && typeof errJson === 'object') {
+          const record = errJson as Record<string, unknown>;
+          if (typeof record.detail === 'string' && record.detail.trim()) {
+            upstreamDetail = record.detail.trim();
+          } else if (typeof record.message === 'string' && record.message.trim()) {
+            upstreamDetail = record.message.trim();
+          }
+        }
+      } catch {
+        /* Non-JSON or error reading body */
+      }
+
       const status = res.status >= 500 ? 502 : res.status;
       const detail =
-        res.status === 401
+        upstreamDetail ||
+        (res.status === 401
           ? 'Autenticazione richiesta'
           : res.status === 403
             ? 'Permessi insufficienti'
@@ -142,7 +158,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
                 ? 'Operazione in conflitto'
                 : res.status === 422
                   ? 'Dati richiesta non validi'
-                  : 'Operazione sync non riuscita';
+                  : 'Operazione sync non riuscita');
       return NextResponse.json({ detail }, { status, headers: noStoreHeaders() });
     }
     const data = await readJsonResponseWithLimit(res, MAX_SYNC_RESPONSE_BYTES);

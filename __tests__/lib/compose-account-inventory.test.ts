@@ -164,6 +164,14 @@ describe('isVisibleInventoryGame', () => {
     expect(isVisibleInventoryGame(item)).toBe(true);
   });
 
+  it('mantiene visibili le righe CardTrader MTG anche se il catalogo ha id numerico e game_slug non definito', () => {
+    const item: InventoryItemWithCatalog = {
+      ...syncRow({ game_id: 1, source: 'cardtrader' }),
+      card: { id: '3205', game_slug: undefined },
+    };
+    expect(isVisibleInventoryGame(item)).toBe(true);
+  });
+
   it('nasconde le righe marketplace senza catalogo ma con card_id di gioco non supportato', () => {
     const pokemon: InventoryItemWithCatalog = { ...syncRow(), card_id: 'pk_456' };
     const onePiece: InventoryItemWithCatalog = { ...syncRow(), card_id: 'op_789' };

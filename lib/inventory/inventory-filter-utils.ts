@@ -90,8 +90,12 @@ export function getInventoryGameKey(item: InventoryItemWithCatalog): InventoryGa
     if (id.startsWith('mtg_')) return 'mtg';
   }
 
+  const isMtgSyncItem = (item as { game_id?: number }).game_id === 1 || item.source === 'cardtrader';
+
   const slug = (item.card?.game_slug ?? '').toLowerCase().trim();
-  if (!slug) return 'other';
+  if (!slug) {
+    return isMtgSyncItem ? 'mtg' : 'other';
+  }
 
   for (const [key, aliases] of Object.entries(GAME_FILTER_ALIASES)) {
     if (aliases.includes(slug)) return key as InventoryGameFilterKey;
@@ -102,7 +106,7 @@ export function getInventoryGameKey(item: InventoryItemWithCatalog): InventoryGa
   if (slug.includes('yugioh') || slug === 'ygo') return 'yugioh';
   if (slug === 'mtg') return 'mtg';
 
-  return 'other';
+  return isMtgSyncItem ? 'mtg' : 'other';
 }
 
 /**

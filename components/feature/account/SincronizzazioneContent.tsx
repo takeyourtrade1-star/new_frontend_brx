@@ -146,8 +146,71 @@ export function SincronizzazioneContent() {
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
   }, []);
 
+  const startPollingTask = useCallback(
+    (taskId: string, sessionId: number) => {
+      setCurrentTaskId(taskId);
+      setLoadingStart(true);
+      const pollIntervalMs = 4000;
+      const maxPolls = 300;
+      let polls = 0;
+
+      const poll = async (): Promise<void> => {
+        if (polls >= maxPolls) {
+          setLastSyncError(t('accountPage.syncErrTimeout'));
+          setLoadingStart(false);
+          if (sessionId === pollingSessionRef.current) setCurrentTaskId(null);
+          return;
+        }
+        polls += 1;
+        try {
+          const taskRes = await syncClient.getTaskStatus(taskId, accessToken!);
+          if (taskRes.ready) {
+            if (taskRes.status === 'SUCCESS') {
+              if (taskRes.result && typeof taskRes.result === 'object') {
+                const r = taskRes.result as {
+                  created?: number;
+                  updated?: number;
+                  skipped?: number;
+                  total_products?: number;
+                  processed?: number;
+                };
+                setLastSyncResult({
+                  total_products: r.total_products ?? 0,
+                  processed: r.processed ?? 0,
+                  created: r.created ?? 0,
+                  updated: r.updated ?? 0,
+                  skipped: r.skipped ?? 0,
+                });
+              }
+              setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'active' } : null));
+            } else if (taskRes.status === 'FAILURE' || taskRes.error) {
+              setLastSyncError(taskRes.error || t('accountPage.syncErrFailedRetry'));
+              setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'error' } : null));
+            }
+            setLoadingStart(false);
+            if (sessionId === pollingSessionRef.current) setCurrentTaskId(null);
+            void refreshAll();
+            return;
+          }
+          if (sessionId === pollingSessionRef.current) {
+            pollTimerRef.current = setTimeout(poll, pollIntervalMs);
+          }
+        } catch {
+          if (sessionId === pollingSessionRef.current) {
+            pollTimerRef.current = setTimeout(poll, pollIntervalMs);
+          }
+        }
+      };
+
+      pollTimerRef.current = setTimeout(poll, pollIntervalMs);
+    },
+    [accessToken, refreshAll, t]
+  );
+
   const handleLinkToken = async (token: string) => {
     if (!userId || !accessToken) return false;
+    pollingSessionRef.current += 1;
+    const sessionId = pollingSessionRef.current;
     setLoadingSetup(true);
     setLinkTokenError(null);
     setLinkTokenMessage(null);
@@ -155,7 +218,8 @@ export function SincronizzazioneContent() {
     try {
       const result = await cardTraderLink.mutateAsync(token);
       const res = result.link;
-      const importStarted = Boolean(result.syncStart?.task_id);
+      const initialTaskId = result.syncStart?.task_id;
+      const importStarted = Boolean(initialTaskId);
       setNotConfigured(false);
       setStatusLoadError(false);
       setSyncStatus((prev) =>
@@ -186,8 +250,9 @@ export function SincronizzazioneContent() {
       if (result.webhook) setWebhookData(result.webhook);
       if (result.marketplaceStatus) setMarketplaceStatus(result.marketplaceStatus);
 
-      if (importStarted) {
+      if (importStarted && initialTaskId) {
         setLinkTokenMessage(t('accountPage.syncTokenLinkedAndStarted'));
+        startPollingTask(initialTaskId, sessionId);
       } else if (result.followUpFailures.includes('initial_sync')) {
         setLinkTokenMessage(t('accountPage.syncTokenLinkedOnly'));
         setLastSyncError(t('accountPage.syncErrStartRetry'));
@@ -235,53 +300,7 @@ export function SincronizzazioneContent() {
         setLoadingStart(false);
         return;
       }
-      setCurrentTaskId(taskId);
-
-      const pollIntervalMs = 5000;
-      const maxPolls = 240;
-      let polls = 0;
-
-      const poll = async (): Promise<void> => {
-        if (polls >= maxPolls) {
-          setLastSyncError(t('accountPage.syncErrTimeout'));
-          setLoadingStart(false);
-          if (sessionId === pollingSessionRef.current) setCurrentTaskId(null);
-          return;
-        }
-        polls += 1;
-        try {
-          const taskRes = await syncClient.getTaskStatus(taskId, accessToken);
-          if (taskRes.ready) {
-            if (taskRes.status === 'SUCCESS' && taskRes.result && typeof taskRes.result === 'object') {
-              const r = taskRes.result as {
-                created?: number;
-                updated?: number;
-                skipped?: number;
-                total_products?: number;
-                processed?: number;
-              };
-              setLastSyncResult({
-                total_products: r.total_products ?? 0,
-                processed: r.processed ?? 0,
-                created: r.created ?? 0,
-                updated: r.updated ?? 0,
-                skipped: r.skipped ?? 0,
-              });
-              setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'active' } : null));
-            } else if (taskRes.status === 'FAILURE' || taskRes.error) {
-              setLastSyncError(t('accountPage.syncErrFailedRetry'));
-            }
-            setLoadingStart(false);
-            if (sessionId === pollingSessionRef.current) setCurrentTaskId(null);
-            void refreshAll();
-            return;
-          }
-          if (sessionId === pollingSessionRef.current) pollTimerRef.current = setTimeout(poll, pollIntervalMs);
-        } catch {
-          if (sessionId === pollingSessionRef.current) pollTimerRef.current = setTimeout(poll, pollIntervalMs);
-        }
-      };
-      pollTimerRef.current = setTimeout(poll, pollIntervalMs);
+      startPollingTask(taskId, sessionId);
     } catch (err: unknown) {
       const status = (err as { status?: number } | null)?.status;
       setLastSyncError(
