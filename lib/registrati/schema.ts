@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { isValidPhone, cleanPhoneDigits } from '@/lib/validations/phone';
 
 const usernameSchema = z
   .string()
@@ -24,7 +25,7 @@ const baseRegisterObject = z.object({
   username: usernameSchema,
   email: z.string().email('Email non valida'),
   password: passwordSchema,
-  phone: z.string().max(20, 'Massimo 20 caratteri'),
+  phone: z.string().min(1, 'Inserisci il numero di telefono').max(20, 'Massimo 20 caratteri'),
   phone_prefix: z.string().max(5).default('+39'),
   country: z.string().length(2, 'Codice paese 2 caratteri (es. IT)'),
   termsAccepted: z.boolean(),
@@ -34,9 +35,17 @@ const baseRegisterObject = z.object({
   adultConfirmed: z.boolean(),
 });
 
-/** Refine per le checkbox legali (da applicare agli schemi finali) */
-const checkboxRefines = (s: z.ZodTypeAny) =>
+/** Refine per validazione telefono e checkbox legali (da applicare agli schemi finali) */
+const registrationRefines = (s: z.ZodTypeAny) =>
   s
+    .refine(
+      (d: { phone: string; phone_prefix?: string; country?: string }) =>
+        isValidPhone(d.phone, d.phone_prefix || '+39', d.country),
+      {
+        message: 'Inserisci un numero di telefono valido',
+        path: ['phone'],
+      }
+    )
     .refine((d: { termsAccepted: boolean }) => d.termsAccepted === true, { message: 'Devi accettare i Termini e Condizioni di Servizio', path: ['termsAccepted'] })
     .refine((d: { specificClausesAccepted: boolean }) => d.specificClausesAccepted === true, { message: 'Devi approvare specificamente le clausole contrattuali', path: ['specificClausesAccepted'] })
     .refine((d: { privacyAccepted: boolean }) => d.privacyAccepted === true, { message: 'Devi confermare di aver letto la privacy policy', path: ['privacyAccepted'] })
@@ -44,11 +53,11 @@ const checkboxRefines = (s: z.ZodTypeAny) =>
     .refine((d: { adultConfirmed: boolean }) => d.adultConfirmed === true, { message: 'Devi dichiarare di essere maggiorenne', path: ['adultConfirmed'] });
 
 /** Demo: solo campi obbligatori; account_type = "personal" */
-export const registerDemoSchema = checkboxRefines(baseRegisterObject);
+export const registerDemoSchema = registrationRefines(baseRegisterObject);
 export type RegisterDemoValues = z.infer<typeof registerDemoSchema>;
 
 /** Privato: base + first_name, last_name; account_type = "personal" */
-export const registerPrivatoSchema = checkboxRefines(
+export const registerPrivatoSchema = registrationRefines(
   baseRegisterObject.extend({
     first_name: z.string().min(1, 'Inserisci il nome').max(100),
     last_name: z.string().min(1, 'Inserisci il cognome').max(100),
@@ -57,7 +66,7 @@ export const registerPrivatoSchema = checkboxRefines(
 export type RegisterPrivatoValues = z.infer<typeof registerPrivatoSchema>;
 
 /** Business: base + ragione_sociale, piva, vat_prefix opzionale; account_type = "business" */
-export const registerBusinessSchema = checkboxRefines(
+export const registerBusinessSchema = registrationRefines(
   baseRegisterObject.extend({
     ragione_sociale: z.string().min(1, 'Inserisci la ragione sociale').max(255),
     piva: z.string().min(1, 'Inserisci la Partita IVA').max(20),
@@ -73,7 +82,7 @@ export function toRegisterPayloadDemo(values: RegisterDemoValues): import('@/typ
     username: values.username,
     email: values.email,
     password: values.password,
-    phone: values.phone,
+    phone: cleanPhoneDigits(values.phone),
     phone_prefix: values.phone_prefix || '+39',
     account_type: 'personal',
     country: values.country,
@@ -115,7 +124,7 @@ export function toRegisterPayloadBusiness(values: RegisterBusinessValues): impor
     username: values.username,
     email: values.email,
     password: values.password,
-    phone: values.phone,
+    phone: cleanPhoneDigits(values.phone),
     phone_prefix: values.phone_prefix || '+39',
     account_type: 'business',
     country: values.country,

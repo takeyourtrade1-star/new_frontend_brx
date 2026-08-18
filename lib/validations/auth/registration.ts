@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidPhone } from '@/lib/validations/phone';
 
 // I messaggi sono chiavi i18n (`errors.validation.*` / `validation.*`),
 // risolte a runtime da `translateZodMessage`. Riusano le stesse chiavi dei
@@ -30,7 +31,7 @@ const baseRegisterSchema = z.object({
   }),
   country: z.string().length(2, 'errors.validation.countryInvalid'),
   phone_prefix: z.string().max(5, 'errors.validation.phonePrefixInvalid'),
-  phone: z.string().max(20, 'errors.validation.phoneInvalid'),
+  phone: z.string().min(1, 'errors.validation.phoneInvalid').max(20, 'errors.validation.phoneInvalid'),
   vat_prefix: z.string().max(2).optional(),
   termsAccepted: z.boolean().refine((val) => val === true, {
     message: 'errors.validation.termsRequired',
@@ -63,7 +64,7 @@ const businessRegisterSchema = baseRegisterSchema.extend({
   piva: z.string().min(1, 'errors.validation.pivaRequired').max(20),
 });
 
-/** Schema registrazione con validazione password */
+/** Schema registrazione con validazione password e telefono */
 export const registerSchema = z
   .discriminatedUnion('account_type', [
     personalRegisterSchema,
@@ -72,6 +73,10 @@ export const registerSchema = z
   .refine((data) => data.password === data.password_confirmation, {
     message: 'validation.passwordMismatch',
     path: ['password_confirmation'],
+  })
+  .refine((data) => isValidPhone(data.phone, data.phone_prefix, data.country), {
+    message: 'errors.validation.phoneInvalid',
+    path: ['phone'],
   });
 
 export type RegisterValues = z.infer<typeof registerSchema>;
