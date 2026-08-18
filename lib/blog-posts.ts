@@ -25,6 +25,21 @@ export type BlogPost = {
 
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'accesso-unico-sso',
+    date: '2026-08-18',
+    dateLabel: '18 agosto 2026',
+    tag: 'Ecosistema',
+    tagClass: 'bg-indigo-100 text-indigo-700',
+    title: 'Un solo login, tutto l’universo Ebartex: arriva l’accesso unico',
+    excerpt:
+      'Passa dal Marketplace ai Tornei in un istante: navigazione ancora più fluida, con la sicurezza di sempre.',
+    paragraphs: [
+      'Muoversi all’interno di Ebartex è da oggi ancora più fluido e naturale. Con il nuovo sistema di accesso unico (Single Sign-On), basta effettuare il login una sola volta per navigare senza alcuna interruzione tra Marketplace, Inventario e l’arena dei Tornei.',
+      'Niente più credenziali duplicate o passaggi a vuoto: clicchi su Tornei ed entri subito ai tavoli da gioco con il tuo account sincronizzato in tempo reale, protetto dalla crittografia avanzata e dagli standard di sicurezza di sempre.',
+    ],
+    cta: { href: '/tornei', label: 'Entra nei Tornei →' },
+  },
+  {
     slug: 'scambi',
     date: '2026-07-15',
     dateLabel: '15 luglio 2026',
