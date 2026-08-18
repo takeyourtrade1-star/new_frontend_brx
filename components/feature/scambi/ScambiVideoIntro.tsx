@@ -4,6 +4,8 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Play, ChevronRight } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { markVideoIntroSeen } from '@/lib/utils/video-intro-tracker';
 import { cn } from '@/lib/utils';
 
 /**
@@ -13,6 +15,7 @@ import { cn } from '@/lib/utils';
 export function ScambiVideoIntro({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
   const videoRef = useRef<HTMLVideoElement>(null);
   const onCloseRef = useRef(onClose);
   const doneRef = useRef(false);
@@ -26,6 +29,7 @@ export function ScambiVideoIntro({ onClose }: { onClose?: () => void }) {
   const finish = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
+    markVideoIntroSeen('scambi', user?.id);
     if (document.fullscreenElement) {
       void document.exitFullscreen().catch(() => {
         // Ignora errori di uscita fullscreen.
@@ -33,14 +37,15 @@ export function ScambiVideoIntro({ onClose }: { onClose?: () => void }) {
     }
     onCloseRef.current?.();
     router.push('/scambi');
-  }, [router]);
+  }, [router, user?.id]);
 
   const handleSkip = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
+    markVideoIntroSeen('scambi', user?.id);
     onCloseRef.current?.();
     router.push('/scambi');
-  }, [router]);
+  }, [router, user?.id]);
 
   const startPlayback = useCallback(() => {
     const video = videoRef.current;

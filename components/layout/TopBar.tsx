@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import {
   AccountMenuPanel,
@@ -45,6 +45,7 @@ import {
 } from '@/components/layout/headerBrxColumn';
 import { AsteVideoIntro } from '@/components/feature/aste/AsteVideoIntro';
 import { ScambiVideoIntro } from '@/components/feature/scambi/ScambiVideoIntro';
+import { hasSeenVideoIntro } from '@/lib/utils/video-intro-tracker';
 
 
 
@@ -82,6 +83,22 @@ export function TopBar() {
   const setAuthError = useAuthStore((s) => s.setAuthError);
   const logout = useAuthStore((s) => s.logout);
   const loginMutation = useLogin();
+
+  const handleScambiClick = useCallback(() => {
+    if (hasSeenVideoIntro('scambi', user?.id)) {
+      router.push('/scambi');
+    } else {
+      setScambiIntroOpen(true);
+    }
+  }, [router, user?.id]);
+
+  const handleAsteClick = useCallback(() => {
+    if (hasSeenVideoIntro('aste', user?.id)) {
+      router.push('/aste');
+    } else {
+      setAsteIntroOpen(true);
+    }
+  }, [router, user?.id]);
 
   const intlLocale = LOCALE_TO_INTL[locale as UiLocale] ?? 'it-IT';
   const formatEuro = (n: number) => formatEuroNoSpace(n, intlLocale);
@@ -469,7 +486,7 @@ export function TopBar() {
               {/* 4. SCAMBI — mobile icona diretta; desktop con label */}
               <MobileHeaderNavIcon
                 as="button"
-                onClick={() => setScambiIntroOpen(true)}
+                onClick={handleScambiClick}
                 aria-label={t('nav.trades')}
                 aria-expanded={false}
                 className="group order-3 md:hidden"
@@ -493,7 +510,7 @@ export function TopBar() {
               </MobileHeaderNavIcon>
               <button
                 type="button"
-                onClick={() => setScambiIntroOpen(true)}
+                onClick={handleScambiClick}
                 className="group order-3 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex"
                 aria-label={t('nav.trades')}
               >
@@ -525,7 +542,7 @@ export function TopBar() {
               {/* 5. ASTE — mobile icona diretta; desktop con label */}
               <MobileHeaderNavIcon
                 as="button"
-                onClick={() => setAsteIntroOpen(true)}
+                onClick={handleAsteClick}
                 aria-label={t('nav.auctions')}
                 aria-expanded={false}
                 className="group relative order-4 md:hidden"
@@ -534,7 +551,7 @@ export function TopBar() {
               </MobileHeaderNavIcon>
               <button
                 type="button"
-                onClick={() => setAsteIntroOpen(true)}
+                onClick={handleAsteClick}
                 className="group order-4 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-5 md:flex"
                 aria-label={t('nav.auctions')}
               >

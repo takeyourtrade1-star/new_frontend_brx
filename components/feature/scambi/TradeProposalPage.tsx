@@ -635,7 +635,7 @@ function GoldCoin({
           strokeDasharray="2.5 1.2"
         />
 
-        {/* Center Embossed Star / Currency Motif */}
+        {/* Center Embossed Currency Motif */}
         <path
           d="M21 6.5 H25.5 M21 8 H25 M20.5 9.5 H25"
           stroke="#78350F"
@@ -643,7 +643,6 @@ function GoldCoin({
           strokeLinecap="round"
           opacity="0.8"
         />
-        <circle cx="23" cy="8" r="1" fill="#FEF3C7" opacity="0.9" />
       </svg>
     </div>
   );
@@ -668,29 +667,15 @@ function TableCashPile({ amountCents, side }: { amountCents: number; side: 'offe
       )}
       data-cash-side={side}
     >
-      {/* 3D Coins Stack with Ambient Glow and Sparkles */}
+      {/* 3D Coins Stack with Ambient Glow */}
       <div className="relative h-16 w-14 select-none" aria-hidden>
         {/* Warm Golden Felt Light Spill */}
         <div
           className={cn(
-            'absolute -bottom-1 left-1/2 -translate-x-1/2 h-6 w-16 rounded-full bg-amber-400/30 blur-md transition-all duration-500',
+            'absolute -bottom-1 left-1/2 -translate-x-1/2 h-6 w-16 rounded-full bg-amber-400/25 blur-md transition-all duration-500',
             amountCents > 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-50',
           )}
         />
-
-        {/* Sparkle Glints */}
-        {amountCents > 0 && (
-          <>
-            <span
-              className="absolute -top-1 left-0 block h-2 w-2 animate-ping rounded-full bg-amber-200/90 [animation-duration:2.2s]"
-              aria-hidden
-            />
-            <Sparkles
-              className="absolute -right-2 -top-1.5 h-4 w-4 text-amber-300 motion-safe:animate-pulse [animation-duration:1.6s]"
-              aria-hidden
-            />
-          </>
-        )}
 
         {/* Stack of Individual 3D Gold Coins */}
         <div className="relative h-full w-full">
@@ -1328,9 +1313,9 @@ export function TradeProposalPage() {
                   </button>
                 </div>
 
-                {/* 2 Inventories Side by Side (on the exact same level) */}
-                <div className="relative grid gap-4 md:grid-cols-2 items-stretch">
-                  <div className={cn(mobileTab === 'offered' ? 'block' : 'hidden md:block', 'h-full')}>
+                {/* 2 Inventories Side by Side on the exact same row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                  <div className={cn(mobileTab === 'offered' ? 'block' : 'hidden md:block', 'h-full min-w-0')}>
                     <ItemPicker
                       title={t('trades.chooseOffered')}
                       empty={t('trades.noTradableInventory')}
@@ -1340,15 +1325,7 @@ export function TradeProposalPage() {
                       totalCount={myItems.length}
                     />
                   </div>
-                  <span
-                    className={cn(
-                      'scambi-flow-track pointer-events-none absolute left-1/2 top-1/2 z-10 hidden h-0.5 w-8 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 md:block',
-                      offeredCount > 0 && requestedCount > 0 ? 'opacity-100' : 'opacity-25',
-                    )}
-                    data-active={offeredCount > 0 && requestedCount > 0}
-                    aria-hidden
-                  />
-                  <div className={cn(mobileTab === 'requested' ? 'block' : 'hidden md:block', 'h-full')}>
+                  <div className={cn(mobileTab === 'requested' ? 'block' : 'hidden md:block', 'h-full min-w-0')}>
                     <ItemPicker
                       title={t('trades.chooseRequested')}
                       empty={t('trades.noRequestedInventory')}
