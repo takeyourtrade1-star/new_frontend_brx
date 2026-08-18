@@ -407,13 +407,18 @@ export function SincronizzazioneContent() {
   return (
     <div className="space-y-6 text-gray-900">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200/80 pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-            {t('accountPage.syncTitle')}
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-black tracking-tight text-[#1D3160] sm:text-3xl">
+              {t('accountPage.syncTitle')}
+            </h1>
+            <span className="inline-flex items-center rounded-full bg-orange-50 px-2.5 py-0.5 text-[11px] font-bold text-[#FF7300] ring-1 ring-orange-200">
+              CardTrader ⇄ Ebartex
+            </span>
+          </div>
           <p className="mt-1 text-sm text-gray-600">
-            Collega CardTrader e mantieni il tuo inventario sincronizzato in tempo reale con Ebartex.
+            Sincronizza il tuo catalogo CardTrader, gestisci le scorte in tempo reale e previeni l&apos;overselling.
           </p>
         </div>
         <Button
@@ -422,19 +427,19 @@ export function SincronizzazioneContent() {
           size="sm"
           onClick={() => void refreshAll()}
           disabled={loadingStatus}
-          className="shrink-0 border-gray-300 bg-white font-semibold text-gray-700 shadow-2xs hover:bg-gray-50"
+          className="h-10 shrink-0 rounded-xl border-gray-200 bg-white px-4 font-bold text-gray-700 shadow-2xs transition hover:bg-gray-50"
         >
           {loadingStatus ? (
-            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin text-[#FF7300]" />
+            <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#FF7300]" />
           ) : (
-            <RefreshCw className="mr-2 h-3.5 w-3.5 text-gray-500" />
+            <RefreshCw className="mr-2 h-4 w-4 text-[#FF7300]" />
           )}
           {t('accountPage.syncRefreshAll')}
         </Button>
       </div>
 
       {statusLoadError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-800 shadow-2xs">
+        <div className="rounded-2xl border border-red-200 bg-red-50/90 p-4 text-xs font-medium text-red-800 shadow-2xs">
           {t('accountPage.syncStatusUnavailable')}
         </div>
       ) : statusResolved ? (
@@ -468,25 +473,32 @@ export function SincronizzazioneContent() {
         <div className="space-y-6 lg:col-span-2">
           {/* Active Progress Banner */}
           {showProgress && progress && (
-            <div className="overflow-hidden rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50/50 to-white p-5 shadow-sm">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-[#FF7300]" />
-                  <p className="text-sm font-bold text-orange-950">
-                    {t('accountPage.syncProgressTitle')}
-                  </p>
+            <div className="overflow-hidden rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50/90 via-amber-50/40 to-white p-6 shadow-sm">
+              <div className="mb-3.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF7300] text-white shadow-xs">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[#1D3160]">
+                      {t('accountPage.syncProgressTitle')}
+                    </p>
+                    <p className="text-[11px] text-gray-500">
+                      Importazione massiva delle carte da CardTrader ad Ebartex
+                    </p>
+                  </div>
                 </div>
-                <span className="font-mono text-base font-extrabold text-[#FF7300]">
+                <span className="font-mono text-xl font-black text-[#FF7300]">
                   {progress.progress_percent ?? 0}%
                 </span>
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-orange-100/80">
+              <div className="h-3 overflow-hidden rounded-full bg-orange-100/90 p-0.5">
                 <div
-                  className="h-full rounded-full bg-[#FF7300] transition-all duration-500"
+                  className="h-full rounded-full bg-gradient-to-r from-[#FF7300] to-[#E66A00] transition-all duration-500 shadow-xs"
                   style={{ width: `${Math.min(100, progress.progress_percent ?? 0)}%` }}
                 />
               </div>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-orange-900">
+              <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-[#1D3160]">
                 <span>
                   {t('accountPage.syncProgressLine', {
                     pct: progress.progress_percent ?? 0,
@@ -498,8 +510,8 @@ export function SincronizzazioneContent() {
                   })}
                 </span>
                 {etaLabel && (
-                  <span className="rounded bg-orange-200/60 px-2 py-0.5 font-bold text-orange-950">
-                    ETA stimata: {etaLabel}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-bold text-orange-950">
+                    ⏱️ Tempo stimato: {etaLabel}
                   </span>
                 )}
               </div>
@@ -509,42 +521,54 @@ export function SincronizzazioneContent() {
           {/* Mode Selector */}
           {integrationReady && <SyncModeSelector />}
 
-          {/* Operations Card */}
-          <section className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm transition-all">
-            <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50/70 via-white to-white px-4 py-4 sm:px-6">
-              <h2 className="text-base font-semibold text-gray-900">
-                {t('accountPage.syncOperationsTitle')}
-              </h2>
-              <p className="mt-0.5 text-xs text-gray-500">
-                {t('accountPage.syncOperationsText')}
-              </p>
+          {/* Operations Hub Card */}
+          <section className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm transition-all">
+            <div className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-[#1D3160]/5 via-white to-white px-5 py-4 sm:px-6">
+              <div>
+                <h2 className="text-base font-bold text-[#1D3160]">
+                  Azioni Manuali & Sincronizzazione
+                </h2>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Forza un aggiornamento immediato delle carte dal catalogo CardTrader
+                </p>
+              </div>
+              {integrationReady && (
+                <Link
+                  href="/account/oggetti"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FF7300] hover:text-[#D95F00] hover:underline"
+                >
+                  <Package className="h-4 w-4" />
+                  Vedi Catalogo Completo
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              )}
             </div>
 
-            <div className="space-y-4 p-4 sm:p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <div className="space-y-5 p-5 sm:p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <Button
                   type="button"
                   onClick={() => void handleStartSync()}
                   disabled={loadingStart || !canStartSync}
-                  className="h-10 bg-[#FF7300] px-5 font-bold text-white shadow-sm transition hover:bg-[#e66a00] disabled:opacity-50"
+                  className="h-11 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#E66A00] px-6 text-xs font-extrabold tracking-wider text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
                 >
                   {loadingStart ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <Play className="mr-2 h-4 w-4" />
+                    <Play className="mr-2 h-4 w-4 fill-white" />
                   )}
                   {statusValue === 'active'
-                    ? t('accountPage.syncRefreshInventory')
-                    : t('accountPage.syncStartFull')}
+                    ? 'Aggiorna e Riconcilia Inventario'
+                    : 'Avvia Prima Sincronizzazione Completa'}
                 </Button>
 
                 {integrationReady && (
                   <Link
                     href="/account/oggetti"
-                    className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 text-xs font-bold text-gray-700 shadow-2xs transition hover:bg-gray-50"
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-xs font-bold text-[#1D3160] shadow-2xs transition hover:bg-gray-50 hover:border-gray-300"
                   >
-                    <Package className="mr-2 h-4 w-4 text-gray-500" />
-                    {t('account.syncViewInventory')}
+                    <Package className="mr-2 h-4 w-4 text-gray-400" />
+                    Gestisci Carte Importate
                   </Link>
                 )}
               </div>
@@ -552,7 +576,7 @@ export function SincronizzazioneContent() {
               {lastSyncError && (
                 <div
                   role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50/90 px-4 py-3 text-xs font-medium text-red-800 shadow-2xs"
+                  className="rounded-xl border border-red-200 bg-red-50/90 p-4 text-xs font-medium text-red-800 shadow-2xs"
                 >
                   {lastSyncError}
                 </div>
@@ -561,24 +585,27 @@ export function SincronizzazioneContent() {
               {lastSyncResult && (
                 <div
                   role="status"
-                  className="rounded-xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-xs font-medium text-emerald-900 shadow-2xs"
+                  className="rounded-xl border border-emerald-200 bg-emerald-50/90 p-4 text-xs font-medium text-emerald-900 shadow-2xs"
                 >
-                  {t('accountPage.syncProcessedLine', {
-                    processed: lastSyncResult.processed,
-                    totalPart:
-                      lastSyncResult.total_products > 0
-                        ? t('accountPage.syncTotalPart', { total: lastSyncResult.total_products })
-                        : '',
-                    created: lastSyncResult.created,
-                    updated: lastSyncResult.updated,
-                    skipped: lastSyncResult.skipped,
-                  })}
+                  <p className="font-bold text-emerald-950 mb-1">Sincronizzazione completata con successo:</p>
+                  <p>
+                    {t('accountPage.syncProcessedLine', {
+                      processed: lastSyncResult.processed,
+                      totalPart:
+                        lastSyncResult.total_products > 0
+                          ? t('accountPage.syncTotalPart', { total: lastSyncResult.total_products })
+                          : '',
+                      created: lastSyncResult.created,
+                      updated: lastSyncResult.updated,
+                      skipped: lastSyncResult.skipped,
+                    })}
+                  </p>
                 </div>
               )}
 
               {currentTaskId && (
                 <p className="font-mono text-[11px] text-gray-400">
-                  Task Celery attivo: {currentTaskId}
+                  Task Celery attivo in background: {currentTaskId}
                 </p>
               )}
             </div>

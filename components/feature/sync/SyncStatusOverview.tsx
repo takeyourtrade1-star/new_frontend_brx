@@ -10,6 +10,7 @@ import {
   Store,
   XCircle,
   Clock,
+  ArrowUpRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
@@ -25,56 +26,70 @@ function StatusTile({
   state,
   icon: Icon,
   badgeText,
+  subtext,
 }: {
   label: string;
   value: string;
   state: CheckState;
   icon: React.ComponentType<{ className?: string }>;
   badgeText?: string;
+  subtext?: string;
 }) {
-  const containerStyles: Record<CheckState, string> = {
-    ok: 'border-emerald-200/80 bg-gradient-to-br from-emerald-50/60 via-white to-white text-emerald-950 shadow-2xs',
-    warn: 'border-amber-200/80 bg-gradient-to-br from-amber-50/60 via-white to-white text-amber-950 shadow-2xs',
-    error: 'border-red-200/80 bg-gradient-to-br from-red-50/60 via-white to-white text-red-950 shadow-2xs',
-    loading: 'border-orange-200/80 bg-gradient-to-br from-orange-50/60 via-white to-white text-gray-800 shadow-2xs',
-    idle: 'border-gray-200/80 bg-white text-gray-700 shadow-2xs',
+  const containerBorder: Record<CheckState, string> = {
+    ok: 'border-emerald-200/90 bg-white hover:border-emerald-300 shadow-xs',
+    warn: 'border-amber-200/90 bg-white hover:border-amber-300 shadow-xs',
+    error: 'border-red-200/90 bg-white hover:border-red-300 shadow-xs',
+    loading: 'border-orange-200/90 bg-white hover:border-orange-300 shadow-xs',
+    idle: 'border-gray-200/90 bg-white hover:border-gray-300 shadow-xs',
   };
 
   const iconStyles: Record<CheckState, string> = {
-    ok: 'bg-emerald-100 text-emerald-700',
-    warn: 'bg-amber-100 text-amber-700',
-    error: 'bg-red-100 text-red-700',
-    loading: 'bg-orange-100 text-[#FF7300]',
-    idle: 'bg-gray-100 text-gray-400',
+    ok: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100',
+    warn: 'bg-amber-50 text-amber-600 ring-1 ring-amber-100',
+    error: 'bg-red-50 text-red-600 ring-1 ring-red-100',
+    loading: 'bg-orange-50 text-[#FF7300] ring-1 ring-orange-100',
+    idle: 'bg-gray-50 text-gray-400 ring-1 ring-gray-100',
   };
 
-  const dot: Record<CheckState, React.ReactNode> = {
-    ok: <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />,
-    warn: <AlertCircle className="h-4 w-4 text-amber-600" aria-hidden />,
-    error: <XCircle className="h-4 w-4 text-red-600" aria-hidden />,
-    loading: <Loader2 className="h-4 w-4 animate-spin text-[#FF7300]" aria-hidden />,
-    idle: <span className="h-2 w-2 rounded-full bg-gray-300" aria-hidden />,
+  const badgePill: Record<CheckState, string> = {
+    ok: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+    warn: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+    error: 'bg-red-50 text-red-700 ring-1 ring-red-200',
+    loading: 'bg-orange-50 text-[#FF7300] ring-1 ring-orange-200',
+    idle: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200',
   };
 
   return (
-    <div className={cn('flex flex-col justify-between rounded-2xl border p-4 transition-all', containerStyles[state])}>
+    <div
+      className={cn(
+        'group flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-md',
+        containerBorder[state]
+      )}
+    >
       <div className="flex items-center justify-between gap-2">
-        <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg', iconStyles[state])}>
-          <Icon className="h-4 w-4" aria-hidden />
+        <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:scale-105', iconStyles[state])}>
+          <Icon className="h-5 w-5" aria-hidden />
         </div>
-        {dot[state]}
+        <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider', badgePill[state])}>
+          {state === 'loading' ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : state === 'ok' ? (
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          ) : state === 'warn' ? (
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          ) : state === 'error' ? (
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+          ) : (
+            <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+          )}
+          {badgeText || (state === 'ok' ? 'Attivo' : state === 'warn' ? 'In attesa' : state === 'error' ? 'Errore' : state === 'loading' ? 'Sync' : 'Inattivo')}
+        </span>
       </div>
 
-      <div className="mt-3">
+      <div className="mt-4">
         <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">{label}</p>
-        <div className="mt-1 flex items-baseline gap-1.5">
-          <p className="text-sm font-bold text-gray-900">{value}</p>
-          {badgeText && (
-            <span className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
-              {badgeText}
-            </span>
-          )}
-        </div>
+        <p className="mt-1 text-base font-extrabold tracking-tight text-[#1D3160] sm:text-lg">{value}</p>
+        {subtext && <p className="mt-0.5 text-xs text-gray-500">{subtext}</p>}
       </div>
     </div>
   );
@@ -87,10 +102,10 @@ const SYNC_MODE_LABELS: Record<SyncMode, string> = {
 };
 
 const BRX_STATUS_LABELS: Record<SyncStatus, string> = {
-  active: 'Attiva',
-  initial_sync: 'In importazione',
-  idle: 'In attesa',
-  error: 'Errore',
+  active: 'Connesso & Sincronizzato',
+  initial_sync: 'Importazione attiva',
+  idle: 'Pronto per la sincronizzazione',
+  error: 'Errore di connessione',
 };
 
 export function SyncStatusOverview({
@@ -153,9 +168,9 @@ export function SyncStatusOverview({
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatusTile
-          label="CardTrader"
+          label="CardTrader API"
           icon={Link2}
           state={cardtraderState}
           value={
@@ -165,12 +180,14 @@ export function SyncStatusOverview({
                 ? BRX_STATUS_LABELS[brxStatus]
                 : '—'
           }
+          subtext={isDisconnected ? 'Inserisci la tua chiave API' : 'Crittografia AES-256 attiva'}
         />
         <StatusTile
           label="Webhook Ricezione"
           icon={Webhook}
           state={webhookState}
-          value={webhookConfigured ? 'Configurato' : isDisconnected ? 'Non attivo' : 'Da incollare su CT'}
+          value={webhookConfigured ? 'In ascolto 24/7' : isDisconnected ? 'Non configurato' : 'In attesa salvataggio'}
+          subtext={webhookConfigured ? 'Notifiche vendite in tempo reale' : 'Endpoint automatico'}
         />
         <StatusTile
           label="Inventario Magic"
@@ -182,43 +199,44 @@ export function SyncStatusOverview({
               : brxStatus === 'active'
                 ? 'Sincronizzato'
                 : isDisconnected
-                  ? 'Nessun dato'
-                  : 'In attesa'
+                  ? 'Nessun articolo'
+                  : 'Pronto per import'
           }
+          subtext="Catalogo sincronizzato con Ebartex"
         />
         <StatusTile
-          label="Marketplace EBARTEX"
+          label="Modalità Ebartex"
           icon={Store}
           state={marketplaceState}
           value={
             marketplaceStatus
-              ? `${SYNC_MODE_LABELS[marketplaceStatus.sync_mode]}`
+              ? `Modalità ${SYNC_MODE_LABELS[marketplaceStatus.sync_mode]}`
               : '—'
           }
-          badgeText={
+          subtext={
             marketplaceStatus
-              ? `${marketplaceStatus.synced_listings}/${marketplaceStatus.total_listings} listing`
-              : undefined
+              ? `${marketplaceStatus.synced_listings} di ${marketplaceStatus.total_listings} listing sincronizzati`
+              : 'Stato marketplace'
           }
         />
       </div>
 
       {(lastSyncAt || lastError) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200/70 bg-gray-50/70 px-4 py-2.5 text-xs text-gray-600">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200/80 bg-white px-4 py-3 text-xs text-gray-600 shadow-2xs">
           {lastSyncAt && (
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-gray-400" aria-hidden />
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[#FF7300]" aria-hidden />
               <span>
                 Ultima sincronizzazione completata:{' '}
-                <strong className="font-semibold text-gray-900">
+                <strong className="font-semibold text-[#1D3160]">
                   {new Date(lastSyncAt).toLocaleString(intlLocale)}
                 </strong>
               </span>
             </div>
           )}
           {lastError && (
-            <div className="flex items-center gap-1.5 text-red-700">
-              <AlertCircle className="h-3.5 w-3.5 text-red-600" aria-hidden />
+            <div className="flex items-center gap-2 text-red-700">
+              <AlertCircle className="h-4 w-4 text-red-600 shrink-0" aria-hidden />
               <span>
                 {t('accountPage.syncErrorTitle')}:{' '}
                 <strong className="font-semibold">{t('accountPage.syncLastErrorSafe')}</strong>

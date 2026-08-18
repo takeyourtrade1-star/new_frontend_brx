@@ -1,7 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronDown, Loader2, RefreshCw, Wifi, WifiOff, Zap } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  Zap,
+  ShieldCheck,
+  HelpCircle,
+} from 'lucide-react';
 import {
   getMarketplaceSyncStatus,
   MarketplaceApiError,
@@ -9,42 +19,63 @@ import {
   type MarketplaceSyncStatus,
   type SyncMode,
 } from '@/lib/api/marketplace-client';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 // ── Mode metadata ─────────────────────────────────────────────────────────────
 
-const SYNC_MODES: {
+interface ModeInfo {
   value: SyncMode;
   label: string;
+  badge: string;
   badgeClass: string;
+  cardBorderActive: string;
+  cardBgActive: string;
+  iconBg: string;
   icon: React.ReactNode;
+  shortDesc: string;
   description: string;
-  warning?: string;
-}[] = [
+}
+
+const SYNC_MODES: ModeInfo[] = [
   {
     value: 'demo',
-    label: 'DEMO',
-    badgeClass: 'bg-blue-100 text-blue-700 ring-blue-200',
-    icon: <WifiOff className="h-4 w-4" aria-hidden />,
+    label: 'Modalità DEMO',
+    badge: 'Lettura Webhook',
+    badgeClass: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+    cardBorderActive: 'border-blue-500 ring-2 ring-blue-100',
+    cardBgActive: 'bg-gradient-to-b from-blue-50/40 to-white',
+    iconBg: 'bg-blue-100 text-blue-600',
+    icon: <WifiOff className="h-5 w-5" aria-hidden />,
+    shortDesc: 'Aggiorna lo stato locale dai webhook senza mai scrivere verso CardTrader.',
     description:
       'Legge i webhook del marketplace e aggiorna lo stato locale. Non esegue mai scritture verso piattaforme esterne.',
   },
   {
     value: 'partial',
-    label: 'PARZIALE',
-    badgeClass: 'bg-orange-100 text-orange-700 ring-orange-200',
-    icon: <Wifi className="h-4 w-4" aria-hidden />,
+    label: 'Modalità PARZIALE',
+    badge: 'Shadow Test',
+    badgeClass: 'bg-amber-50 text-amber-800 ring-1 ring-amber-200',
+    cardBorderActive: 'border-amber-500 ring-2 ring-amber-100',
+    cardBgActive: 'bg-gradient-to-b from-amber-50/40 to-white',
+    iconBg: 'bg-amber-100 text-amber-600',
+    icon: <Wifi className="h-5 w-5" aria-hidden />,
+    shortDesc: 'Legge dati reali e simula le operazioni in locale. Nessuna scrittura esterna.',
     description:
       'Prova generale (shadow): legge i dati reali di CardTrader in sola lettura e simula le operazioni in locale. Nessuna scrittura viene mai inviata a CardTrader.',
   },
   {
     value: 'real',
-    label: 'REALE',
-    badgeClass: 'bg-green-100 text-green-700 ring-green-200',
-    icon: <Zap className="h-4 w-4" aria-hidden />,
+    label: 'Modalità REALE',
+    badge: 'Produzione Attiva',
+    badgeClass: 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200',
+    cardBorderActive: 'border-emerald-500 ring-2 ring-emerald-100',
+    cardBgActive: 'bg-gradient-to-b from-emerald-50/40 to-white',
+    iconBg: 'bg-emerald-100 text-emerald-600',
+    icon: <Zap className="h-5 w-5" aria-hidden />,
+    shortDesc: 'Ogni vendita su Ebartex decrementa lo stock su CardTrader (anti-overselling).',
     description:
       'Ogni acquisto su Ebartex decrementa lo stock CardTrader degli articoli importati (protezione oversell). Le inserzioni create su Ebartex non vengono mai esportate.',
-    warning:
-      'Passare a modalità REALE attiva operazioni dirette sul marketplace collegato. Assicurati che la tua chiave API abbia i permessi di scrittura.',
   },
 ];
 
@@ -59,53 +90,57 @@ function ConfirmRealModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-real-title"
     >
-      <div className="w-full max-w-md rounded-2xl border border-orange-200 bg-white p-6 shadow-2xl">
-        <div className="mb-4 flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-orange-500" aria-hidden />
+      <div className="w-full max-w-lg rounded-3xl border border-orange-200 bg-white p-6 shadow-2xl sm:p-7">
+        <div className="mb-5 flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 ring-4 ring-amber-50">
+            <AlertTriangle className="h-6 w-6" aria-hidden />
+          </div>
           <div>
-            <h2 id="confirm-real-title" className="text-base font-semibold text-gray-900">
-              Attiva sincronizzazione REALE?
+            <h2 id="confirm-real-title" className="text-lg font-bold tracking-tight text-[#1D3160]">
+              Attivare la Sincronizzazione REALE?
             </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              In questa modalità ogni acquisto effettuato sulla piattaforma decrementa la
-              quantità direttamente sul marketplace collegato tramite la tua API key. Assicurati che:
+            <p className="mt-1 text-xs leading-relaxed text-gray-600">
+              In modalità <strong>REALE</strong>, ogni acquisto confermato su Ebartex invierà una richiesta API a CardTrader per decrementare le quantità dell'articolo venduto.
             </p>
-            <ul className="mt-2 space-y-1 text-sm text-gray-700">
-              <li className="flex items-start gap-1.5">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-                La tua API key ha permessi di scrittura sul marketplace
-              </li>
-              <li className="flex items-start gap-1.5">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-                I tuoi listing sono già sincronizzati sul marketplace collegato
-              </li>
-              <li className="flex items-start gap-1.5">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-                Hai testato il flusso in modalità DEMO o PARZIALE
-              </li>
-            </ul>
           </div>
         </div>
-        <div className="flex justify-end gap-2">
-          <button
+
+        <div className="mb-6 space-y-2.5 rounded-2xl border border-gray-100 bg-gray-50/80 p-4 text-xs text-gray-700">
+          <div className="flex items-start gap-2.5">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+            <span>La tua API key ha permessi di lettura e scrittura su CardTrader</span>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+            <span>Le inserzioni su Ebartex rimangono separate e non vengono esportate</span>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+            <span>Puoi tornare in modalità DEMO o PARZIALE in qualunque momento</span>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <Button
             type="button"
+            variant="outline"
             onClick={onCancel}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+            className="h-10 rounded-xl border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 hover:bg-gray-50"
           >
             Annulla
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onConfirm}
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700"
+            className="h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 text-xs font-bold text-white shadow-sm hover:from-emerald-700 hover:to-teal-700"
           >
-            Attiva modalità REALE
-          </button>
+            Conferma e Attiva REALE
+          </Button>
         </div>
       </div>
       <button
@@ -128,15 +163,14 @@ export function SyncModeSelector() {
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingMode, setPendingMode] = useState<SyncMode | null>(null);
   const [showConfirmReal, setShowConfirmReal] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
       setLoadingStatus(true);
       const data = await getMarketplaceSyncStatus();
       setStatus(data);
-    } catch (err) {
-      setError('Impossibile caricare lo stato sync.');
+    } catch {
+      setError('Impossibile caricare lo stato sincronizzazione.');
     } finally {
       setLoadingStatus(false);
     }
@@ -167,7 +201,7 @@ export function SyncModeSelector() {
             : prev,
         );
         const label = SYNC_MODES.find((m) => m.value === mode)?.label ?? mode;
-        setSuccess(`Modalità aggiornata a ${label}.`);
+        setSuccess(`Modalità sincronizzazione aggiornata a ${label}.`);
         setTimeout(() => setSuccess(null), 4000);
       } catch (err) {
         if (err instanceof MarketplaceApiError) {
@@ -184,8 +218,7 @@ export function SyncModeSelector() {
   );
 
   const handleSelectMode = (mode: SyncMode) => {
-    setDropdownOpen(false);
-    if (mode === status?.sync_mode) return;
+    if (mode === status?.sync_mode || saving) return;
     if (mode === 'real') {
       setPendingMode(mode);
       setShowConfirmReal(true);
@@ -194,7 +227,7 @@ export function SyncModeSelector() {
     }
   };
 
-  const currentModeInfo = SYNC_MODES.find((m) => m.value === status?.sync_mode) ?? SYNC_MODES[0];
+  const currentMode = status?.sync_mode ?? 'demo';
 
   return (
     <>
@@ -211,117 +244,110 @@ export function SyncModeSelector() {
         />
       )}
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5">
+      <section className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm transition-all sm:p-7">
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Modalità Sincronizzazione</h3>
+            <h3 className="text-base font-bold tracking-tight text-[#1D3160]">
+              Modalità di Sincronizzazione Stock
+            </h3>
             <p className="mt-0.5 text-xs text-gray-500">
-              Controlla come la piattaforma interagisce con i marketplace collegati
+              Scegli il livello di automazione per il decremento delle quantità su CardTrader
             </p>
           </div>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={fetchStatus}
-            disabled={loadingStatus}
+            disabled={loadingStatus || saving}
             aria-label="Aggiorna stato"
-            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:opacity-40"
+            className="h-8 border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
           >
-            <RefreshCw className={`h-4 w-4 ${loadingStatus ? 'animate-spin' : ''}`} aria-hidden />
-          </button>
+            <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5 text-gray-400', loadingStatus ? 'animate-spin' : '')} />
+            Aggiorna
+          </Button>
         </div>
 
-        {/* Current mode badge + dropdown */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setDropdownOpen((o) => !o)}
-            disabled={saving || loadingStatus}
-            aria-haspopup="listbox"
-            aria-expanded={dropdownOpen}
-            className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left transition hover:bg-gray-100 disabled:opacity-60"
-          >
-            <span className="flex items-center gap-2.5">
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin text-gray-400" aria-hidden />
-              ) : (
-                currentModeInfo.icon
-              )}
-              <span className="text-sm font-medium text-gray-800">
-                {loadingStatus ? 'Caricamento...' : currentModeInfo.label}
-              </span>
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${currentModeInfo.badgeClass}`}
+        {/* Segmented Cards */}
+        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
+          {SYNC_MODES.map((mode) => {
+            const isSelected = currentMode === mode.value;
+            return (
+              <button
+                key={mode.value}
+                type="button"
+                onClick={() => handleSelectMode(mode.value)}
+                disabled={saving || loadingStatus}
+                className={cn(
+                  'group relative flex flex-col justify-between rounded-2xl border p-4.5 text-left transition-all duration-200',
+                  isSelected
+                    ? cn('shadow-xs', mode.cardBorderActive, mode.cardBgActive)
+                    : 'border-gray-200/80 bg-white hover:border-gray-300 hover:shadow-xs'
+                )}
               >
-                {loadingStatus ? '…' : currentModeInfo.value.toUpperCase()}
-              </span>
-            </span>
-            <ChevronDown
-              className={`h-4 w-4 text-gray-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
-              aria-hidden
-            />
-          </button>
-
-          {dropdownOpen && (
-            <ul
-              role="listbox"
-              aria-label="Seleziona modalità"
-              className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
-            >
-              {SYNC_MODES.map((mode) => (
-                <li key={mode.value} role="option" aria-selected={status?.sync_mode === mode.value}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectMode(mode.value)}
-                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-gray-50 ${
-                      status?.sync_mode === mode.value ? 'bg-gray-50' : ''
-                    }`}
-                  >
-                    <span className={`mt-0.5 ${status?.sync_mode === mode.value ? 'text-primary' : 'text-gray-400'}`}>
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div
+                      className={cn(
+                        'flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-105',
+                        mode.iconBg
+                      )}
+                    >
                       {mode.icon}
+                    </div>
+                    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider', mode.badgeClass)}>
+                      {mode.badge}
                     </span>
-                    <span className="flex-1">
-                      <span className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-800">{mode.label}</span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${mode.badgeClass}`}
-                        >
-                          {mode.value.toUpperCase()}
-                        </span>
-                        {status?.sync_mode === mode.value && (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-primary" aria-label="Modalità attiva" />
-                        )}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-gray-500">{mode.description}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                  </div>
 
-        {/* Description of current mode */}
-        {!loadingStatus && status && (
-          <p className="mt-3 text-xs text-gray-500">{currentModeInfo.description}</p>
-        )}
+                  <div className="mt-3.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold text-[#1D3160]">{mode.label}</span>
+                      {isSelected && (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" aria-label="Attivo" />
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-gray-600">{mode.shortDesc}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between border-t border-gray-100/80 pt-3 text-[11px] font-bold">
+                  {isSelected ? (
+                    <span className="text-emerald-700 flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Modalità Attiva
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 group-hover:text-[#FF7300] transition-colors">
+                      Clicca per selezionare
+                    </span>
+                  )}
+                  {saving && pendingMode === mode.value && (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF7300]" />
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
 
         {/* Stats row */}
         {status && !loadingStatus && (
-          <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-gray-50 p-3">
+          <div className="mt-5 grid grid-cols-3 gap-3 rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
             <div className="text-center">
-              <div className="text-base font-semibold text-gray-900">{status.total_listings}</div>
-              <div className="text-xs text-gray-500">Listing totali</div>
+              <div className="text-lg font-extrabold text-[#1D3160]">{status.total_listings}</div>
+              <div className="text-[11px] font-medium text-gray-500">Listing Totali Ebartex</div>
             </div>
             <div className="text-center">
-              <div className="text-base font-semibold text-gray-900">{status.synced_listings}</div>
-              <div className="text-xs text-gray-500">Sincronizzati</div>
+              <div className="text-lg font-extrabold text-emerald-700">{status.synced_listings}</div>
+              <div className="text-[11px] font-medium text-gray-500">Sincronizzati con CT</div>
             </div>
             <div className="text-center">
-              <div className={`text-base font-semibold ${status.pending_events > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+              <div className={cn('text-lg font-extrabold', status.pending_events > 0 ? 'text-[#FF7300]' : 'text-gray-700')}>
                 {status.pending_events}
               </div>
-              <div className="text-xs text-gray-500">In attesa</div>
+              <div className="text-[11px] font-medium text-gray-500">Eventi in Coda</div>
             </div>
           </div>
         )}
@@ -330,18 +356,18 @@ export function SyncModeSelector() {
         {error && (
           <div
             role="alert"
-            className="mt-3 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+            className="mt-4 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-800 shadow-2xs"
           >
-            <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" aria-hidden />
             {error}
           </div>
         )}
         {success && (
           <div
             role="status"
-            className="mt-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700"
+            className="mt-4 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-800 shadow-2xs"
           >
-            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
             {success}
           </div>
         )}
