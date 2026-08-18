@@ -282,8 +282,8 @@ export function RegistratiDemoForm() {
         )}
       </div>
 
-      <div className="flex gap-2">
-        <div className="w-[6.5rem] min-w-[6.5rem] shrink-0">
+      <div className="flex gap-2 items-start">
+        <div className="w-[6.85rem] min-w-[6.85rem] shrink-0">
           <Controller
             name="phone_prefix"
             control={control}
@@ -298,7 +298,7 @@ export function RegistratiDemoForm() {
             )}
           />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <FloatingLabelField
             label={t('registerForm.phoneLabel')}
             id="phone"

@@ -27,19 +27,19 @@ interface CountrySelectProps {
 
 const sizeClasses = {
   sm: {
-    trigger: 'h-10 pl-3 pr-3 text-sm',
+    trigger: 'h-11 pl-3.5 pr-3 text-[14px] rounded-xl',
     flag: 'sm' as const,
     item: 'px-3 py-2 text-sm',
     list: 'mt-1',
   },
   md: {
-    trigger: 'h-14 pl-4 pr-4 text-base',
+    trigger: 'h-14 pl-4 pr-4 text-base rounded-2xl',
     flag: 'md' as const,
     item: 'px-4 py-2.5 text-sm',
     list: 'mt-1.5',
   },
   lg: {
-    trigger: 'h-16 pl-5 pr-5 text-lg',
+    trigger: 'h-16 pl-5 pr-5 text-lg rounded-2xl',
     flag: 'lg' as const,
     item: 'px-5 py-3 text-base',
     list: 'mt-2',
@@ -133,22 +133,20 @@ export function CountrySelect({
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         className={cn(
-          'flex w-full items-center justify-between rounded-2xl border transition-all duration-150',
+          'flex w-full items-center justify-between border transition-all duration-150',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-global-bg-start/25 focus-visible:ring-offset-0',
-          isPrefix ? 'gap-1.5' : 'gap-2',
-          sizes.trigger,
-          isPrefix && 'pl-3 pr-2.5',
+          isPrefix ? 'h-11 rounded-xl px-2.5 gap-1 border-black/10 bg-black/5 hover:border-global-bg-start/50 hover:bg-white focus:bg-white focus:border-global-bg-start' : sizes.trigger,
           disabled
             ? 'cursor-not-allowed border-black/10 bg-black/5 text-gray-400'
             : hasSelection
               ? cn(
-                  'cursor-pointer border-global-bg-start/50 bg-white text-[#1d1d1f] shadow-[0_0_0_1px_rgba(61,101,198,0.12)]',
-                  'hover:border-global-bg-start hover:bg-white'
+                  'cursor-pointer border-black/10 bg-black/5 text-[#1d1d1f]',
+                  'hover:border-global-bg-start hover:bg-white focus:bg-white focus:border-global-bg-start'
                 )
               : 'cursor-pointer border-black/10 bg-black/5 text-gray-900 hover:border-global-bg-start/40 hover:bg-black/[0.07]'
         )}
       >
-        <span className={cn('flex min-w-0 flex-1 items-center', isPrefix ? 'gap-2' : 'gap-3')}>
+        <span className={cn('flex min-w-0 flex-1 items-center', isPrefix ? 'gap-1.5' : 'gap-3')}>
           {selectedOption ? (
             <>
               <FlagIcon
@@ -158,8 +156,9 @@ export function CountrySelect({
               />
               <span
                 className={cn(
-                  'truncate',
-                  hasSelection ? 'font-semibold text-[#1d1d1f]' : 'font-medium'
+                  isPrefix
+                    ? 'whitespace-nowrap font-medium text-[14px] text-[#1d1d1f]'
+                    : cn('truncate', hasSelection ? 'font-medium text-[#1d1d1f]' : 'font-medium')
                 )}
               >
                 {selectedOption.label}
@@ -171,8 +170,8 @@ export function CountrySelect({
         </span>
         <ChevronDown
           className={cn(
-            'h-4 w-4 shrink-0 transition-transform duration-200',
-            hasSelection ? 'text-global-bg-start/70' : 'text-gray-400',
+            'h-3.5 w-3.5 shrink-0 transition-transform duration-200',
+            hasSelection ? 'text-gray-500' : 'text-gray-400',
             isOpen && 'rotate-180'
           )}
           aria-hidden
