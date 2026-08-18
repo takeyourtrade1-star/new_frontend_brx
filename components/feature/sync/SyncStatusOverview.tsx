@@ -65,44 +65,38 @@ function SyncRail({
         )}
       />
 
-      <div className="relative h-[2px] min-w-0 flex-1 overflow-hidden">
-        <div
-          className={cn(
-            'absolute inset-0',
-            state === 'off' || state === 'loading'
-              ? 'bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.28)_0_6px,transparent_6px_12px)]'
-              : 'bg-white/15',
+      <div className="relative h-[2px] min-w-0 flex-1">
+        <div className="absolute inset-0 overflow-hidden">
+          <div
+            className={cn(
+              'absolute inset-0',
+              state === 'off' || state === 'loading'
+                ? 'bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.28)_0_6px,transparent_6px_12px)]'
+                : 'bg-white/15',
+            )}
+          />
+          <div
+            className={cn(
+              'absolute inset-y-0 left-0 transition-[width] duration-700 ease-out',
+              state === 'error' ? 'bg-[#F5A8A2]' : 'bg-[#FF7300]',
+            )}
+            style={{ width: `${fill}%` }}
+          />
+          {state === 'live' && (
+            <span className="sync-rail-current absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-transparent via-white/70 to-transparent" />
           )}
-        />
-        <div
-          className={cn(
-            'absolute inset-y-0 left-0 transition-[width] duration-700 ease-out',
-            state === 'error' ? 'bg-[#F5A8A2]' : 'bg-[#FF7300]',
-          )}
-          style={{ width: `${fill}%` }}
-        />
-        {state === 'live' && (
-          <span className="sync-rail-current absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-transparent via-white/70 to-transparent" />
+        </div>
+        {(state === 'live' || state === 'syncing' || state === 'idle' || state === 'error') && (
+          <span
+            className={cn(
+              'pointer-events-none absolute top-1/2 z-10 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[left] duration-700 ease-out',
+              state === 'error' ? 'bg-[#F5A8A2]' : 'bg-white',
+              state === 'live' && 'sync-rail-bead',
+            )}
+            style={{ left: beadLeft }}
+          />
         )}
       </div>
-
-      <span
-        className={cn(
-          'absolute left-1/2 top-1/2 hidden h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full sm:block',
-          state === 'syncing' && 'sm:hidden',
-        )}
-      />
-
-      {(state === 'live' || state === 'syncing' || state === 'idle' || state === 'error') && (
-        <span
-          className={cn(
-            'pointer-events-none absolute top-1/2 z-10 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[left] duration-700 ease-out',
-            state === 'error' ? 'bg-[#F5A8A2]' : 'bg-white',
-            state === 'live' && 'sync-rail-bead',
-          )}
-          style={{ left: `calc(${beadLeft} * 0.92 + 4%)` }}
-        />
-      )}
 
       <span
         className={cn(
@@ -151,6 +145,7 @@ export function SyncStatusOverview({
   progressProcessed,
   progressTotal,
   etaLabel,
+  onRefresh,
 }: {
   loading: boolean;
   brxStatus: SyncStatus | null;
@@ -164,6 +159,7 @@ export function SyncStatusOverview({
   progressProcessed?: number | null;
   progressTotal?: number | null;
   etaLabel?: string | null;
+  onRefresh?: () => void;
 }) {
   const intlLocale = useIntlLocale();
   const { t } = useTranslation();
@@ -231,7 +227,7 @@ export function SyncStatusOverview({
       />
 
       <div className="relative px-5 py-7 sm:px-8 sm:py-9">
-        <div className="flex items-end justify-between gap-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
           <div className="min-w-0">
             <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#FF7300]">
               CardTrader · Ebartex
@@ -243,6 +239,16 @@ export function SyncStatusOverview({
               {t('accountPage.syncSubtitle')}
             </p>
           </div>
+          {onRefresh ? (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={loading}
+              className="self-start shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55 underline-offset-4 hover:text-white hover:underline disabled:opacity-40 sm:self-auto sm:pb-1"
+            >
+              {loading ? 'Lettura…' : t('accountPage.syncRefreshAll')}
+            </button>
+          ) : null}
         </div>
 
         <div className="mt-10 sm:mt-14">
@@ -251,7 +257,10 @@ export function SyncStatusOverview({
               <p className="font-display text-sm uppercase tracking-[0.16em] sm:text-base">CardTrader</p>
               <p className="mt-1 text-xs text-white/50">{leftCaption}</p>
             </div>
-            <p className="pb-4 text-center font-display text-xs uppercase tracking-[0.2em] text-[#FF7300] sm:text-sm">
+            <p
+              aria-live="polite"
+              className="pb-4 text-center font-display text-xs uppercase tracking-[0.2em] text-[#FF7300] sm:text-sm"
+            >
               {centerCaption}
             </p>
             <div className="text-right">
