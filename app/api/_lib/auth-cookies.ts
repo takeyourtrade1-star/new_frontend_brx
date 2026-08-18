@@ -32,8 +32,10 @@ export function getAuthCookieName(kind: AuthCookieKind): string {
 }
 
 export function readAuthCookie(request: NextRequest, kind: AuthCookieKind): string | undefined {
-  const value = request.cookies.get(getAuthCookieName(kind))?.value?.trim();
-  return value || undefined;
+  const hostValue = request.cookies.get(getAuthCookieName(kind))?.value?.trim();
+  if (hostValue) return hostValue;
+  const legacyValue = request.cookies.get(AUTH_COOKIE_BASENAMES[kind])?.value?.trim();
+  return legacyValue || undefined;
 }
 
 export function serializeAuthCookie(
