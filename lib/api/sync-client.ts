@@ -64,6 +64,7 @@ export interface SyncStartResponse {
 export interface InventoryItemResponse {
   id: number;
   blueprint_id: number;
+  game_id?: number;
   quantity: number;
   reserved_quantity?: number;
   price_cents: number;
