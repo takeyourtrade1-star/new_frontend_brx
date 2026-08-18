@@ -25,6 +25,22 @@ export type BlogPost = {
 
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'amici-sui-tornei',
+    date: '2026-08-18',
+    dateLabel: '18 agosto 2026',
+    tag: 'Tornei',
+    tagClass: 'bg-violet-100 text-violet-700',
+    title: 'Arrivano gli amici sui Tornei: sfide istantanee e una community tutta nuova!',
+    excerpt:
+      'Aggiungi i tuoi compagni di gioco, sfidali 1v1 in un lampo, stringi nuove amicizie ai tavoli ed esplora i loro profili da venditore: i Tornei Ebartex diventano 100% social.',
+    paragraphs: [
+      'I Tornei Ebartex compiono un salto epico: è arrivato il sistema Amici! Da oggi puoi aggiungere i tuoi compagni di battaglia con un tap, cercarli per Gamertag e vedere in tempo reale quando sono pronti a scendere nell’arena.',
+      'Giocare insieme non è mai stato così immediato: basta un click per lanciare un invito a una sfida diretta 1v1, scegliere formato e formula di gioco e trovarsi subito faccia a faccia al tavolo in webcam. E se durante un torneo incontri un avversario che ti ha fatto sudare sette camicie? Puoi aggiungerlo subito agli amici direttamente dal tavolo o dalle cronache di battaglia per organizzare la rivincita!',
+      'La magia della community va oltre il singolo match: se gli altri giocatori scelgono di renderlo visibile, puoi esplorare i loro profili da venditore, ammirare le loro collezioni e scoprire le carte che hanno messo a disposizione. Più legami, più scambi, più spettacolo: raduna i tuoi amici, siediti al tavolo e accendi la sfida!',
+    ],
+    cta: { href: '/tornei', label: 'Sfida i tuoi amici nei Tornei →' },
+  },
+  {
     slug: 'accesso-unico-sso',
     date: '2026-08-18',
     dateLabel: '18 agosto 2026',
