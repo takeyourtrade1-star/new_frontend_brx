@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Clock3,
   Coins,
+  Info,
   Loader2,
   LockKeyhole,
   Minus,
@@ -188,8 +189,8 @@ const ItemPicker = memo(function ItemPicker({
   };
 
   return (
-    <section className="overflow-hidden rounded-[1.3rem] border border-white/10 bg-[#09152E]/28 backdrop-blur-lg">
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-5">
+    <section className="flex h-full flex-col overflow-hidden rounded-[1.3rem] border border-white/10 bg-[#09152E]/28 backdrop-blur-lg shadow-[0_12px_32px_rgba(0,0,0,0.2)]">
+      <div className="flex min-h-[58px] items-center justify-between gap-3 border-b border-white/10 px-4 py-3.5 sm:px-5">
         <div>
           <h2 className="text-sm font-black uppercase tracking-wide text-white">{title}</h2>
           <p className="mt-0.5 text-[11px] font-semibold text-white/40">
@@ -198,7 +199,7 @@ const ItemPicker = memo(function ItemPicker({
         </div>
         <span className={cn(
           'rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide',
-          selectedCount ? 'bg-[#FF7300] text-white' : 'bg-white/10 text-white/40',
+          selectedCount ? 'bg-[#FF7300] text-white shadow-sm' : 'bg-white/10 text-white/40',
         )} aria-live="polite" aria-atomic="true">
           {t('trades.selectedCount', { count: selectedCount })}
         </span>
@@ -266,13 +267,15 @@ const ItemPicker = memo(function ItemPicker({
       </div>
 
       {items.length === 0 ? (
-        <div className="flex min-h-52 items-center justify-center px-6 py-10 text-center">
+        <div className="flex flex-1 min-h-[360px] sm:min-h-[420px] items-center justify-center p-6 text-center">
           <p className="max-w-xs text-sm font-semibold text-white/45">{empty}</p>
         </div>
       ) : (
-        <div className="max-h-[430px] space-y-2 overflow-y-auto p-3 sm:p-4">
+        <div className="flex-1 h-[360px] sm:h-[420px] space-y-2 overflow-y-auto p-3 sm:p-4">
           {visibleItems.length === 0 && (
-            <p className="py-10 text-center text-sm font-semibold text-white/45">{t('trades.noFilterResults')}</p>
+            <div className="flex h-full items-center justify-center py-10 text-center">
+              <p className="text-sm font-semibold text-white/45">{t('trades.noFilterResults')}</p>
+            </div>
           )}
           {visibleItems.map((item) => {
             const quantity = selected[item.id] ?? 0;
@@ -363,15 +366,21 @@ export function PrivateCashControls({
   amountCents,
   onSideChange,
   onAmountChange,
+  isFused = false,
+  className,
 }: {
   side: PrivateCashSide;
   amountCents: number;
   onSideChange: (side: PrivateCashSide) => void;
   onAmountChange: (amountCents: number) => void;
+  isFused?: boolean;
+  className?: string;
 }) {
   const { t } = useTranslation();
   const locale = useIntlLocale();
   const [amountInput, setAmountInput] = useState(() => privateCashInputValue(amountCents));
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+
   const setSide = (next: Exclude<PrivateCashSide, 'none'>) => {
     if (side === next) {
       onSideChange('none');
@@ -381,113 +390,336 @@ export function PrivateCashControls({
     }
     onSideChange(next);
   };
+
   const changeAmount = (next: number) => {
     const safeAmount = Math.min(PRIVATE_CASH_MAX_CENTS, Math.max(0, Math.round(next)));
     onAmountChange(safeAmount);
     setAmountInput(privateCashInputValue(safeAmount));
   };
 
+  const addQuickPreset = (deltaCents: number) => {
+    changeAmount(amountCents + deltaCents);
+  };
+
   return (
-    <section className="mb-4 overflow-hidden rounded-[1.3rem] border border-amber-200/20 bg-amber-300/[0.07]">
-      <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-amber-100">
-            <Coins className="h-4 w-4 text-amber-300" aria-hidden /> {t('trades.privateCash.title')}
+    <section
+      className={cn(
+        isFused
+          ? 'border-t border-[#C08A57]/30 bg-[#160B08]/92 p-3 sm:p-4 backdrop-blur-md transition-colors'
+          : 'mb-4 overflow-hidden rounded-[1.3rem] border border-amber-200/20 bg-amber-300/[0.07] p-4',
+        className,
+      )}
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-400/20 text-amber-300">
+              <Coins className="h-3.5 w-3.5" aria-hidden />
+            </span>
+            <span className="text-xs font-black uppercase tracking-[0.14em] text-amber-100">
+              {t('trades.privateCash.title')}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowDisclaimer((current) => !current)}
+              aria-label="Info conguaglio"
+              className="rounded p-1 text-amber-300/60 transition-colors hover:bg-amber-300/10 hover:text-amber-200"
+            >
+              <Info className="h-3.5 w-3.5" aria-hidden />
+            </button>
           </div>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-amber-50/60">{t('trades.privateCash.warning')}</p>
+          {(!isFused || showDisclaimer) && (
+            <p className="mt-1 max-w-xl text-xs leading-relaxed text-amber-50/65 animate-in fade-in duration-200">
+              {t('trades.privateCash.warning')}
+            </p>
+          )}
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="grid grid-cols-2 rounded-xl border border-white/10 bg-black/15 p-1">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="grid grid-cols-2 rounded-xl border border-white/10 bg-black/25 p-1">
             {([
               ['offered', t('trades.privateCash.offer')],
               ['requested', t('trades.privateCash.request')],
-            ] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setSide(value)}
-                aria-pressed={side === value}
-                className={cn(
-                  'rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-wide transition-colors',
-                  side === value ? 'bg-[#FF7300] text-white shadow-sm' : 'text-white/45 hover:bg-white/[0.06] hover:text-white/75',
-                )}
-              >
-                {label}
-              </button>
-            ))}
+            ] as const).map(([value, label]) => {
+              const active = side === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setSide(value)}
+                  aria-pressed={active}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-wide transition-all duration-200',
+                    active
+                      ? 'bg-gradient-to-r from-[#FF8A26] to-[#FF7300] text-white shadow-[0_2px_10px_rgba(255,115,0,0.35)]'
+                      : 'text-white/45 hover:bg-white/[0.06] hover:text-white/75',
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
-          <div className={cn('flex h-11 items-center overflow-hidden rounded-xl border bg-white/95 transition-opacity', side === 'none' ? 'border-white/10 opacity-45' : 'border-amber-300/60')}>
-            <button type="button" disabled={side === 'none'} onClick={() => changeAmount(amountCents - 500)} className="flex h-full w-9 items-center justify-center text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed" aria-label={t('common.decrease')}>
-              <Minus className="h-3.5 w-3.5" aria-hidden />
-            </button>
-            <label className="relative border-x border-slate-200">
-              <span className="sr-only">{t('trades.privateCash.amount')}</span>
-              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400" aria-hidden>€</span>
-              <input
-                type="text"
-                inputMode="decimal"
+          <div className="flex items-center gap-1.5">
+            <div
+              className={cn(
+                'flex h-10 items-center overflow-hidden rounded-xl border transition-all duration-200',
+                side === 'none'
+                  ? 'border-white/10 bg-white/[0.06] opacity-40'
+                  : 'border-amber-300/60 bg-white/95 shadow-[0_0_12px_rgba(245,158,11,0.15)]',
+              )}
+            >
+              <button
+                type="button"
                 disabled={side === 'none'}
-                value={amountInput}
-                onChange={(event) => {
-                  const nextInput = event.target.value;
-                  const parsedCents = parsePrivateCashInput(nextInput);
-                  if (parsedCents === null) return;
-                  setAmountInput(nextInput);
-                  onAmountChange(parsedCents);
-                }}
-                onBlur={() => setAmountInput(privateCashInputValue(amountCents))}
-                placeholder="0,00"
-                className="h-11 w-24 bg-transparent pl-7 pr-2 text-right text-sm font-black tabular-nums text-slate-800 outline-none"
-              />
-            </label>
-            <button type="button" disabled={side === 'none'} onClick={() => changeAmount(amountCents + 500)} className="flex h-full w-9 items-center justify-center text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed" aria-label={t('common.increase')}>
-              <Plus className="h-3.5 w-3.5" aria-hidden />
-            </button>
+                onClick={() => changeAmount(amountCents - 500)}
+                className="flex h-full w-8 items-center justify-center text-slate-600 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed"
+                aria-label={t('common.decrease')}
+              >
+                <Minus className="h-3.5 w-3.5" aria-hidden />
+              </button>
+              <label className="relative border-x border-slate-200">
+                <span className="sr-only">{t('trades.privateCash.amount')}</span>
+                <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400" aria-hidden>€</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  disabled={side === 'none'}
+                  value={amountInput}
+                  onChange={(event) => {
+                    const nextInput = event.target.value;
+                    const parsedCents = parsePrivateCashInput(nextInput);
+                    if (parsedCents === null) return;
+                    setAmountInput(nextInput);
+                    onAmountChange(parsedCents);
+                  }}
+                  onBlur={() => setAmountInput(privateCashInputValue(amountCents))}
+                  placeholder="0,00"
+                  className="h-10 w-20 bg-transparent pl-6 pr-2 text-right text-xs font-black tabular-nums text-slate-800 outline-none"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={side === 'none'}
+                onClick={() => changeAmount(amountCents + 500)}
+                className="flex h-full w-8 items-center justify-center text-slate-600 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed"
+                aria-label={t('common.increase')}
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </div>
+
+            {side !== 'none' && (
+              <div className="hidden items-center gap-1 sm:flex">
+                {[500, 1000, 2000].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => addQuickPreset(preset)}
+                    className="rounded-lg border border-amber-300/30 bg-amber-400/10 px-2 py-1.5 text-[10px] font-black text-amber-200 transition-colors hover:bg-amber-400/20"
+                  >
+                    +{preset / 100}€
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
       {side !== 'none' && amountCents > 0 && (
-        <p className="border-t border-amber-100/10 px-4 py-2 text-center text-[11px] font-bold text-amber-100/75" aria-live="polite">
-          {side === 'offered'
-            ? t('trades.privateCash.offerSummary', { amount: formatEurCents(amountCents, locale) })
-            : t('trades.privateCash.requestSummary', { amount: formatEurCents(amountCents, locale) })}
-        </p>
+        <div className="mt-2.5 flex items-center justify-between rounded-lg border border-amber-300/20 bg-amber-400/10 px-3 py-1.5 text-[11px] font-bold text-amber-100" aria-live="polite">
+          <span>
+            {side === 'offered'
+              ? t('trades.privateCash.offerSummary', { amount: formatEurCents(amountCents, locale) })
+              : t('trades.privateCash.requestSummary', { amount: formatEurCents(amountCents, locale) })}
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-amber-300/70">
+            {t('trades.privateCash.privateAgreement')}
+          </span>
+        </div>
       )}
     </section>
   );
 }
 
-function TableCashPile({ amountCents, side }: { amountCents: number; side: 'offered' | 'requested' }) {
-  const locale = useIntlLocale();
-  const count = privateCashCoinCount(amountCents);
+function GoldCoin({
+  index,
+  active,
+  total,
+}: {
+  index: number;
+  active: boolean;
+  total: number;
+}) {
+  const wobbleDeg = ((index % 3) - 1) * 3;
+  const shiftX = ((index % 2) - 0.5) * 2;
+
   return (
     <div
       className={cn(
-        'absolute right-4 top-1/2 z-20 flex -translate-y-1/2 items-center gap-2 transition-all duration-300 motion-reduce:transition-none',
-        amountCents > 0 ? 'scale-100 opacity-100' : 'pointer-events-none scale-90 opacity-0',
+        'absolute left-1/2 -translate-x-1/2 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none',
+        active
+          ? 'scale-100 opacity-100'
+          : 'translate-y-6 scale-50 opacity-0 pointer-events-none',
+      )}
+      style={{
+        bottom: `${index * 5.5}px`,
+        transform: active
+          ? `translateX(calc(-50% + ${shiftX}px)) rotate(${wobbleDeg}deg) scale(1)`
+          : `translateX(-50%) translateY(24px) scale(0.5)`,
+        transitionDelay: `${active ? index * 40 : (total - index) * 20}ms`,
+        zIndex: index + 1,
+      }}
+    >
+      <svg
+        viewBox="0 0 46 20"
+        className="h-5 w-12 filter drop-shadow-[0_3px_5px_rgba(0,0,0,0.5)]"
+        aria-hidden
+      >
+        <defs>
+          <linearGradient id={`coin-rim-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#92400E" />
+            <stop offset="20%" stopColor="#F59E0B" />
+            <stop offset="45%" stopColor="#FEF3C7" />
+            <stop offset="70%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#78350F" />
+          </linearGradient>
+          <linearGradient id={`coin-face-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#FEF08A" />
+            <stop offset="35%" stopColor="#FBBF24" />
+            <stop offset="85%" stopColor="#D97706" />
+            <stop offset="100%" stopColor="#92400E" />
+          </linearGradient>
+          <linearGradient id={`coin-inner-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#FFFBEB" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="#B45309" stopOpacity="0.4" />
+          </linearGradient>
+        </defs>
+
+        {/* 3D Coin Edge / Cylinder Wall */}
+        <path
+          d="M3 8 C3 14 43 14 43 8 L43 12 C43 18 3 18 3 12 Z"
+          fill={`url(#coin-rim-${index})`}
+        />
+
+        {/* Edge Vertical Ribbing (Milled Edge) */}
+        <path
+          d="M8 11.5 L8 15.5 M14 12.5 L14 16.5 M23 13 L23 17 M32 12.5 L32 16.5 M38 11.5 L38 15.5"
+          stroke="#78350F"
+          strokeWidth="0.8"
+          strokeOpacity="0.7"
+        />
+
+        {/* Top Coin Face */}
+        <ellipse
+          cx="23"
+          cy="8"
+          rx="20"
+          ry="6"
+          fill={`url(#coin-face-${index})`}
+          stroke="#FEF3C7"
+          strokeWidth="0.6"
+        />
+
+        {/* Inner Embossed Ring */}
+        <ellipse
+          cx="23"
+          cy="8"
+          rx="15"
+          ry="4.2"
+          fill="none"
+          stroke={`url(#coin-inner-${index})`}
+          strokeWidth="0.7"
+          strokeDasharray="2.5 1.2"
+        />
+
+        {/* Center Embossed Star / Currency Motif */}
+        <path
+          d="M21 6.5 H25.5 M21 8 H25 M20.5 9.5 H25"
+          stroke="#78350F"
+          strokeWidth="0.7"
+          strokeLinecap="round"
+          opacity="0.8"
+        />
+        <circle cx="23" cy="8" r="1" fill="#FEF3C7" opacity="0.9" />
+      </svg>
+    </div>
+  );
+}
+
+function TableCashPile({ amountCents, side }: { amountCents: number; side: 'offered' | 'requested' }) {
+  const { t } = useTranslation();
+  const locale = useIntlLocale();
+  const count = privateCashCoinCount(amountCents);
+  const isOffered = side === 'offered';
+
+  return (
+    <div
+      className={cn(
+        'group absolute z-20 flex items-center gap-2.5 transition-all duration-500 ease-out motion-reduce:transition-none',
+        isOffered
+          ? 'left-4 top-14 sm:left-6 sm:top-12 flex-row'
+          : 'right-4 top-14 sm:right-6 sm:top-12 flex-row-reverse',
+        amountCents > 0
+          ? 'scale-100 opacity-100 translate-y-0'
+          : 'translate-y-2 pointer-events-none scale-75 opacity-0',
       )}
       data-cash-side={side}
     >
-      <div className="relative h-14 w-11" aria-hidden>
-        {Array.from({ length: 8 }, (_, coin) => (
-          <span
-            key={coin}
-            className={cn(
-              'absolute left-1/2 h-3 w-8 -translate-x-1/2 rounded-[50%] border border-amber-100/70 bg-gradient-to-b from-amber-200 to-amber-500 shadow-md transition-all duration-300 motion-reduce:transition-none',
-              coin < count ? 'opacity-100' : 'translate-y-2 scale-75 opacity-0',
-            )}
-            style={{
-              bottom: `${coin * 5}px`,
-              transitionDelay: `${coin < count ? coin * 35 : (7 - coin) * 20}ms`,
-            }}
-          />
-        ))}
+      {/* 3D Coins Stack with Ambient Glow and Sparkles */}
+      <div className="relative h-16 w-14 select-none" aria-hidden>
+        {/* Warm Golden Felt Light Spill */}
+        <div
+          className={cn(
+            'absolute -bottom-1 left-1/2 -translate-x-1/2 h-6 w-16 rounded-full bg-amber-400/30 blur-md transition-all duration-500',
+            amountCents > 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-50',
+          )}
+        />
+
+        {/* Sparkle Glints */}
+        {amountCents > 0 && (
+          <>
+            <span
+              className="absolute -top-1 left-0 block h-2 w-2 animate-ping rounded-full bg-amber-200/90 [animation-duration:2.2s]"
+              aria-hidden
+            />
+            <Sparkles
+              className="absolute -right-2 -top-1.5 h-4 w-4 text-amber-300 motion-safe:animate-pulse [animation-duration:1.6s]"
+              aria-hidden
+            />
+          </>
+        )}
+
+        {/* Stack of Individual 3D Gold Coins */}
+        <div className="relative h-full w-full">
+          {Array.from({ length: 8 }, (_, coin) => (
+            <GoldCoin
+              key={coin}
+              index={coin}
+              active={coin < count}
+              total={count}
+            />
+          ))}
+        </div>
       </div>
-      <span className="rounded-full border border-amber-100/25 bg-amber-300/15 px-2.5 py-1 text-[10px] font-black tabular-nums text-amber-100 shadow-sm backdrop-blur-sm transition-transform duration-300 motion-reduce:transition-none">
-        {formatEurCents(amountCents, locale)}
-      </span>
+
+      {/* Floating Shiny Glass Badge */}
+      <div
+        className={cn(
+          'flex flex-col rounded-xl border border-amber-300/45 bg-gradient-to-br from-[#24130A]/95 via-[#1A0C06]/95 to-[#0F0703]/95 px-2.5 py-1 shadow-[0_8px_20px_rgba(0,0,0,0.55),0_0_12px_rgba(245,158,11,0.22)] backdrop-blur-md transition-all duration-300 group-hover:scale-105 group-hover:border-amber-300/70',
+          isOffered ? 'text-left' : 'text-right',
+        )}
+      >
+        <div className={cn('flex items-center gap-1 text-[8.5px] font-black uppercase tracking-wider text-amber-300', !isOffered && 'flex-row-reverse')}>
+          <Coins className="h-2.5 w-2.5 text-amber-400 motion-safe:animate-bounce" aria-hidden />
+          <span>{isOffered ? t('trades.privateCash.offer') : t('trades.privateCash.request')}</span>
+        </div>
+        <span className="text-[11px] font-black tabular-nums tracking-wide text-amber-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+          {formatEurCents(amountCents, locale)}
+        </span>
+      </div>
     </div>
   );
 }
@@ -594,6 +826,10 @@ function TradeProposalTable({
   offeredCashCents,
   requestedCashCents,
   otherName,
+  cashSide,
+  cashCents,
+  onCashSideChange,
+  onCashAmountChange,
 }: {
   offeredItems: PickerItem[];
   requestedItems: PickerItem[];
@@ -604,47 +840,107 @@ function TradeProposalTable({
   offeredCashCents: number;
   requestedCashCents: number;
   otherName: string;
+  cashSide: PrivateCashSide;
+  cashCents: number;
+  onCashSideChange: (side: PrivateCashSide) => void;
+  onCashAmountChange: (amountCents: number) => void;
 }) {
   const { t } = useTranslation();
+  const locale = useIntlLocale();
+  const totalOfferedCards = offeredItems.reduce((sum, item) => sum + (offered[item.id] ?? 0), 0);
+  const totalRequestedCards = requestedItems.reduce((sum, item) => sum + (requested[item.id] ?? 0), 0);
 
   return (
     <section
-      className="relative mb-5 hidden h-[286px] overflow-hidden rounded-[1.75rem] border border-[#C08A57]/45 bg-[#25130D] p-2 shadow-[0_24px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12)] lg:block"
+      className="relative mb-5 overflow-hidden rounded-[1.75rem] border border-[#C08A57]/45 bg-[#25130D] p-2 shadow-[0_24px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12)]"
       aria-label={t('trades.tableAria')}
     >
       <div className="pointer-events-none absolute inset-0 opacity-45 [background-image:repeating-linear-gradient(8deg,transparent_0,transparent_7px,rgba(255,255,255,.035)_8px,transparent_9px)]" aria-hidden />
-      <div className="relative h-full overflow-hidden rounded-[1.35rem] border border-emerald-100/15 bg-[radial-gradient(ellipse_at_center,rgba(39,121,107,.9)_0%,rgba(16,77,72,.96)_48%,rgba(7,45,45,1)_100%)] shadow-[inset_0_0_55px_rgba(0,0,0,.42)]">
+
+      {/* Main Felt Play Surface */}
+      <div className="relative overflow-hidden rounded-[1.35rem] border border-emerald-100/15 bg-[radial-gradient(ellipse_at_center,rgba(39,121,107,.9)_0%,rgba(16,77,72,.96)_48%,rgba(7,45,45,1)_100%)] shadow-[inset_0_0_55px_rgba(0,0,0,.42)]">
         <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.9)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.9)_1px,transparent_1px)] [background-size:24px_24px]" aria-hidden />
-        <div className="pointer-events-none absolute inset-x-8 top-5 flex items-start justify-between" aria-hidden>
+
+        {/* Header inside felt */}
+        <div className="pointer-events-none absolute inset-x-5 top-4 sm:inset-x-8 sm:top-5 flex items-start justify-between z-10" aria-hidden>
           <div>
             <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-white/85">
               <Sparkles className="h-3.5 w-3.5 text-orange-300" /> {t('trades.tableTitle')}
             </p>
-            <p className="mt-1 text-[10px] font-semibold text-white/40">{t('trades.tableHint')}</p>
+            <p className="mt-0.5 text-[10px] font-semibold text-white/40">{t('trades.tableHint')}</p>
           </div>
         </div>
 
-        <div className="absolute inset-y-14 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/18 to-transparent" aria-hidden />
-        <TradeBalanceIndicator
-          offeredCents={offeredValueCents}
-          requestedCents={requestedValueCents}
-          otherName={otherName}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        />
+        {/* Desktop Fanned Arena */}
+        <div className="relative hidden h-[260px] lg:block">
+          <div className="absolute inset-y-14 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/18 to-transparent" aria-hidden />
+          <TradeBalanceIndicator
+            offeredCents={offeredValueCents}
+            requestedCents={requestedValueCents}
+            otherName={otherName}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          />
 
-        <div className="grid h-full grid-cols-2">
-          <TradeTableSide items={offeredItems} selected={offered} label={t('trades.youOffer')} side="offered" valueCents={offeredValueCents} cashCents={offeredCashCents} />
-          <TradeTableSide items={requestedItems} selected={requested} label={t('trades.youReceive')} side="requested" valueCents={requestedValueCents} cashCents={requestedCashCents} />
+          <div className="grid h-full grid-cols-2">
+            <TradeTableSide items={offeredItems} selected={offered} label={t('trades.youOffer')} side="offered" valueCents={offeredValueCents} cashCents={offeredCashCents} />
+            <TradeTableSide items={requestedItems} selected={requested} label={t('trades.youReceive')} side="requested" valueCents={requestedValueCents} cashCents={requestedCashCents} />
+          </div>
+
+          {[[18, 18], [82, 18], [18, 82], [82, 82]].map(([left, top]) => (
+            <span
+              key={`${left}-${top}`}
+              className="pointer-events-none absolute h-2 w-2 rounded-full border border-white/15 bg-black/25 shadow-inner"
+              style={{ left: `${left}%`, top: `${top}%` }}
+              aria-hidden
+            />
+          ))}
         </div>
 
-        {[[18, 18], [82, 18], [18, 82], [82, 82]].map(([left, top]) => (
-          <span
-            key={`${left}-${top}`}
-            className="pointer-events-none absolute h-2 w-2 rounded-full border border-white/15 bg-black/25 shadow-inner"
-            style={{ left: `${left}%`, top: `${top}%` }}
-            aria-hidden
+        {/* Compact Mobile/Tablet Arena */}
+        <div className="relative flex flex-col items-center justify-center p-4 pt-12 pb-5 lg:hidden">
+          <TradeBalanceIndicator
+            offeredCents={offeredValueCents}
+            requestedCents={requestedValueCents}
+            otherName={otherName}
+            className="mb-3"
           />
-        ))}
+          <div className="flex w-full items-center justify-between gap-4 px-2 sm:px-6">
+            <div className="min-w-0 text-left">
+              <p className="text-[10px] font-black uppercase tracking-wider text-sky-100/75">{t('trades.youOffer')}</p>
+              <p className="mt-0.5 text-xs font-black text-white">
+                {t('trades.cardsCount', { count: totalOfferedCards })} · {formatEurCents(offeredValueCents, locale)}
+              </p>
+              {offeredCashCents > 0 && (
+                <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-300/30 bg-amber-400/20 px-2 py-0.5 text-[9px] font-black text-amber-200">
+                  <Coins className="h-2.5 w-2.5" /> +{formatEurCents(offeredCashCents, locale)}
+                </span>
+              )}
+            </div>
+
+            <span className="h-8 w-px bg-white/15" aria-hidden />
+
+            <div className="min-w-0 text-right">
+              <p className="text-[10px] font-black uppercase tracking-wider text-orange-100/80">{t('trades.youReceive')}</p>
+              <p className="mt-0.5 text-xs font-black text-white">
+                {t('trades.cardsCount', { count: totalRequestedCards })} · {formatEurCents(requestedValueCents, locale)}
+              </p>
+              {requestedCashCents > 0 && (
+                <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-300/30 bg-amber-400/20 px-2 py-0.5 text-[9px] font-black text-amber-200">
+                  <Coins className="h-2.5 w-2.5" /> +{formatEurCents(requestedCashCents, locale)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Fused Private Cash Controls Dock */}
+        <PrivateCashControls
+          side={cashSide}
+          amountCents={cashCents}
+          onSideChange={onCashSideChange}
+          onAmountChange={onCashAmountChange}
+          isFused={true}
+        />
       </div>
     </section>
   );
@@ -666,6 +962,7 @@ export function TradeProposalPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [step, setStep] = useState<ProposalStep>('cards');
   const [stepDirection, setStepDirection] = useState<StepDirection>('forward');
+  const [mobileTab, setMobileTab] = useState<'offered' | 'requested'>('offered');
   const stepPanelRef = useRef<HTMLDivElement>(null);
   const focusNextStepRef = useRef(false);
   const createTrade = useCreateTrade();
@@ -914,7 +1211,6 @@ export function TradeProposalPage() {
               <h1 className="mt-2 text-2xl font-black uppercase tracking-tight text-white sm:text-3xl">
                 {isCounter ? t('trades.counterTitle') : t('trades.proposeTitle')}
               </h1>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/65">{t('trades.proposalIntro')}</p>
             </div>
 
             <nav aria-label={t('trades.progressLabel')}>
@@ -988,41 +1284,84 @@ export function TradeProposalPage() {
                   offeredCashCents={offeredCashCents}
                   requestedCashCents={requestedCashCents}
                   otherName={ctx.seller.name}
+                  cashSide={privateCashSide}
+                  cashCents={privateCashCents}
+                  onCashSideChange={setPrivateCashSide}
+                  onCashAmountChange={setPrivateCashCents}
                 />
-                <TradeBalanceIndicator
-                  offeredCents={offeredValueCents}
-                  requestedCents={requestedValueCents}
-                  otherName={ctx.seller.name}
-                  className="mb-4 lg:hidden"
-                />
-                <PrivateCashControls
-                  side={privateCashSide}
-                  amountCents={privateCashCents}
-                  onSideChange={setPrivateCashSide}
-                  onAmountChange={setPrivateCashCents}
-                />
-                <div className="relative grid gap-4 sm:grid-cols-2">
-                  <ItemPicker title={t('trades.chooseOffered')} empty={t('trades.noTradableInventory')} items={myItems} selected={offered} onChange={setOffered} totalCount={myItems.length} />
+
+                {/* Mobile Tab Switcher */}
+                <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-black/25 p-1 md:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setMobileTab('offered')}
+                    className={cn(
+                      'flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-center text-xs font-black uppercase tracking-wide transition-colors',
+                      mobileTab === 'offered'
+                        ? 'bg-[#FF7300] text-white shadow-sm'
+                        : 'text-white/50 hover:bg-white/[0.06] hover:text-white',
+                    )}
+                  >
+                    <span>{t('trades.chooseOffered')}</span>
+                    {offeredCount > 0 && (
+                      <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[9px] font-black text-white">
+                        {offeredCount}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMobileTab('requested')}
+                    className={cn(
+                      'flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-center text-xs font-black uppercase tracking-wide transition-colors',
+                      mobileTab === 'requested'
+                        ? 'bg-[#FF7300] text-white shadow-sm'
+                        : 'text-white/50 hover:bg-white/[0.06] hover:text-white',
+                    )}
+                  >
+                    <span>{t('trades.chooseRequested')}</span>
+                    {requestedCount > 0 && (
+                      <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[9px] font-black text-white">
+                        {requestedCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* 2 Inventories Side by Side (on the exact same level) */}
+                <div className="relative grid gap-4 md:grid-cols-2 items-stretch">
+                  <div className={cn(mobileTab === 'offered' ? 'block' : 'hidden md:block', 'h-full')}>
+                    <ItemPicker
+                      title={t('trades.chooseOffered')}
+                      empty={t('trades.noTradableInventory')}
+                      items={myItems}
+                      selected={offered}
+                      onChange={setOffered}
+                      totalCount={myItems.length}
+                    />
+                  </div>
                   <span
                     className={cn(
-                      'scambi-flow-track pointer-events-none absolute left-1/2 top-1/2 z-10 hidden h-0.5 w-8 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 sm:block',
+                      'scambi-flow-track pointer-events-none absolute left-1/2 top-1/2 z-10 hidden h-0.5 w-8 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 md:block',
                       offeredCount > 0 && requestedCount > 0 ? 'opacity-100' : 'opacity-25',
                     )}
                     data-active={offeredCount > 0 && requestedCount > 0}
                     aria-hidden
                   />
-                  <ItemPicker
-                    title={t('trades.chooseRequested')}
-                    empty={t('trades.noRequestedInventory')}
-                    items={otherItems}
-                    selected={requested}
-                    locked={lockedRequested}
-                    onChange={setRequested}
-                    totalCount={isCounter ? otherItems.length : Math.max(publicTotal, otherItems.length)}
-                    hasMore={Boolean(publicCollection.hasNextPage)}
-                    loadingMore={publicCollection.isFetchingNextPage}
-                    onLoadMore={() => { void publicCollection.fetchNextPage(); }}
-                  />
+                  <div className={cn(mobileTab === 'requested' ? 'block' : 'hidden md:block', 'h-full')}>
+                    <ItemPicker
+                      title={t('trades.chooseRequested')}
+                      empty={t('trades.noRequestedInventory')}
+                      items={otherItems}
+                      selected={requested}
+                      locked={lockedRequested}
+                      onChange={setRequested}
+                      totalCount={isCounter ? otherItems.length : Math.max(publicTotal, otherItems.length)}
+                      hasMore={Boolean(publicCollection.hasNextPage)}
+                      loadingMore={publicCollection.isFetchingNextPage}
+                      onLoadMore={() => { void publicCollection.fetchNextPage(); }}
+                    />
+                  </div>
                 </div>
                 <div className="mt-5 flex justify-end">
                   <button

@@ -1,112 +1,142 @@
 'use client';
 
-import {
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  Link2,
-  Webhook,
-  Package,
-  Store,
-  XCircle,
-  Clock,
-  ArrowUpRight,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { cn } from '@/lib/utils';
 import type { SyncStatus } from '@/lib/api/sync-client';
 import type { MarketplaceSyncStatus, SyncMode } from '@/lib/api/marketplace-client';
 
-type CheckState = 'ok' | 'warn' | 'error' | 'loading' | 'idle';
+type RailState = 'off' | 'idle' | 'live' | 'syncing' | 'error' | 'loading';
 
-function StatusTile({
-  label,
-  value,
+const MODE_LABEL: Record<SyncMode, string> = {
+  demo: 'Demo',
+  partial: 'Parziale',
+  real: 'Reale',
+};
+
+const BRX_LABEL: Record<SyncStatus, string> = {
+  active: 'Collegato',
+  initial_sync: 'Import in corso',
+  idle: 'Pronto',
+  error: 'Errore',
+};
+
+function railState(args: {
+  loading: boolean;
+  isDisconnected: boolean;
+  brxStatus: SyncStatus | null;
+}): RailState {
+  if (args.loading) return 'loading';
+  if (args.isDisconnected) return 'off';
+  if (args.brxStatus === 'error') return 'error';
+  if (args.brxStatus === 'initial_sync') return 'syncing';
+  if (args.brxStatus === 'active') return 'live';
+  if (args.brxStatus === 'idle') return 'idle';
+  return 'off';
+}
+
+function SyncRail({
   state,
-  icon: Icon,
-  badgeText,
-  subtext,
+  progress,
 }: {
-  label: string;
-  value: string;
-  state: CheckState;
-  icon: React.ComponentType<{ className?: string }>;
-  badgeText?: string;
-  subtext?: string;
+  state: RailState;
+  progress: number;
 }) {
-  const containerBorder: Record<CheckState, string> = {
-    ok: 'border-emerald-200/90 bg-white hover:border-emerald-300 shadow-xs',
-    warn: 'border-amber-200/90 bg-white hover:border-amber-300 shadow-xs',
-    error: 'border-red-200/90 bg-white hover:border-red-300 shadow-xs',
-    loading: 'border-orange-200/90 bg-white hover:border-orange-300 shadow-xs',
-    idle: 'border-gray-200/90 bg-white hover:border-gray-300 shadow-xs',
-  };
+  const fill =
+    state === 'syncing'
+      ? Math.min(100, Math.max(0, progress))
+      : state === 'off' || state === 'loading'
+        ? 0
+        : 100;
 
-  const iconStyles: Record<CheckState, string> = {
-    ok: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100',
-    warn: 'bg-amber-50 text-amber-600 ring-1 ring-amber-100',
-    error: 'bg-red-50 text-red-600 ring-1 ring-red-100',
-    loading: 'bg-orange-50 text-[#FF7300] ring-1 ring-orange-100',
-    idle: 'bg-gray-50 text-gray-400 ring-1 ring-gray-100',
-  };
-
-  const badgePill: Record<CheckState, string> = {
-    ok: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
-    warn: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-    error: 'bg-red-50 text-red-700 ring-1 ring-red-200',
-    loading: 'bg-orange-50 text-[#FF7300] ring-1 ring-orange-200',
-    idle: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200',
-  };
+  const beadLeft =
+    state === 'syncing' ? `${fill}%` : state === 'off' || state === 'loading' ? '0%' : '50%';
 
   return (
-    <div
-      className={cn(
-        'group flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-md',
-        containerBorder[state]
-      )}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:scale-105', iconStyles[state])}>
-          <Icon className="h-5 w-5" aria-hidden />
-        </div>
-        <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider', badgePill[state])}>
-          {state === 'loading' ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : state === 'ok' ? (
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          ) : state === 'warn' ? (
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-          ) : state === 'error' ? (
-            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-          ) : (
-            <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+    <div className="relative flex items-center gap-3 sm:gap-5" aria-hidden>
+      <span
+        className={cn(
+          'h-2.5 w-2.5 shrink-0 rounded-full border',
+          state === 'off' || state === 'loading'
+            ? 'border-white/35 bg-transparent'
+            : state === 'error'
+              ? 'border-[#F5A8A2] bg-[#F5A8A2]'
+              : 'border-[#FF7300] bg-[#FF7300]',
+        )}
+      />
+
+      <div className="relative h-[2px] min-w-0 flex-1 overflow-hidden">
+        <div
+          className={cn(
+            'absolute inset-0',
+            state === 'off' || state === 'loading'
+              ? 'bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.28)_0_6px,transparent_6px_12px)]'
+              : 'bg-white/15',
           )}
-          {badgeText || (state === 'ok' ? 'Attivo' : state === 'warn' ? 'In attesa' : state === 'error' ? 'Errore' : state === 'loading' ? 'Sync' : 'Inattivo')}
-        </span>
+        />
+        <div
+          className={cn(
+            'absolute inset-y-0 left-0 transition-[width] duration-700 ease-out',
+            state === 'error' ? 'bg-[#F5A8A2]' : 'bg-[#FF7300]',
+          )}
+          style={{ width: `${fill}%` }}
+        />
+        {state === 'live' && (
+          <span className="sync-rail-current absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-transparent via-white/70 to-transparent" />
+        )}
       </div>
 
-      <div className="mt-4">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">{label}</p>
-        <p className="mt-1 text-base font-extrabold tracking-tight text-[#1D3160] sm:text-lg">{value}</p>
-        {subtext && <p className="mt-0.5 text-xs text-gray-500">{subtext}</p>}
-      </div>
+      <span
+        className={cn(
+          'absolute left-1/2 top-1/2 hidden h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full sm:block',
+          state === 'syncing' && 'sm:hidden',
+        )}
+      />
+
+      {(state === 'live' || state === 'syncing' || state === 'idle' || state === 'error') && (
+        <span
+          className={cn(
+            'pointer-events-none absolute top-1/2 z-10 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[left] duration-700 ease-out',
+            state === 'error' ? 'bg-[#F5A8A2]' : 'bg-white',
+            state === 'live' && 'sync-rail-bead',
+          )}
+          style={{ left: `calc(${beadLeft} * 0.92 + 4%)` }}
+        />
+      )}
+
+      <span
+        className={cn(
+          'h-2.5 w-2.5 shrink-0 rounded-full border',
+          state === 'off' || state === 'loading'
+            ? 'border-white/35 bg-transparent'
+            : state === 'error'
+              ? 'border-[#F5A8A2] bg-[#F5A8A2]'
+              : state === 'syncing'
+                ? 'border-white/50 bg-white/20'
+                : 'border-[#FF7300] bg-[#FF7300]',
+        )}
+      />
     </div>
   );
 }
 
-const SYNC_MODE_LABELS: Record<SyncMode, string> = {
-  demo: 'DEMO',
-  partial: 'PARZIALE',
-  real: 'REALE',
-};
-
-const BRX_STATUS_LABELS: Record<SyncStatus, string> = {
-  active: 'Connesso & Sincronizzato',
-  initial_sync: 'Importazione attiva',
-  idle: 'Pronto per la sincronizzazione',
-  error: 'Errore di connessione',
-};
+function Metric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/45">{label}</p>
+      <p className="mt-1 truncate font-display text-base tracking-wide text-white sm:text-lg">{value}</p>
+      {hint ? <p className="mt-0.5 truncate text-xs text-white/45">{hint}</p> : null}
+    </div>
+  );
+}
 
 export function SyncStatusOverview({
   loading,
@@ -117,6 +147,10 @@ export function SyncStatusOverview({
   marketplaceLoading,
   lastSyncAt,
   lastError,
+  progressPercent,
+  progressProcessed,
+  progressTotal,
+  etaLabel,
 }: {
   loading: boolean;
   brxStatus: SyncStatus | null;
@@ -126,125 +160,184 @@ export function SyncStatusOverview({
   marketplaceLoading: boolean;
   lastSyncAt: string | null;
   lastError: string | null;
+  progressPercent?: number | null;
+  progressProcessed?: number | null;
+  progressTotal?: number | null;
+  etaLabel?: string | null;
 }) {
   const intlLocale = useIntlLocale();
   const { t } = useTranslation();
+  const state = railState({ loading, isDisconnected, brxStatus });
+  const percent = progressPercent ?? 0;
 
-  const cardtraderState: CheckState = loading
-    ? 'loading'
-    : isDisconnected
-      ? 'idle'
-      : brxStatus === 'error'
-        ? 'error'
-        : brxStatus === 'initial_sync'
-          ? 'loading'
-          : brxStatus
-            ? 'ok'
-            : 'warn';
+  const leftCaption = isDisconnected
+    ? 'Non collegato'
+    : brxStatus
+      ? BRX_LABEL[brxStatus]
+      : '—';
 
-  const webhookState: CheckState = loading
-    ? 'loading'
-    : isDisconnected
-      ? 'idle'
-      : webhookConfigured
-        ? 'ok'
-        : 'warn';
-
-  const importState: CheckState = loading
-    ? 'loading'
-    : brxStatus === 'initial_sync'
-      ? 'loading'
+  const rightCaption =
+    brxStatus === 'initial_sync'
+      ? 'Riceve il catalogo'
       : brxStatus === 'active'
-        ? 'ok'
+        ? 'Sincronizzato'
         : isDisconnected
-          ? 'idle'
-          : 'warn';
+          ? 'In attesa'
+          : 'Pronto';
 
-  const marketplaceState: CheckState = marketplaceLoading
-    ? 'loading'
+  const centerCaption =
+    state === 'syncing'
+      ? `${Math.round(percent)}%`
+      : state === 'live'
+        ? 'In linea'
+        : state === 'error'
+          ? 'Interrotto'
+          : state === 'loading'
+            ? 'Lettura stato'
+            : 'Spento';
+
+  const listingValue = marketplaceLoading
+    ? '…'
     : marketplaceStatus
-      ? 'ok'
-      : 'warn';
+      ? `${marketplaceStatus.synced_listings} / ${marketplaceStatus.total_listings}`
+      : '—';
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatusTile
-          label="CardTrader API"
-          icon={Link2}
-          state={cardtraderState}
-          value={
-            isDisconnected
-              ? 'Non collegato'
-              : brxStatus
-                ? BRX_STATUS_LABELS[brxStatus]
-                : '—'
-          }
-          subtext={isDisconnected ? 'Inserisci la tua chiave API' : 'Crittografia AES-256 attiva'}
-        />
-        <StatusTile
-          label="Webhook Ricezione"
-          icon={Webhook}
-          state={webhookState}
-          value={webhookConfigured ? 'In ascolto 24/7' : isDisconnected ? 'Non configurato' : 'In attesa salvataggio'}
-          subtext={webhookConfigured ? 'Notifiche vendite in tempo reale' : 'Endpoint automatico'}
-        />
-        <StatusTile
-          label="Inventario Magic"
-          icon={Package}
-          state={importState}
-          value={
-            brxStatus === 'initial_sync'
-              ? 'Sincronizzazione…'
-              : brxStatus === 'active'
-                ? 'Sincronizzato'
-                : isDisconnected
-                  ? 'Nessun articolo'
-                  : 'Pronto per import'
-          }
-          subtext="Catalogo sincronizzato con Ebartex"
-        />
-        <StatusTile
-          label="Modalità Ebartex"
-          icon={Store}
-          state={marketplaceState}
-          value={
-            marketplaceStatus
-              ? `Modalità ${SYNC_MODE_LABELS[marketplaceStatus.sync_mode]}`
-              : '—'
-          }
-          subtext={
-            marketplaceStatus
-              ? `${marketplaceStatus.synced_listings} di ${marketplaceStatus.total_listings} listing sincronizzati`
-              : 'Stato marketplace'
-          }
-        />
-      </div>
+    <section className="relative overflow-hidden bg-[#1D3160] text-white">
+      <style>{`
+        @keyframes sync-rail-current {
+          0% { transform: translateX(-120%); }
+          100% { transform: translateX(520%); }
+        }
+        @keyframes sync-rail-bead {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255, 115, 0, 0.55); }
+          50% { box-shadow: 0 0 0 8px rgba(255, 115, 0, 0); }
+        }
+        .sync-rail-current { animation: sync-rail-current 2.8s linear infinite; }
+        .sync-rail-bead { animation: sync-rail-bead 1.8s ease-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .sync-rail-current, .sync-rail-bead { animation: none; }
+        }
+      `}</style>
 
-      {(lastSyncAt || lastError) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200/80 bg-white px-4 py-3 text-xs text-gray-600 shadow-2xs">
-          {lastSyncAt && (
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-[#FF7300]" aria-hidden />
-              <span>
-                Ultima sincronizzazione completata:{' '}
-                <strong className="font-semibold text-[#1D3160]">
-                  {new Date(lastSyncAt).toLocaleString(intlLocale)}
-                </strong>
-              </span>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      />
+
+      <div className="relative px-5 py-7 sm:px-8 sm:py-9">
+        <div className="flex items-end justify-between gap-6">
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#FF7300]">
+              CardTrader · Ebartex
+            </p>
+            <h1 className="mt-2 font-display text-[1.65rem] uppercase leading-none tracking-[0.06em] sm:text-4xl">
+              {t('accountPage.syncTitle')}
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/60">
+              {t('accountPage.syncSubtitle')}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-10 sm:mt-14">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 sm:gap-4">
+            <div>
+              <p className="font-display text-sm uppercase tracking-[0.16em] sm:text-base">CardTrader</p>
+              <p className="mt-1 text-xs text-white/50">{leftCaption}</p>
             </div>
-          )}
-          {lastError && (
-            <div className="flex items-center gap-2 text-red-700">
-              <AlertCircle className="h-4 w-4 text-red-600 shrink-0" aria-hidden />
-              <span>
-                {t('accountPage.syncErrorTitle')}:{' '}
-                <strong className="font-semibold">{t('accountPage.syncLastErrorSafe')}</strong>
-              </span>
+            <p className="pb-4 text-center font-display text-xs uppercase tracking-[0.2em] text-[#FF7300] sm:text-sm">
+              {centerCaption}
+            </p>
+            <div className="text-right">
+              <p className="font-display text-sm uppercase tracking-[0.16em] sm:text-base">Ebartex</p>
+              <p className="mt-1 text-xs text-white/50">{rightCaption}</p>
             </div>
+          </div>
+
+          <div className="mt-4">
+            <SyncRail state={state} progress={percent} />
+          </div>
+
+          {state === 'syncing' && (
+            <p className="mt-4 text-center text-xs text-white/55">
+              {t('accountPage.syncProgressLine', {
+                pct: Math.round(percent),
+                processed: progressProcessed ?? 0,
+                totalPart:
+                  progressTotal != null
+                    ? t('accountPage.syncTotalPart', { total: progressTotal })
+                    : '',
+              })}
+              {etaLabel ? ` · ${etaLabel}` : ''}
+            </p>
           )}
         </div>
-      )}
-    </div>
+
+        <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-6 border-t border-white/10 pt-6 sm:grid-cols-4">
+          <Metric
+            label="API"
+            value={
+              loading ? '…' : isDisconnected ? 'Non collegata' : brxStatus ? BRX_LABEL[brxStatus] : '—'
+            }
+            hint={isDisconnected ? 'Inserisci il token' : 'AES-256'}
+          />
+          <Metric
+            label="Webhook"
+            value={
+              loading ? '…' : webhookConfigured ? 'In ascolto' : isDisconnected ? 'Spento' : 'Da attivare'
+            }
+            hint={webhookConfigured ? 'Vendite in tempo reale' : 'Endpoint personale'}
+          />
+          <Metric
+            label="Inventario"
+            value={listingValue}
+            hint="Listing sincronizzati"
+          />
+          <Metric
+            label="Modalità"
+            value={
+              marketplaceLoading
+                ? '…'
+                : marketplaceStatus
+                  ? MODE_LABEL[marketplaceStatus.sync_mode]
+                  : '—'
+            }
+            hint={
+              marketplaceStatus
+                ? marketplaceStatus.writes_enabled
+                  ? 'Scritture attive'
+                  : 'Sola lettura'
+                : 'Marketplace'
+            }
+          />
+        </dl>
+
+        {(lastSyncAt || lastError) && (
+          <div className="mt-6 flex flex-col gap-1 border-t border-white/10 pt-4 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
+            {lastSyncAt ? (
+              <p>
+                Ultimo import{' '}
+                <time className="text-white" dateTime={lastSyncAt}>
+                  {new Date(lastSyncAt).toLocaleString(intlLocale)}
+                </time>
+              </p>
+            ) : (
+              <span />
+            )}
+            {lastError ? (
+              <p className="text-[#F5A8A2]">
+                {t('accountPage.syncErrorTitle')}: {t('accountPage.syncLastErrorSafe')}
+              </p>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

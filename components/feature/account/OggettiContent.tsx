@@ -417,10 +417,14 @@ export function OggettiContent() {
         <div className="border border-gray-200 bg-white p-10 shadow-sm">
           <p className="text-center text-gray-600">
             {t('accountPage.itemsEmptyLine1')}
-            <Link href="/account/sincronizzazione" className="font-medium text-primary hover:underline">
-              {t('breadcrumb.sincronizzazione')}
+            <Link href="/vendi" className="font-medium text-primary hover:underline">
+              {t('accountPage.itemsEmptySellLink')}
             </Link>
             {t('accountPage.itemsEmptyLine2')}
+            <Link href="/account/sincronizzazione" className="font-medium text-primary hover:underline">
+              {t('accountPage.itemsEmptySyncLink')}
+            </Link>
+            {t('accountPage.itemsEmptyLine3')}
           </p>
         </div>
       ) : filteredInventoryItems.length === 0 ? (
