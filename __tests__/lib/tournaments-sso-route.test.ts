@@ -159,10 +159,10 @@ describe('GET /api/auth/sso/authorize', () => {
     expect(new URL(duplicateResponse.headers.get('location')!).searchParams.get('error'))
       .toBe('invalid_request');
 
-    const crossSite = await GET(authorizeRequest({}, true, {
-      'Sec-Fetch-Site': 'cross-site',
+    const nonNavigate = await GET(authorizeRequest({}, true, {
+      'Sec-Fetch-Mode': 'cors',
     }));
-    expect(new URL(crossSite.headers.get('location')!).searchParams.get('error'))
+    expect(new URL(nonNavigate.headers.get('location')!).searchParams.get('error'))
       .toBe('invalid_request');
     expect(fetchMock).not.toHaveBeenCalled();
   });

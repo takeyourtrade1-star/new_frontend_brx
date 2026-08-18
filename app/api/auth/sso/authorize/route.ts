@@ -73,10 +73,8 @@ function parseAuthorizeQuery(request: NextRequest): AuthorizeQuery | null {
 }
 
 function isTopLevelNavigation(request: NextRequest): boolean {
-  const site = request.headers.get('sec-fetch-site')?.toLowerCase();
   const mode = request.headers.get('sec-fetch-mode')?.toLowerCase();
   const destination = request.headers.get('sec-fetch-dest')?.toLowerCase();
-  if (site === 'cross-site') return false;
   if (mode && mode !== 'navigate') return false;
   return !destination || destination === 'document';
 }
