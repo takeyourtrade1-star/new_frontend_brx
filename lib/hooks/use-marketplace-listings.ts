@@ -3,13 +3,27 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { syncClient, type ListingItem } from '@/lib/api/sync-client';
 import { getPublicListingsByBlueprint } from '@/lib/api/marketplace-client';
 import { fetchPublicUserProfiles } from '@/lib/api/user-names-cache';
-import { prefetchListingCoverPhotos } from '@/lib/api/listing-photo-client';
+import {
+  fetchListingCoverPhotos,
+  type ListingCoverPhotoMap,
+} from '@/lib/api/listing-photo-client';
 import { mapPublicListingToListingItem } from '@/lib/marketplace/listing-map';
 import { productDetailKeys } from '@/lib/product-detail/product-detail-keys';
 import {
   MARKETPLACE_LISTINGS_TIMEOUT_MS,
   withTimeout,
 } from '@/lib/product-detail/with-timeout';
+
+const EMPTY_LISTING_COVER_PHOTOS: ListingCoverPhotoMap = {};
+const LISTING_COVER_STALE_TIME_MS = 5 * 60 * 1000;
+
+function retryTransientListingPhotoError(failureCount: number, error: Error): boolean {
+  const status = 'status' in error
+    ? (error as Error & { status?: number }).status
+    : undefined;
+
+  return failureCount < 1 && (status == null || status >= 500);
+}
 
 async function fetchRawListings(
   blueprintId: number,
@@ -52,16 +66,7 @@ async function fetchRawListings(
     throw syncResult.reason;
   }
 
-  const rawListings = [...syncListings, ...marketplaceListings];
-
-  const marketplaceIds = marketplaceListings
-    .map((l) => l.marketplace_listing_id)
-    .filter((id): id is string => Boolean(id));
-  if (marketplaceIds.length > 0) {
-    void prefetchListingCoverPhotos(marketplaceIds);
-  }
-
-  return rawListings;
+  return [...syncListings, ...marketplaceListings];
 }
 
 function mergeListingsWithProfiles(
@@ -95,12 +100,32 @@ export function useMarketplaceListings(blueprintId: number | null, cardId: strin
     () => [...new Set(rawListings.map((l) => l.seller_id).filter(Boolean))].sort(),
     [rawListings]
   );
+  const marketplaceListingIds = useMemo(
+    () => [
+      ...new Set(
+        rawListings
+          .filter((listing) => listing.listing_source === 'marketplace')
+          .map((listing) => listing.marketplace_listing_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ].sort(),
+    [rawListings],
+  );
 
   const profilesQuery = useQuery({
     queryKey: productDetailKeys.sellerProfiles(sellerIds),
     queryFn: () => fetchPublicUserProfiles(sellerIds),
     enabled: sellerIds.length > 0,
     staleTime: 60_000,
+  });
+
+  const listingCoverPhotosQuery = useQuery({
+    queryKey: productDetailKeys.listingCoverPhotos(marketplaceListingIds),
+    queryFn: () => fetchListingCoverPhotos(marketplaceListingIds),
+    enabled: marketplaceListingIds.length > 0,
+    staleTime: LISTING_COVER_STALE_TIME_MS,
+    retry: retryTransientListingPhotoError,
+    placeholderData: (previousData) => previousData,
   });
 
   const listings = useMemo(() => {
@@ -150,6 +175,7 @@ export function useMarketplaceListings(blueprintId: number | null, cardId: strin
     listings,
     listingsLoading: rawQuery.isLoading,
     listingsError: rawQuery.error instanceof Error ? rawQuery.error.message : rawQuery.error ? String(rawQuery.error) : null,
+    listingCoverPhotos: listingCoverPhotosQuery.data ?? EMPTY_LISTING_COVER_PHOTOS,
     refetchListings,
     pollSyncTaskThenRefresh,
   };
