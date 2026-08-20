@@ -1,18 +1,37 @@
 'use client';
 
-import { Store, User } from 'lucide-react';
+import { Store, User, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CartSellerAccountType } from '@/types';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 type CartSellerBadgeProps = {
   accountType: CartSellerAccountType | null;
+  isBrxExpress?: boolean;
   className?: string;
 };
 
-export function CartSellerBadge({ accountType, className }: CartSellerBadgeProps) {
+export function CartSellerBadge({
+  accountType,
+  isBrxExpress = false,
+  className,
+}: CartSellerBadgeProps) {
   const { t } = useTranslation();
   const isBusiness = accountType === 'business';
+
+  if (isBrxExpress) {
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center gap-1 rounded-full bg-orange-500/12 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-orange-800 ring-1 ring-orange-500/25',
+          className,
+        )}
+      >
+        <Zap className="h-3 w-3 fill-orange-200" aria-hidden />
+        {t('cart.managedByEbartex')}
+      </span>
+    );
+  }
 
   return (
     <span

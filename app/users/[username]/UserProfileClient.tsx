@@ -33,13 +33,13 @@ function AccountTypeBadge({ type }: { type: 'personal' | 'business' }) {
   const { t } = useTranslation();
   if (type === 'business') {
     return (
-      <span className="inline-flex items-center rounded-full border border-[#ff7300]/20 bg-[#ff7300]/10 px-2.5 py-0.5 text-xs font-semibold text-[#ff7300] backdrop-blur-sm">
+      <span className="inline-flex items-center rounded-full border border-[#ff7300]/20 bg-[#ff7300]/10 px-2.5 py-0.5 text-xs font-semibold text-[#ff7300]">
         {t('userProfile.business')}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-white/60 px-2.5 py-0.5 text-xs font-semibold text-slate-600 backdrop-blur-sm">
+    <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-white px-2.5 py-0.5 text-xs font-semibold text-slate-600">
       {t('userProfile.personal')}
     </span>
   );
@@ -57,7 +57,7 @@ function formatMemberSince(memberSince: string, locale: string): string {
 function HeroSkeleton() {
   return (
     <div className="animate-pulse space-y-8">
-      <div className="rounded-[2rem] border border-white/60 bg-white/50 p-8 backdrop-blur-xl">
+      <div className="rounded-[2rem] border border-slate-200/80 bg-white p-8 shadow-sm">
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
           <div className="h-28 w-28 shrink-0 rounded-full bg-slate-200/80" />
           <div className="w-full flex-1 space-y-4">
@@ -152,20 +152,20 @@ function ProfileHero({
   ].filter(Boolean) as { label: string; value: string }[];
 
   return (
-    <div className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/60 shadow-[0_20px_60px_rgba(15,23,42,0.07)] backdrop-blur-2xl">
+    <div className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.07)]">
       <div
-        className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#ff7300]/8 blur-3xl"
+        className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-gradient-to-br from-[#ff7300]/10 to-transparent"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-[#3D65C6]/8 blur-3xl"
+        className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-gradient-to-tr from-[#3D65C6]/10 to-transparent"
         aria-hidden
       />
 
       <div className="relative flex flex-col gap-8 p-6 sm:p-8 lg:flex-row lg:items-start">
         <div className="flex shrink-0 justify-center lg:justify-start">
           <div className="relative">
-            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[#ff7300]/30 via-transparent to-[#3D65C6]/20 blur-sm" />
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[#ff7300]/30 via-transparent to-[#3D65C6]/20" />
             <UserAvatar
               username={profile.username}
               avatar_url={profile.avatar_url}
@@ -182,7 +182,7 @@ function ProfileHero({
             </h1>
             <AccountTypeBadge type={profile.account_type} />
             {profile.is_verified_seller && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-blue-200/80 bg-blue-50/90 px-2.5 py-0.5 text-xs font-semibold text-blue-700 backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1 rounded-full border border-blue-200/80 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
                 <CheckCircle className="h-3 w-3" />
                 {t('userProfile.verified')}
               </span>
@@ -222,7 +222,7 @@ function ProfileHero({
               {stats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="min-w-[5.5rem] rounded-2xl border border-white/80 bg-white/50 px-4 py-3 text-center shadow-sm backdrop-blur-md"
+                  className="min-w-[5.5rem] rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-center shadow-sm"
                 >
                   <p className="text-lg font-black tabular-nums text-slate-900">{stat.value}</p>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
@@ -320,13 +320,7 @@ export function UserProfileClient({ username }: UserProfileClientProps) {
         <Header />
       </Suspense>
 
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-[8%] left-[15%] h-[520px] w-[520px] rounded-full bg-[#ff7300]/6 blur-[120px]" />
-        <div className="absolute right-[5%] top-[25%] h-[420px] w-[420px] rounded-full bg-[#3D65C6]/6 blur-[100px]" />
-        <div className="absolute bottom-[10%] left-[40%] h-[300px] w-[300px] rounded-full bg-[#ff7300]/4 blur-[90px]" />
-      </div>
-
-      <div className="relative z-10">
+      <div className="relative">
         <div className="container-content pb-28 pt-8 lg:pb-36 lg:pt-12">
           <div className="mb-6">
             <Link

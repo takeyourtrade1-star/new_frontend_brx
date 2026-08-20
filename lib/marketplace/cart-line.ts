@@ -1,6 +1,7 @@
 import type { ListingItem } from '@/lib/api/sync-client';
 import type { CartSellerAccountType, MarketplaceCartLine } from '@/types';
 import { isMarketplaceListingItem } from '@/lib/marketplace/listing-map';
+import { isBrxExpressListing } from '@/lib/marketplace/brx-express';
 
 function resolveSellerAccountType(
   raw: string | null | undefined,
@@ -22,6 +23,7 @@ export function buildMarketplaceCartLine(
   return {
     lineId: `marketplace-${listingId}`,
     source: 'marketplace',
+    isBrxExpress: isBrxExpressListing(item),
     listingId,
     sellerId: item.seller_id,
     sellerDisplayName: item.seller_display_name,
@@ -57,6 +59,7 @@ export function buildSyncCartLine(
   return {
     lineId: `sync-${item.seller_id}-${item.item_id}`,
     source: 'sync',
+    isBrxExpress: isBrxExpressListing(item),
     listingId: item.item_id,
     sellerId: item.seller_id,
     sellerDisplayName: item.seller_display_name,

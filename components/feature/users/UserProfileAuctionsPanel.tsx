@@ -50,7 +50,7 @@ export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctio
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/60 bg-white/50 px-6 py-16 backdrop-blur-xl">
+      <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200/80 bg-white px-6 py-16 shadow-sm">
         <Loader2 className="h-8 w-8 animate-spin text-[#ff7300]" />
         <p className="text-sm font-medium text-slate-500">Caricamento aste…</p>
       </div>
@@ -59,7 +59,7 @@ export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctio
 
   if (isError) {
     return (
-      <div className="rounded-3xl border border-red-100/80 bg-red-50/60 px-6 py-12 text-center backdrop-blur-xl">
+      <div className="rounded-3xl border border-red-100/80 bg-red-50/90 px-6 py-12 text-center shadow-sm">
         <p className="mb-4 text-sm text-red-700">Impossibile caricare le aste.</p>
         <button
           type="button"
@@ -74,7 +74,7 @@ export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctio
 
   if (auctions.length === 0) {
     return (
-      <div className="flex min-h-[280px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/80 bg-white/40 px-8 py-16 text-center backdrop-blur-xl">
+      <div className="flex min-h-[280px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/80 bg-white px-8 py-16 text-center shadow-sm">
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100/80">
           <AuctionGavelIcon className="h-7 w-7 text-slate-400" />
         </div>
@@ -88,7 +88,7 @@ export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctio
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/50 px-4 py-3 backdrop-blur-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
         <p className="flex items-center gap-2 text-sm font-medium text-slate-600">
           <AuctionGavelIcon className="h-4 w-4 text-[#ff7300]" />
           <span>
@@ -103,7 +103,7 @@ export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctio
         />
       </div>
 
-      <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/55 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+      <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_8px_32px_rgba(15,23,42,0.06)]">
         {viewMode === 'grid' ? (
           <AuctionResultsGrid auctions={auctions} t={t} />
         ) : (

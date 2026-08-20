@@ -16,8 +16,6 @@ export const productDetailKeys = {
     [...productDetailKeys.all, 'listings', blueprintId] as const,
   sellerProfiles: (sellerIds: string[]) =>
     [...productDetailKeys.all, 'seller-profiles', ...sellerIds] as const,
-  listingCoverPhotos: (listingIds: string[]) =>
-    [...productDetailKeys.all, 'listing-cover-photos', ...listingIds] as const,
   auctionInventory: (userId: string, blueprintId: number) =>
     [...productDetailKeys.all, 'auction-inventory', userId, blueprintId] as const,
   enrichedAuctions: (auctionIds: string[]) =>

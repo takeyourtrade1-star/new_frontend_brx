@@ -29,6 +29,8 @@ export type CartSellerAccountType = 'personal' | 'business';
 export interface MarketplaceCartLine {
   lineId: string;
   source: 'sync' | 'marketplace';
+  /** La carta viene spedita dal fulfillment centralizzato BRX Express. */
+  isBrxExpress?: boolean;
   listingId: string | number;
   sellerId: string;
   /** Display name captured at add-to-cart time; enriched on cart page if missing. */

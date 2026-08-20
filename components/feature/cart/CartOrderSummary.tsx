@@ -6,7 +6,10 @@ import { ArrowLeft, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatEuroNoSpace } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import type { CartSellerGroup } from '@/lib/marketplace/cart-groups';
+import {
+  getCartSellerCount,
+  type CartSellerGroup,
+} from '@/lib/marketplace/cart-groups';
 
 type CheckoutLineError = { lineId: string; title: string; message: string };
 
@@ -36,12 +39,18 @@ export function CartOrderSummary({
   checkoutAnchorRef,
 }: CartOrderSummaryProps) {
   const { t } = useTranslation();
-  const sellerCount = groups.length;
+  const sellerCount = getCartSellerCount(groups);
+  const hasBrxExpress = groups.some((group) => group.kind === 'brx-express');
 
-  const sellersLabel =
-    sellerCount === 1
+  const sellersLabel = sellerCount > 0
+    ? sellerCount === 1
       ? t('cart.sellersOne')
-      : t('cart.sellers', { count: sellerCount });
+      : t('cart.sellers', { count: sellerCount })
+    : '';
+  const fulfillmentLabel = [
+    sellersLabel,
+    hasBrxExpress ? t('cart.brxExpress') : '',
+  ].filter(Boolean).join(' + ');
 
   const itemsLabel =
     itemCount === 1
@@ -61,7 +70,7 @@ export function CartOrderSummary({
         <div className="space-y-3 px-5 py-4 sm:px-6">
           {groups.map((group) => (
             <div
-              key={group.sellerId}
+              key={group.id}
               className="flex items-start justify-between gap-3 text-sm"
             >
               <span className="min-w-0 truncate text-neutral-600">
@@ -74,7 +83,7 @@ export function CartOrderSummary({
           ))}
 
           <div className="flex items-center justify-between border-t border-dashed border-black/10 pt-3 text-xs text-neutral-500">
-            <span>{sellersLabel}</span>
+            <span>{fulfillmentLabel}</span>
             <span className="inline-flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
               {t('cart.secureCheckout')}

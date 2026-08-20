@@ -15,11 +15,6 @@ vi.mock('@/lib/i18n/useIntlLocale', () => ({
 vi.mock('@/components/feature/product/MarketplaceReportModal', () => ({
   MarketplaceReportModal: () => null,
 }));
-vi.mock('@/components/ui/CardImageCameraPeek', () => ({
-  CardImageCameraPeek: ({ imageUrl }: { imageUrl: string | null }) => (
-    <span data-testid="seller-image-url">{imageUrl}</span>
-  ),
-}));
 
 const listing: ListingItem = {
   item_id: 1,
@@ -54,43 +49,6 @@ describe('ModernSellerTable', () => {
     );
 
     expect(screen.getAllByText('Venditore rapido').length).toBeGreaterThan(0);
-    expect(screen.queryByText('productDetail.marketplace.loading')).not.toBeInTheDocument();
-  });
-
-  it('mostra il fallback subito e lo sostituisce con la cover senza bloccare la riga', () => {
-    const marketplaceItem: ListingItem = {
-      ...listing,
-      listing_source: 'marketplace',
-      marketplace_listing_id: 'listing-photo-1',
-    };
-    const marketplaceRows: MarketplaceRow[] = [
-      { kind: 'listing', id: 'listing-photo-1', listing: marketplaceItem },
-    ];
-    const fallbackUrl = 'https://cdn.ebartex.com/catalog-card.jpg';
-    const coverUrl = 'https://cdn.ebartex.com/seller-cover.jpg';
-
-    const { rerender } = render(
-      <ModernSellerTable
-        rows={marketplaceRows}
-        cardImageSrc={fallbackUrl}
-        listingCoverPhotos={{}}
-      />
-    );
-
-    expect(screen.getAllByText('Venditore rapido').length).toBeGreaterThan(0);
-    expect(screen.getAllByTestId('seller-image-url').every((node) => node.textContent === fallbackUrl)).toBe(true);
-
-    rerender(
-      <ModernSellerTable
-        rows={marketplaceRows}
-        cardImageSrc={fallbackUrl}
-        listingCoverPhotos={{
-          'listing-photo-1': { id: 7, cdn_url: coverUrl, position: 0 },
-        }}
-      />
-    );
-
-    expect(screen.getAllByTestId('seller-image-url').every((node) => node.textContent === coverUrl)).toBe(true);
     expect(screen.queryByText('productDetail.marketplace.loading')).not.toBeInTheDocument();
   });
 });

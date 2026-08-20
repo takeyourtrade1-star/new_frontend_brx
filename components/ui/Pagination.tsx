@@ -12,7 +12,7 @@ type PaginationProps = {
   totalPages: number;
   buildPageHref?: (page: number) => string;
   onPageChange?: (page: number) => void;
-  variant?: 'card-footer' | 'compact';
+  variant?: 'card-footer' | 'compact' | 'standard';
   className?: string;
 };
 
@@ -136,6 +136,89 @@ export function Pagination({
     </ul>
   );
 
+  const standardItems = totalPages <= 7
+    ? Array.from({ length: totalPages }, (_, index) => index + 1)
+    : Array.from({ length: 7 }, (_, index) => {
+        if (currentPage <= 4) return index + 1;
+        if (currentPage >= totalPages - 3) return totalPages - 6 + index;
+        return currentPage - 3 + index;
+      });
+
+  const standardArrowClassName =
+    'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-95 disabled:pointer-events-none disabled:opacity-40 md:h-9 md:w-9 md:rounded-lg';
+  const standardPageClassName =
+    'inline-flex h-11 min-w-11 items-center justify-center rounded-xl px-2 text-sm font-medium tabular-nums transition-all md:h-9 md:min-w-9 md:rounded-lg';
+
+  const renderStandardArrow = (dir: 'prev' | 'next') => {
+    const disabled = dir === 'prev' ? isPrevDisabled : isNextDisabled;
+    const page = dir === 'prev' ? prevPage : nextPage;
+    const label = dir === 'prev' ? prevLabel : nextLabel;
+    const Icon = dir === 'prev' ? ChevronLeft : ChevronRight;
+
+    if (buildPageHref && !onPageChange && !disabled) {
+      return (
+        <Link href={buildPageHref(page)} className={standardArrowClassName} aria-label={label}>
+          <Icon className="h-4 w-4" />
+        </Link>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => goTo(page)}
+        className={standardArrowClassName}
+        aria-label={label}
+      >
+        <Icon className="h-4 w-4" />
+      </button>
+    );
+  };
+
+  const renderStandardNumbers = () => (
+    <ul className="flex items-center gap-1 px-1" aria-label={pageText}>
+      {standardItems.map((page) => (
+        <li key={page}>
+          {page === currentPage ? (
+            <span
+              aria-current="page"
+              className={cn(
+                standardPageClassName,
+                'bg-primary text-white shadow-sm shadow-primary/20',
+              )}
+            >
+              {page}
+            </span>
+          ) : buildPageHref && !onPageChange ? (
+            <Link
+              href={buildPageHref(page)}
+              className={cn(
+                standardPageClassName,
+                'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+              )}
+              aria-label={t('search.pageOf', { current: page, total: totalPages })}
+            >
+              {page}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => goTo(page)}
+              className={cn(
+                standardPageClassName,
+                'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+              )}
+              aria-label={t('search.pageOf', { current: page, total: totalPages })}
+            >
+              {page}
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+
   const pill = (span: number, withGoto: boolean) => (
     <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-gray-200/80 bg-white p-1 shadow-[0_2px_12px_rgba(29,49,96,0.07)]">
       {renderArrow('prev')}
@@ -174,6 +257,25 @@ export function Pagination({
     return (
       <nav className={cn('flex items-center', className)} aria-label={pageText}>
         {pill(1, false)}
+      </nav>
+    );
+  }
+
+  if (variant === 'standard') {
+    return (
+      <nav
+        className={cn(
+          'flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)] md:flex-row md:items-center md:justify-between',
+          className,
+        )}
+        aria-label={pageText}
+      >
+        <span className="text-sm text-gray-500">{pageText}</span>
+        <div className="flex max-w-full items-center justify-center overflow-x-auto md:justify-end">
+          {renderStandardArrow('prev')}
+          {renderStandardNumbers()}
+          {renderStandardArrow('next')}
+        </div>
       </nav>
     );
   }

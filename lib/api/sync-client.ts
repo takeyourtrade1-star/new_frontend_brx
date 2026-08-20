@@ -128,6 +128,13 @@ export interface ListingItem {
   seller_review_count?: number | null;
   /** Vendite completate — opzionale */
   seller_sales_count?: number | null;
+  /** Indicatori di fulfillment BRX Express, compatibili con le versioni API esistenti. */
+  is_express?: boolean;
+  express?: boolean;
+  brx_express?: boolean;
+  delivery_speed?: string;
+  is_tcg_express?: boolean;
+  shipping_method?: string;
 }
 
 export interface ListingsByBlueprintResponse {

@@ -4,7 +4,6 @@ import { ChevronDown, Tag, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CardDocument } from '@/lib/product-detail';
 import type { ListingItem } from '@/lib/api/sync-client';
-import type { ListingCoverPhotoMap } from '@/lib/api/listing-photo-client';
 import type { MarketplaceRow } from '@/lib/product-detail/marketplace-rows';
 import {
   CONDITION_FILTER_OPTIONS,
@@ -69,7 +68,6 @@ export interface ProductDetailMarketplaceSectionProps {
   sortedMarketplaceRows: MarketplaceRow[];
   listingsLoading: boolean;
   listingsError: string | null;
-  listingCoverPhotos: ListingCoverPhotoMap;
   marketplaceEmptyMessage: string | undefined;
   card?: CardDocument;
   cardImageSrc: string;
@@ -131,7 +129,6 @@ export function ProductDetailMarketplaceSection({
   sortedMarketplaceRows,
   listingsLoading,
   listingsError,
-  listingCoverPhotos,
   marketplaceEmptyMessage,
   card,
   cardImageSrc,
@@ -453,7 +450,6 @@ export function ProductDetailMarketplaceSection({
                     rows={sortedMarketplaceRows}
                     loading={listingsLoading}
                     error={listingsError}
-                    listingCoverPhotos={listingCoverPhotos}
                     emptyMessage={marketplaceEmptyMessage}
                     cardImageSrc={cardImageSrc}
                     cardName={card?.name}

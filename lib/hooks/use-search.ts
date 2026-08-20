@@ -69,22 +69,23 @@ export interface SearchAvailabilityCard {
 
 async function fetchSearchAvailability(
   cards: SearchAvailabilityCard[],
+  sellerId?: string,
 ): Promise<SearchAvailabilityResponse> {
   const res = await fetch('/api/search/availability', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cards }),
+    body: JSON.stringify({ cards, ...(sellerId ? { sellerId } : {}) }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<SearchAvailabilityResponse>;
 }
 
 /** Numero venditori reale per i risultati visibili, aggregato dal BFF. */
-export function useSearchAvailability(cards: SearchAvailabilityCard[]) {
+export function useSearchAvailability(cards: SearchAvailabilityCard[], sellerId?: string) {
   return useQuery<SearchAvailabilityResponse>({
-    queryKey: ['search', 'availability', cards],
-    queryFn: () => fetchSearchAvailability(cards),
+    queryKey: ['search', 'availability', cards, sellerId ?? null],
+    queryFn: () => fetchSearchAvailability(cards, sellerId),
     enabled: cards.length > 0,
     staleTime: 60_000,
     retry: 1,

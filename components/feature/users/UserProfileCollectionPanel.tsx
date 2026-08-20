@@ -11,6 +11,7 @@ import {
   PackageOpen,
   RotateCcw,
   Search,
+  ShoppingBag,
   Sparkles,
   X,
 } from 'lucide-react';
@@ -18,12 +19,12 @@ import { Pagination } from '@/components/ui/Pagination';
 import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
 import { usePublicUserCollection } from '@/lib/hooks/use-public-user-collection';
 import { useMeilisearchCards } from '@/lib/hooks/use-meilisearch-cards';
+import { useSearchAvailability } from '@/lib/hooks/use-search';
 import { getCardDisplayNames } from '@/lib/card-display-name';
 import { getInventoryConditionCode } from '@/lib/inventory/inventory-filter-utils';
 import { ASSETS, getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
-import type { PublicInventoryItem } from '@/types';
 
 const PAGE_SIZE = 24;
 const DEFAULT_IMAGE = getCdnImageUrl('Logo%20Principale%20EBARTEX.png');
@@ -56,10 +57,11 @@ function formatPrice(cents: number, locale: string): string {
 }
 
 interface UserProfileCollectionPanelProps {
+  userId: string;
   username: string;
 }
 
-export function UserProfileCollectionPanel({ username }: UserProfileCollectionPanelProps) {
+export function UserProfileCollectionPanel({ userId, username }: UserProfileCollectionPanelProps) {
   const { t } = useTranslation();
   const intlLocale = useIntlLocale();
   const [page, setPage] = useState(1);
@@ -76,7 +78,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
     offset,
   });
 
-  const rawItems = data?.items ?? [];
+  const rawItems = useMemo(() => data?.items ?? [], [data?.items]);
   const totalRaw = data?.total ?? 0;
 
   const blueprintIds = useMemo(
@@ -85,6 +87,19 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
   );
 
   const { data: catalog = {}, isLoading: catalogLoading } = useMeilisearchCards(blueprintIds);
+  const availabilityCards = useMemo(
+    () => rawItems.flatMap((item) => {
+      const cardId = catalog[item.blueprint_id]?.id;
+      return cardId
+        ? [{ cardId, blueprintId: item.blueprint_id }]
+        : [];
+    }),
+    [catalog, rawItems],
+  );
+  const { data: availabilityData, isLoading: availabilityLoading } = useSearchAvailability(
+    availabilityCards,
+    userId,
+  );
 
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
@@ -158,7 +173,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/60 bg-white/50 px-6 py-16 backdrop-blur-xl">
+      <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200/80 bg-white/90 px-6 py-16 shadow-sm">
         <Loader2 className="h-8 w-8 animate-spin text-[#ff7300]" />
         <p className="text-sm font-medium text-slate-500">Caricamento collezione…</p>
       </div>
@@ -167,7 +182,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
 
   if (isError) {
     return (
-      <div className="rounded-3xl border border-red-100/80 bg-red-50/60 px-6 py-12 text-center backdrop-blur-xl">
+      <div className="rounded-3xl border border-red-100/80 bg-red-50/90 px-6 py-12 text-center shadow-sm">
         <p className="mb-4 text-sm text-red-700">Impossibile caricare la collezione.</p>
         <button
           type="button"
@@ -182,7 +197,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
 
   if (totalRaw === 0) {
     return (
-      <div className="flex min-h-[280px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/80 bg-white/40 px-8 py-16 text-center backdrop-blur-xl">
+      <div className="flex min-h-[280px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/80 bg-white/90 px-8 py-16 text-center shadow-sm">
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100/80">
           <PackageOpen className="h-7 w-7 text-slate-400" />
         </div>
@@ -200,7 +215,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
   return (
     <div className="space-y-6">
       {/* Barra Filtri Base - Uniformata al design system */}
-      <div className="rounded-2xl border border-white/70 bg-white/60 p-4 shadow-[0_8px_30px_rgba(15,23,42,0.04)] backdrop-blur-xl space-y-3">
+      <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {/* Ricerca per nome/set */}
           <div className="relative flex-1">
@@ -327,13 +342,15 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
               ? t('userProfile.itemsFound') || 'oggetti trovati'
               : t('userProfile.itemsInCollection') || 'oggetti in collezione'}
           </span>
-          {catalogLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />}
+          {(catalogLoading || availabilityLoading) && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
+          )}
         </p>
       </div>
 
       {/* Griglia Carte o Stato vuoto con filtri */}
       {filteredAndSortedItems.length === 0 ? (
-        <div className="flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/80 bg-white/40 px-8 py-12 text-center backdrop-blur-xl">
+        <div className="flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/80 bg-white/90 px-8 py-12 text-center shadow-sm">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100/80">
             <Search className="h-6 w-6 text-slate-400" />
           </div>
@@ -368,15 +385,18 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
               ((item.properties as Record<string, unknown>)?.condition ??
                 (item.properties as Record<string, unknown>)?.card_condition) as string | undefined,
             );
-            const searchHref = card?.id
-              ? `/search?q=${encodeURIComponent(card.name ?? title)}`
+            const productHref = card?.id
+              ? `/products/${encodeURIComponent(card.id)}`
               : '/search';
+            const sellerAvailable = card?.id
+              ? availabilityData?.availability[card.id]?.sellerAvailable
+              : null;
 
             return (
               <Link
                 key={item.id}
-                href={searchHref}
-                className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/60 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:border-[#ff7300]/25 hover:bg-white/80 hover:shadow-[0_16px_40px_rgba(255,115,0,0.12)]"
+                href={productHref}
+                className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] [contain:layout_paint] transition duration-200 hover:-translate-y-0.5 hover:border-[#ff7300]/30 hover:shadow-[0_12px_30px_rgba(255,115,0,0.12)]"
               >
                 <div className="relative aspect-[63/88] overflow-hidden bg-gradient-to-b from-slate-100 to-slate-50">
                   <Image
@@ -388,10 +408,24 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
                     unoptimized
                   />
                   {item.quantity > 1 && (
-                    <span className="absolute right-2 top-2 rounded-full bg-slate-900/75 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                    <span className="absolute right-2 top-2 rounded-full bg-slate-900/85 px-2 py-0.5 text-[10px] font-bold text-white">
                       ×{item.quantity}
                     </span>
                   )}
+                  <span
+                    className={`absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide shadow-sm ${
+                      sellerAvailable === true
+                        ? 'border-[#ff7300]/30 bg-[#ff7300] text-white'
+                        : 'border-slate-200 bg-white/95 text-slate-600'
+                    }`}
+                  >
+                    {sellerAvailable === true && <ShoppingBag className="h-3 w-3" />}
+                    {sellerAvailable === true
+                      ? t('userProfile.forSale')
+                      : sellerAvailable === false
+                        ? t('userProfile.collectionOnly')
+                        : t('userProfile.availabilityUnknown')}
+                  </span>
                   {item.graded && (
                     <span className="absolute left-2 top-2 rounded-full bg-[#ff7300]/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
                       Graded
@@ -406,7 +440,13 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
                     <p className="line-clamp-1 text-[11px] font-medium text-slate-500">{card.set_name}</p>
                   )}
                   <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100/90 pt-2">
-                    <span className="text-sm font-bold text-[#ff7300]">{formatPrice(item.price_cents, intlLocale)}</span>
+                    <span
+                      className={`text-sm font-bold ${
+                        sellerAvailable === true ? 'text-[#ff7300]' : 'text-slate-700'
+                      }`}
+                    >
+                      {formatPrice(item.price_cents, intlLocale)}
+                    </span>
                     {condition && <ConditionBadge condition={condition} size="sm" />}
                   </div>
                 </div>
@@ -426,12 +466,11 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
               setPage(p);
               window.scrollTo({ top: 400, behavior: 'smooth' });
             }}
-            variant="card-footer"
-            className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-xl shadow-sm"
+            variant="standard"
+            className="w-full"
           />
         </div>
       )}
     </div>
   );
 }
-

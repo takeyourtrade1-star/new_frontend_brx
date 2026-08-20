@@ -1,7 +1,9 @@
 import type { CartSellerAccountType, MarketplaceCartLine } from '@/types';
 
 export interface CartSellerGroup {
-  sellerId: string;
+  id: string;
+  kind: 'seller' | 'brx-express';
+  sellerId: string | null;
   sellerDisplayName: string;
   sellerAccountType: CartSellerAccountType | null;
   items: MarketplaceCartLine[];
@@ -9,6 +11,9 @@ export interface CartSellerGroup {
   lineCount: number;
   unitCount: number;
 }
+
+const BRX_EXPRESS_GROUP_ID = 'fulfillment:brx-express';
+const BRX_EXPRESS_DISPLAY_NAME = 'BRX Express';
 
 function lineSubtotalCents(line: MarketplaceCartLine): number {
   return line.priceCents * line.quantity;
@@ -22,7 +27,9 @@ export function groupCartItemsBySeller(
   const map = new Map<string, CartSellerGroup>();
 
   for (const line of items) {
-    const existing = map.get(line.sellerId);
+    const isBrxExpress = line.isBrxExpress === true;
+    const groupId = isBrxExpress ? BRX_EXPRESS_GROUP_ID : `seller:${line.sellerId}`;
+    const existing = map.get(groupId);
     if (existing) {
       existing.items.push(line);
       existing.subtotalCents += lineSubtotalCents(line);
@@ -31,10 +38,12 @@ export function groupCartItemsBySeller(
       continue;
     }
 
-    map.set(line.sellerId, {
-      sellerId: line.sellerId,
-      sellerDisplayName: resolveDisplayName(line),
-      sellerAccountType: resolveAccountType(line),
+    map.set(groupId, {
+      id: groupId,
+      kind: isBrxExpress ? 'brx-express' : 'seller',
+      sellerId: isBrxExpress ? null : line.sellerId,
+      sellerDisplayName: isBrxExpress ? BRX_EXPRESS_DISPLAY_NAME : resolveDisplayName(line),
+      sellerAccountType: isBrxExpress ? null : resolveAccountType(line),
       items: [line],
       subtotalCents: lineSubtotalCents(line),
       lineCount: 1,
@@ -46,5 +55,5 @@ export function groupCartItemsBySeller(
 }
 
 export function getCartSellerCount(groups: CartSellerGroup[]): number {
-  return groups.length;
+  return groups.filter((group) => group.kind === 'seller').length;
 }

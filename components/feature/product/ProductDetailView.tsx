@@ -154,7 +154,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     listings,
     listingsLoading,
     listingsError,
-    listingCoverPhotos,
     refetchListings,
     pollSyncTaskThenRefresh,
   } = useMarketplaceListings(blueprintIdForAuction, card?.id);
@@ -501,7 +500,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           sortedMarketplaceRows={sortedMarketplaceRows}
           listingsLoading={listingsLoading}
           listingsError={listingsError}
-          listingCoverPhotos={listingCoverPhotos}
           marketplaceEmptyMessage={marketplaceEmptyMessage}
           card={card}
           cardImageSrc={cardImages[currentImageIndex]}

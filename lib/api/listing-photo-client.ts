@@ -38,22 +38,8 @@ export interface ListingPhotoSummary {
   position: number;
 }
 
-export type ListingCoverPhotoMap = Record<string, ListingPhotoSummary | null>;
-
-export class ListingPhotoApiError extends Error {
-  readonly status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = 'ListingPhotoApiError';
-    this.status = status;
-  }
-}
-
 const LISTING_PHOTOS_CACHE_MS = 5 * 60 * 1000;
-const LISTING_COVER_BATCH_SIZE = 40;
-const LISTING_COVER_MAX_CONCURRENCY = 2;
-const listingFullPhotosCache = new Map<string, { at: number; photos: ListingPhotoSummary[] }>();
+const listingPhotosCache = new Map<string, { at: number; photos: ListingPhotoSummary[] }>();
 const listingPhotosInflight = new Map<string, Promise<ListingPhotoSummary[]>>();
 
 function normalizeListingPhotos(
@@ -89,63 +75,82 @@ async function fetchListingPhotosFromApi(listingId: string): Promise<ListingPhot
   return normalizeListingPhotos(photos);
 }
 
-async function fetchListingCoverPhotoChunk(listingIds: string[]): Promise<ListingCoverPhotoMap> {
-  const qs = encodeURIComponent(listingIds.join(','));
-  const res = await fetch(`/api/auctions/photos/by-listings?ids=${qs}`, {
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json' },
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const message =
-      (data as { detail?: string })?.detail ||
-      (data as { error?: string })?.error ||
-      `HTTP ${res.status}`;
-    throw new ListingPhotoApiError(res.status, message);
-  }
+type PhotoCacheListener = () => void;
+const photoCacheListeners = new Set<PhotoCacheListener>();
 
-  const covers =
-    (data as { data?: { covers?: Record<string, ListingPhotoSummary> } })?.data?.covers ?? {};
-
-  return Object.fromEntries(
-    listingIds.map((listingId) => {
-      const photo = covers[listingId];
-      const normalized = photo ? normalizeListingPhotos([photo])[0] ?? null : null;
-      return [listingId, normalized];
-    }),
-  );
+export function subscribeListingPhotos(listener: PhotoCacheListener): () => void {
+  photoCacheListeners.add(listener);
+  return () => {
+    photoCacheListeners.delete(listener);
+  };
 }
 
-/**
- * Cover pubbliche per la tabella venditori. La query React Query chiamante
- * conserva anche i `null`, così le inserzioni senza foto non vengono richieste
- * di nuovo a ogni render/refetch. I chunk sono limitati per non creare burst.
- */
-export async function fetchListingCoverPhotos(listingIds: string[]): Promise<ListingCoverPhotoMap> {
-  const unique = [...new Set(listingIds.map(String).filter(Boolean))].sort();
-  if (unique.length === 0) return {};
+function notifyListingPhotos(): void {
+  for (const listener of photoCacheListeners) {
+    try {
+      listener();
+    } catch {
+      /* ignore listener error */
+    }
+  }
+}
+
+export function getCachedListingPhotos(listingId: string): ListingPhotoSummary[] | null {
+  const key = String(listingId);
+  const cached = listingPhotosCache.get(key);
+  if (cached && Date.now() - cached.at < LISTING_PHOTOS_CACHE_MS) {
+    return cached.photos;
+  }
+  return null;
+}
+
+function seedListingPhotosCache(listingId: string, photos: ListingPhotoSummary[]): void {
+  listingPhotosCache.set(String(listingId), { at: Date.now(), photos: normalizeListingPhotos(photos) });
+  notifyListingPhotos();
+}
+
+/** Warm cache for many listings in one request (product detail venditori tab). */
+export async function prefetchListingCoverPhotos(listingIds: string[]): Promise<void> {
+  const unique = [...new Set(listingIds.map(String).filter(Boolean))];
+  if (unique.length === 0) return;
+
+  const missing = unique.filter((id) => {
+    const cached = listingPhotosCache.get(id);
+    return !cached || Date.now() - cached.at >= LISTING_PHOTOS_CACHE_MS;
+  });
+  if (missing.length === 0) return;
 
   const chunks: string[][] = [];
-  for (let i = 0; i < unique.length; i += LISTING_COVER_BATCH_SIZE) {
-    chunks.push(unique.slice(i, i + LISTING_COVER_BATCH_SIZE));
+  for (let i = 0; i < missing.length; i += 40) {
+    chunks.push(missing.slice(i, i + 40));
   }
 
-  const result: ListingCoverPhotoMap = {};
-  for (let i = 0; i < chunks.length; i += LISTING_COVER_MAX_CONCURRENCY) {
-    const page = await Promise.all(
-      chunks
-        .slice(i, i + LISTING_COVER_MAX_CONCURRENCY)
-        .map((chunk) => fetchListingCoverPhotoChunk(chunk)),
-    );
-    Object.assign(result, ...page);
-  }
-  return result;
+  await Promise.allSettled(
+    chunks.map(async (chunk) => {
+      const qs = encodeURIComponent(chunk.join(','));
+      const res = await fetch(`/api/auctions/photos/by-listings?ids=${qs}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+
+      const covers = (data as { data?: { covers?: Record<string, ListingPhotoSummary> } })?.data?.covers ?? {};
+      for (const [listingId, photo] of Object.entries(covers)) {
+        listingPhotosCache.set(String(listingId), {
+          at: Date.now(),
+          photos: normalizeListingPhotos([photo]),
+        });
+      }
+    })
+  );
+  notifyListingPhotos();
 }
 
 /** Published photos for a marketplace listing (CDN URLs). Cached + deduped in-flight. */
 export async function getListingPhotos(listingId: string): Promise<ListingPhotoSummary[]> {
   const key = String(listingId);
-  const cached = listingFullPhotosCache.get(key);
+  const cached = listingPhotosCache.get(key);
   if (cached && Date.now() - cached.at < LISTING_PHOTOS_CACHE_MS) {
     return cached.photos;
   }
@@ -155,7 +160,7 @@ export async function getListingPhotos(listingId: string): Promise<ListingPhotoS
 
   const promise = fetchListingPhotosFromApi(key)
     .then((photos) => {
-      listingFullPhotosCache.set(key, { at: Date.now(), photos });
+      listingPhotosCache.set(key, { at: Date.now(), photos });
       return photos;
     })
     .finally(() => {

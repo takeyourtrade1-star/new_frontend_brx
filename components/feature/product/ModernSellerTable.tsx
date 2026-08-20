@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import Link from 'next/link';
 import {
@@ -27,32 +27,19 @@ import { formatAuctionCountdown } from '@/lib/auction/auction-countdown';
 import type { AuctionUI } from '@/lib/auction/auction-adapter';
 import { listingConditionCode, type MarketplaceRow } from '@/lib/product-detail/marketplace-rows';
 import { listingRowKey } from '@/lib/marketplace/listing-map';
-import type { ListingCoverPhotoMap } from '@/lib/api/listing-photo-client';
+import { isBrxExpressListing } from '@/lib/marketplace/brx-express';
+import {
+  getCachedListingPhotos,
+  getListingPhotos,
+  subscribeListingPhotos,
+} from '@/lib/api/listing-photo-client';
 import { MarketplaceNowProvider, useMarketplaceNowMs } from '@/lib/hooks/use-marketplace-now-ms';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { MarketplaceReportModal } from '@/components/feature/product/MarketplaceReportModal';
 import type { MarketplaceReportContext } from '@/lib/marketplace/report-reasons';
 
-export function isExpressListing(item: ListingItem): boolean {
-  const ext = item as ListingItem & {
-    is_express?: boolean;
-    express?: boolean;
-    brx_express?: boolean;
-    delivery_speed?: string;
-    is_tcg_express?: boolean;
-    shipping_method?: string;
-  };
-  return Boolean(
-    ext.is_express ||
-    ext.express ||
-    ext.brx_express ||
-    ext.delivery_speed === 'express' ||
-    ext.is_tcg_express ||
-    ext.shipping_method === 'express' ||
-    ext.shipping_method === 'brx_express'
-  );
-}
+export const isExpressListing = isBrxExpressListing;
 
 export function BrxExpressBadge({ className }: { className?: string }) {
   return (
@@ -262,21 +249,44 @@ function getAuctionPhotoUrls(
   return dedupePhotoUrls([...(a.photoUrls ?? []), a.imageFront, a.imageBack, a.image, fallback]);
 }
 
-const EMPTY_LISTING_COVER_PHOTOS: ListingCoverPhotoMap = {};
-
-function getListingCoverPhotoUrl(
-  item: ListingItem,
-  listingCoverPhotos: ListingCoverPhotoMap,
-): string | null {
-  if (item.listing_source !== 'marketplace' || !item.marketplace_listing_id) return null;
-  return listingCoverPhotos[item.marketplace_listing_id]?.cdn_url ?? null;
+function getListingPhotoUrls(fallback?: string | null): string[] {
+  return dedupePhotoUrls([fallback]);
 }
 
-function getListingRowImageUrls(
-  coverPhotoUrl: string | null | undefined,
-  fallback?: string | null,
-): string[] {
-  return dedupePhotoUrls([coverPhotoUrl, fallback]);
+function useListingRowImageUrls(item: ListingItem, fallback?: string | null): string[] {
+  const listingId = item.listing_source === 'marketplace' ? item.marketplace_listing_id : null;
+
+  const [urls, setUrls] = useState<string[]>(() => {
+    if (listingId) {
+      const cached = getCachedListingPhotos(listingId);
+      if (cached && cached.length > 0) {
+        return dedupePhotoUrls([cached[0]?.cdn_url, fallback]);
+      }
+    }
+    return getListingPhotoUrls(fallback);
+  });
+
+  useEffect(() => {
+    const base = getListingPhotoUrls(fallback);
+    if (!listingId) {
+      setUrls(base);
+      return;
+    }
+
+    const updateFromCache = () => {
+      const cached = getCachedListingPhotos(listingId);
+      if (cached && cached.length > 0) {
+        setUrls(dedupePhotoUrls([cached[0]?.cdn_url, fallback]));
+      } else {
+        setUrls(base);
+      }
+    };
+
+    updateFromCache();
+    return subscribeListingPhotos(updateFromCache);
+  }, [listingId, fallback]);
+
+  return urls;
 }
 
 function MarketplacePhotoCarousel({
@@ -692,7 +702,6 @@ type DesktopListingRowProps = {
   rowId: string;
   index: number;
   item: ListingItem;
-  listingCoverPhotoUrl?: string | null;
   cardImageSrc?: string;
   cardName?: string;
   isOwn: boolean;
@@ -717,7 +726,6 @@ const DesktopListingRow = memo(function DesktopListingRow({
   rowId,
   index,
   item,
-  listingCoverPhotoUrl,
   cardImageSrc,
   cardName,
   isOwn,
@@ -741,7 +749,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
   const langFlag = languageFlagCode(item.mtg_language);
   const rep = getSellerReputation(item);
   const rowKey = listingRowKey(item);
-  const imageUrls = getListingRowImageUrls(listingCoverPhotoUrl, cardImageSrc);
+  const imageUrls = useListingRowImageUrls(item, cardImageSrc);
   const reservedQuantity = item.reserved_quantity ?? 0;
   const isFullyTradeLocked = item.quantity === 0 && reservedQuantity > 0;
   const ownerLocked = isOwn && reservedQuantity > 0;
@@ -1011,7 +1019,6 @@ const MobileListingRow = memo(function MobileListingRow({
   rowId,
   index,
   item,
-  listingCoverPhotoUrl,
   cardImageSrc,
   cardName,
   isOwn,
@@ -1035,7 +1042,7 @@ const MobileListingRow = memo(function MobileListingRow({
   const langFlag = languageFlagCode(item.mtg_language);
   const rep = getSellerReputation(item);
   const rowKey = listingRowKey(item);
-  const imageUrls = getListingRowImageUrls(listingCoverPhotoUrl, cardImageSrc);
+  const imageUrls = useListingRowImageUrls(item, cardImageSrc);
   const reservedQuantity = item.reserved_quantity ?? 0;
   const isFullyTradeLocked = item.quantity === 0 && reservedQuantity > 0;
   const ownerLocked = isOwn && reservedQuantity > 0;
@@ -1220,7 +1227,6 @@ interface ModernSellerTableProps {
   emptyMessage?: string;
   cardImageSrc?: string;
   cardName?: string;
-  listingCoverPhotos?: ListingCoverPhotoMap;
   /** Lingua carta catalogo (per righe asta senza lingua esplicita). */
   cardLanguage?: string | null;
   onAddToCart?: (item: ListingItem, quantity: number, sourceEl: HTMLElement) => void;
@@ -1240,7 +1246,6 @@ function ModernSellerTableInner({
   emptyMessage,
   cardImageSrc,
   cardName,
-  listingCoverPhotos = EMPTY_LISTING_COVER_PHOTOS,
   cardLanguage,
   onAddToCart,
   onBuyNow,
@@ -1402,7 +1407,6 @@ function ModernSellerTableInner({
             const isCartOpen = activeCartRowKey === rowKey;
             const cartQty = getCartQty(item);
             const description = getListingDescription(item);
-            const listingCoverPhotoUrl = getListingCoverPhotoUrl(item, listingCoverPhotos);
 
             return (
               <DesktopListingRow
@@ -1410,7 +1414,6 @@ function ModernSellerTableInner({
                 rowId={row.id}
                 index={index}
                 item={item}
-                listingCoverPhotoUrl={listingCoverPhotoUrl}
                 cardImageSrc={cardImageSrc}
                 cardName={cardName}
                 isOwn={isOwn}
@@ -1460,7 +1463,6 @@ function ModernSellerTableInner({
           const isCartOpen = activeCartRowKey === rowKey;
           const cartQty = getCartQty(item);
           const description = getListingDescription(item);
-          const listingCoverPhotoUrl = getListingCoverPhotoUrl(item, listingCoverPhotos);
 
           return (
             <MobileListingRow
@@ -1468,7 +1470,6 @@ function ModernSellerTableInner({
               rowId={row.id}
               index={index}
               item={item}
-              listingCoverPhotoUrl={listingCoverPhotoUrl}
               cardImageSrc={cardImageSrc}
               cardName={cardName}
               isOwn={isOwn}

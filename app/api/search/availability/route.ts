@@ -31,6 +31,11 @@ interface AvailabilityRequestItem {
   blueprintId: number;
 }
 
+interface AvailabilityRequestBody {
+  cards: AvailabilityRequestItem[];
+  sellerId?: string;
+}
+
 interface PublicSellerItem {
   seller_id?: unknown;
   quantity?: unknown;
@@ -39,17 +44,28 @@ interface PublicSellerItem {
 
 export interface SearchAvailabilityItem {
   sellerCount: number | null;
+  /** Presente solo quando la richiesta specifica il venditore da verificare. */
+  sellerAvailable?: boolean | null;
 }
 
 export interface SearchAvailabilityResponse {
   availability: Record<string, SearchAvailabilityItem>;
 }
 
-function parseBody(value: unknown): AvailabilityRequestItem[] | null {
+const SAFE_SELLER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function parseBody(value: unknown): AvailabilityRequestBody | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const body = value as Record<string, unknown>;
-  if (Object.keys(body).some((key) => key !== 'cards') || !Array.isArray(body.cards)) return null;
+  if (
+    Object.keys(body).some((key) => key !== 'cards' && key !== 'sellerId')
+    || !Array.isArray(body.cards)
+  ) return null;
   if (body.cards.length < 1 || body.cards.length > MAX_CARDS) return null;
+  if (body.sellerId !== undefined && (
+    typeof body.sellerId !== 'string'
+    || !SAFE_SELLER_ID.test(body.sellerId)
+  )) return null;
 
   const cards: AvailabilityRequestItem[] = [];
   const seen = new Set<string>();
@@ -67,7 +83,9 @@ function parseBody(value: unknown): AvailabilityRequestItem[] | null {
     seen.add(card.cardId);
     cards.push({ cardId: card.cardId, blueprintId: card.blueprintId });
   }
-  return cards.length > 0 ? cards : null;
+  return cards.length > 0
+    ? { cards, ...(typeof body.sellerId === 'string' ? { sellerId: body.sellerId } : {}) }
+    : null;
 }
 
 function availableSellerIds(items: unknown): Set<string> {
@@ -111,6 +129,7 @@ async function availabilityForCard(
   card: AvailabilityRequestItem,
   syncOrigin: string,
   marketplaceOrigin: string,
+  sellerId?: string,
 ): Promise<SearchAvailabilityItem> {
   const requests: Array<Promise<{ ok: boolean; sellers: Set<string> }>> = [];
 
@@ -131,17 +150,30 @@ async function availabilityForCard(
     requests.push(fetchSource(marketplaceUrl, 'items'));
   }
 
-  if (requests.length === 0) return { sellerCount: null };
+  if (requests.length === 0) {
+    return {
+      sellerCount: null,
+      ...(sellerId ? { sellerAvailable: null } : {}),
+    };
+  }
   const sources = await Promise.all(requests);
   // Un numero parziale sarebbe fuorviante: zero e conteggi positivi sono
   // autorevoli solo quando tutte le sorgenti configurate hanno risposto.
-  if (sources.some((source) => !source.ok)) return { sellerCount: null };
+  if (sources.some((source) => !source.ok)) {
+    return {
+      sellerCount: null,
+      ...(sellerId ? { sellerAvailable: null } : {}),
+    };
+  }
 
   const sellers = new Set<string>();
   for (const source of sources) {
     for (const seller of source.sellers) sellers.add(seller);
   }
-  return { sellerCount: sellers.size };
+  return {
+    sellerCount: sellers.size,
+    ...(sellerId ? { sellerAvailable: sellers.has(sellerId) } : {}),
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -155,20 +187,21 @@ export async function POST(request: NextRequest) {
   });
   if (!rateLimit.allowed) return rateLimitExceededResponse(rateLimit);
 
-  let cards: AvailabilityRequestItem[] | null = null;
+  let parsedBody: AvailabilityRequestBody | null = null;
   try {
     const body = await readTextBodyWithLimit(request, MAX_BODY_BYTES);
     if (body.tooLarge) {
       return NextResponse.json({ error: 'Payload troppo grande' }, { status: 413, headers: noStoreHeaders() });
     }
-    cards = parseBody(JSON.parse(body.body || '{}') as unknown);
+    parsedBody = parseBody(JSON.parse(body.body || '{}') as unknown);
   } catch (error) {
     const status = error instanceof RequestBodyTimeoutError ? 408 : 400;
     return NextResponse.json({ error: 'Payload non valido' }, { status, headers: noStoreHeaders() });
   }
-  if (!cards) {
+  if (!parsedBody) {
     return NextResponse.json({ error: 'Payload non valido' }, { status: 400, headers: noStoreHeaders() });
   }
+  const { cards, sellerId } = parsedBody;
 
   const syncOrigin = trustedSyncServiceOrigin(getSyncApiUrlEnv());
   const marketplaceOrigin = trustedMarketplaceServiceOrigin(getMarketplaceApiUrlEnv());
@@ -193,7 +226,7 @@ export async function POST(request: NextRequest) {
       const card = uniqueCards[index];
       byBlueprint.set(
         card.blueprintId,
-        await availabilityForCard(card, syncOrigin, marketplaceOrigin),
+        await availabilityForCard(card, syncOrigin, marketplaceOrigin, sellerId),
       );
     }
   };

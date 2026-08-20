@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Package } from 'lucide-react';
+import { Package, Zap } from 'lucide-react';
 import { CartLineItem } from '@/components/feature/cart/CartLineItem';
 import { CartSellerBadge } from '@/components/feature/cart/CartSellerBadge';
-import { formatEuroNoSpace } from '@/lib/utils';
+import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { CartSellerGroup as CartSellerGroupData } from '@/lib/marketplace/cart-groups';
 import type { MarketplaceCartLine } from '@/types';
@@ -30,47 +30,69 @@ export function CartSellerGroupCard({
 }: CartSellerGroupProps) {
   const { t } = useTranslation();
   const subtotal = group.subtotalCents / 100;
-  const profileHref = `/users/${encodeURIComponent(group.sellerDisplayName)}`;
+  const isBrxExpress = group.kind === 'brx-express';
+  const profileHref = isBrxExpress
+    ? null
+    : `/users/${encodeURIComponent(group.sellerDisplayName)}`;
 
-  const itemsLabel =
-    group.unitCount === 1
+  const itemsLabel = isBrxExpress
+    ? group.unitCount === 1
+      ? t('cart.itemsOne', { count: group.unitCount })
+      : t('cart.items', { count: group.unitCount })
+    : group.unitCount === 1
       ? t('cart.sellerItemsOne', { count: group.unitCount })
       : t('cart.sellerItems', { count: group.unitCount });
 
   return (
     <section
       className="overflow-hidden rounded-3xl border border-white/60 bg-white/55 shadow-[0_8px_32px_rgba(15,23,42,0.06)] ring-1 ring-black/[0.04] backdrop-blur-2xl backdrop-saturate-150"
-      aria-labelledby={`seller-${group.sellerId}`}
+      aria-labelledby={`cart-group-${group.id}`}
     >
       <header className="flex flex-col gap-3 border-b border-black/[0.06] bg-gradient-to-b from-white/80 to-white/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-neutral-800 to-neutral-600 text-sm font-bold text-white shadow-md"
+            className={cn(
+              'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-bold text-white shadow-md',
+              isBrxExpress
+                ? 'bg-gradient-to-br from-orange-500 to-amber-500'
+                : 'bg-gradient-to-br from-neutral-800 to-neutral-600',
+            )}
             aria-hidden
           >
-            {sellerInitial(group.sellerDisplayName)}
+            {isBrxExpress ? (
+              <Zap className="h-5 w-5 fill-orange-100" />
+            ) : (
+              sellerInitial(group.sellerDisplayName)
+            )}
           </div>
           <div className="min-w-0">
             <p className="text-[11px] font-medium uppercase tracking-widest text-neutral-500">
-              {t('cart.sellerGroup')}
+              {t(isBrxExpress ? 'cart.fulfillmentGroup' : 'cart.sellerGroup')}
             </p>
             <h2
-              id={`seller-${group.sellerId}`}
+              id={`cart-group-${group.id}`}
               className="truncate text-lg font-semibold tracking-tight text-neutral-900"
             >
-              <Link
-                href={profileHref}
-                className="transition-colors hover:text-primary"
-              >
-                {group.sellerDisplayName}
-              </Link>
+              {profileHref ? (
+                <Link
+                  href={profileHref}
+                  className="transition-colors hover:text-primary"
+                >
+                  {group.sellerDisplayName}
+                </Link>
+              ) : (
+                group.sellerDisplayName
+              )}
             </h2>
             <p className="text-xs text-neutral-500">{itemsLabel}</p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-          <CartSellerBadge accountType={group.sellerAccountType} />
+          <CartSellerBadge
+            accountType={group.sellerAccountType}
+            isBrxExpress={isBrxExpress}
+          />
         </div>
       </header>
 
@@ -89,7 +111,9 @@ export function CartSellerGroupCard({
       <footer className="flex items-center justify-between gap-4 border-t border-black/[0.06] bg-neutral-50/50 px-4 py-3.5 sm:px-6">
         <div className="flex items-center gap-2 text-xs text-neutral-500">
           <Package className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span>{t('cart.shippingNote')}</span>
+          <span>
+            {t(isBrxExpress ? 'cart.brxExpressShippingNote' : 'cart.shippingNote')}
+          </span>
         </div>
         <div className="text-right">
           <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">

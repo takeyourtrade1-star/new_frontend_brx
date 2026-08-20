@@ -21,7 +21,14 @@ function accountTypeFromProfile(
 
 export function useCartSellerProfiles(items: MarketplaceCartLine[]) {
   const sellerIds = useMemo(
-    () => [...new Set(items.map((i) => i.sellerId).filter(Boolean))],
+    () => [
+      ...new Set(
+        items
+          .filter((item) => !item.isBrxExpress)
+          .map((item) => item.sellerId)
+          .filter(Boolean),
+      ),
+    ],
     [items],
   );
 

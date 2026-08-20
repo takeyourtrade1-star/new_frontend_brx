@@ -31,16 +31,19 @@ export function CartLineItem({
   const { t } = useTranslation();
   const lineTotal = (item.priceCents / 100) * item.quantity;
   const unitPrice = item.priceCents / 100;
-  const sourceLabel =
-    item.source === 'sync' ? t('cart.sourceSync') : t('cart.sourceMarketplace');
+  const sourceLabel = item.isBrxExpress
+    ? t('cart.brxExpress')
+    : item.source === 'sync'
+      ? t('cart.sourceSync')
+      : t('cart.sourceMarketplace');
 
   const metaParts = [sourceLabel, item.condition, item.language].filter(Boolean);
 
   return (
     <article
       className={cn(
-        'group grid gap-3 border-t border-black/[0.06] py-4 first:border-t-0 first:pt-0',
-        'grid-cols-[auto_1fr] sm:grid-cols-[auto_1fr_auto] sm:items-center',
+        'group grid gap-4 border-t border-black/[0.06] py-4 first:border-t-0',
+        'grid-cols-[auto_1fr] sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-x-5',
       )}
     >
       <div className="row-span-2 sm:row-span-1">
@@ -82,7 +85,7 @@ export function CartLineItem({
         </p>
       </div>
 
-      <div className="col-span-2 flex flex-wrap items-center justify-between gap-3 sm:col-span-1 sm:flex-col sm:items-end sm:justify-center sm:gap-2">
+      <div className="col-span-2 flex flex-wrap items-center justify-between gap-3 sm:col-span-1 sm:flex-col sm:items-end sm:justify-center sm:gap-3">
         <div
           className="inline-flex items-center rounded-full bg-neutral-100/90 p-0.5 ring-1 ring-black/[0.06]"
           role="group"
@@ -114,7 +117,7 @@ export function CartLineItem({
           </Button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <span className="hidden text-base font-semibold tabular-nums tracking-tight text-neutral-900 sm:block">
             {formatEuroNoSpace(lineTotal, intlLocale)}
           </span>

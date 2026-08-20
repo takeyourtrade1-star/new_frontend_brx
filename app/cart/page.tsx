@@ -10,7 +10,10 @@ import { useGame } from '@/lib/contexts/GameContext';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { LOCALE_TO_INTL } from '@/lib/i18n/locales';
 import type { UiLocale } from '@/lib/i18n/locales';
-import { groupCartItemsBySeller } from '@/lib/marketplace/cart-groups';
+import {
+  getCartSellerCount,
+  groupCartItemsBySeller,
+} from '@/lib/marketplace/cart-groups';
 import { useCartSellerProfiles } from '@/components/feature/cart/use-cart-seller-profiles';
 import { CartSellerGroupCard } from '@/components/feature/cart/CartSellerGroup';
 import { CartOrderSummary } from '@/components/feature/cart/CartOrderSummary';
@@ -39,6 +42,8 @@ export default function CartPage() {
     () => groupCartItemsBySeller(items, resolveDisplayName, resolveAccountType),
     [items, resolveDisplayName, resolveAccountType],
   );
+  const sellerCount = getCartSellerCount(sellerGroups);
+  const hasBrxExpress = sellerGroups.some((group) => group.kind === 'brx-express');
 
   const itemCount = useMemo(
     () => items.reduce((acc, item) => acc + item.quantity, 0),
@@ -108,9 +113,12 @@ export default function CartPage() {
           </h1>
           {itemCount > 0 && (
             <p className="mt-2 text-sm text-neutral-500">
-              {sellerGroups.length === 1
-                ? t('cart.sellersOne')
-                : t('cart.sellers', { count: sellerGroups.length })}
+              {sellerCount > 0 &&
+                (sellerCount === 1
+                  ? t('cart.sellersOne')
+                  : t('cart.sellers', { count: sellerCount }))}
+              {sellerCount > 0 && hasBrxExpress && ' + '}
+              {hasBrxExpress && t('cart.brxExpress')}
               {' · '}
               {itemCount === 1
                 ? t('cart.itemsOne', { count: itemCount })
@@ -139,7 +147,7 @@ export default function CartPage() {
             <div className="min-w-0 space-y-5">
               {sellerGroups.map((group) => (
                 <CartSellerGroupCard
-                  key={group.sellerId}
+                  key={group.id}
                   group={group}
                   intlLocale={intlLocale}
                   onUpdateQuantity={updateQuantity}

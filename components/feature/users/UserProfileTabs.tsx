@@ -60,7 +60,7 @@ function TabPlaceholder({ tab, username }: { tab: ProfileTab; username: string }
   const TabIcon = TABS.find((t) => t.id === tab)?.icon;
 
   return (
-    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/70 bg-white/35 px-8 py-16 text-center backdrop-blur-xl">
+    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/70 bg-white/85 px-8 py-16 text-center shadow-sm">
       {TabIcon && (
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/80 shadow-inner ring-1 ring-slate-200/60">
           <TabIcon className="h-6 w-6 text-slate-400" />
@@ -101,7 +101,7 @@ export function UserProfileTabs({
       <div
         role="tablist"
         aria-label="Sezioni profilo"
-        className="flex gap-1 overflow-x-auto rounded-2xl border border-white/60 bg-white/45 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white/90 p-1.5 shadow-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -156,7 +156,9 @@ export function UserProfileTabs({
         tabIndex={0}
         className="min-h-[280px] focus:outline-none"
       >
-        {activeTab === 'collezione' && <UserProfileCollectionPanel username={username} />}
+        {activeTab === 'collezione' && (
+          <UserProfileCollectionPanel userId={userId} username={username} />
+        )}
         {activeTab === 'aste' && (
           <UserProfileAuctionsPanel userId={userId} username={username} />
         )}

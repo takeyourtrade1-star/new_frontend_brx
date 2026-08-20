@@ -26,7 +26,13 @@ export const useCartStore = create<CartState>()(
             );
             return {
               items: state.items.map((i) =>
-                i.lineId === line.lineId ? { ...i, quantity: nextQty } : i,
+                i.lineId === line.lineId
+                  ? {
+                      ...i,
+                      isBrxExpress: line.isBrxExpress,
+                      quantity: nextQty,
+                    }
+                  : i,
               ),
             };
           }

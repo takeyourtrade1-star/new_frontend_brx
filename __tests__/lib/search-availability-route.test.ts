@@ -118,6 +118,38 @@ describe('Route: POST /api/search/availability', () => {
     expect(fetchWithBodyDeadline).toHaveBeenCalledTimes(2);
   });
 
+  it('indica se il venditore richiesto ha quella stampa realmente disponibile', async () => {
+    const sellerId = '019c003d-44a9-7047-afff-de22c9476227';
+    vi.mocked(fetchWithBodyDeadline).mockImplementation(async (input) =>
+      String(input).includes('/sync/listings/')
+        ? Response.json({
+            listings: [{ seller_id: sellerId, quantity: 2, reserved_quantity: 0 }],
+          })
+        : Response.json({ items: [] }),
+    );
+
+    const response = await POST(request({
+      cards: [{ cardId: 'mtg_123', blueprintId: 123 }],
+      sellerId,
+    }));
+
+    await expect(response.json()).resolves.toEqual({
+      availability: {
+        mtg_123: { sellerCount: 1, sellerAvailable: true },
+      },
+    });
+  });
+
+  it('rifiuta un identificativo venditore non UUID', async () => {
+    const response = await POST(request({
+      cards: [{ cardId: 'mtg_123', blueprintId: 123 }],
+      sellerId: '../admin',
+    }));
+
+    expect(response.status).toBe(400);
+    expect(fetchWithBodyDeadline).not.toHaveBeenCalled();
+  });
+
   it('rifiuta ID non validi prima di interrogare i servizi', async () => {
     const response = await POST(request({
       cards: [{ cardId: '../admin', blueprintId: 1 }],
