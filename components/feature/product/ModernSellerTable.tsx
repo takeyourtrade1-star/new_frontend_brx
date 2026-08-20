@@ -1492,6 +1492,7 @@ function ModernSellerTableInner({
               onOwnerEdit={onOwnerEdit}
               onAddToCart={onAddToCart}
               onBuyNow={onBuyNow}
+              onProposeTrade={onProposeTrade}
               onOpenInlineCart={openInlineCart}
               onCloseInlineCart={closeInlineCart}
               onSetCartQty={setCartQty}
