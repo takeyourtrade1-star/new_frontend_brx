@@ -52,18 +52,28 @@ export function redactedUpstreamErrorResponse(
 ): NextResponse {
   const status = upstreamStatus >= 500 ? 502 : upstreamStatus;
   const detail =
-    upstreamStatus === 401
-      ? 'Autenticazione richiesta'
-      : upstreamStatus === 403
-        ? 'Permessi insufficienti'
-        : upstreamStatus === 404
-          ? 'Risorsa non trovata'
-          : upstreamStatus === 409
-            ? 'Operazione in conflitto'
-            : upstreamStatus === 422
-              ? 'Dati richiesta non validi'
-              : upstreamStatus === 429
-                ? 'Troppe richieste'
-                : fallbackMessage;
+    upstreamStatus === 400
+      ? 'Richiesta non valida'
+      : upstreamStatus === 401
+        ? 'Autenticazione richiesta'
+        : upstreamStatus === 403
+          ? 'Permessi insufficienti'
+          : upstreamStatus === 404
+            ? 'Risorsa non trovata'
+            : upstreamStatus === 409
+              ? 'Operazione in conflitto'
+              : upstreamStatus === 410
+                ? 'Sessione scaduta o revocata'
+                : upstreamStatus === 413
+                  ? 'Limite o quota superata'
+                  : upstreamStatus === 422
+                    ? 'Dati richiesta non validi'
+                    : upstreamStatus === 429
+                      ? 'Troppe richieste'
+                      : upstreamStatus === 503
+                        ? 'Servizio temporaneamente non disponibile'
+                        : upstreamStatus === 504
+                          ? 'Timeout del servizio'
+                          : fallbackMessage;
   return NextResponse.json({ detail }, { status, headers: noStoreHeaders() });
 }

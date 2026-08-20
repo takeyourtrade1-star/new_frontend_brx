@@ -355,9 +355,18 @@ export async function listPairingSessionPhotos(
   }));
 }
 
+export interface RevokePhotoPairingSessionOptions {
+  /** Mantiene vivo il DELETE best-effort mentre il wizard Vendi viene smontato. */
+  keepalive?: boolean;
+}
+
 /** Close an active pairing session from the desktop wizard (idempotent). */
-export async function revokePhotoPairingSession(sessionId: string): Promise<void> {
+export async function revokePhotoPairingSession(
+  sessionId: string,
+  options: RevokePhotoPairingSessionOptions = {},
+): Promise<void> {
   await jsonRequest(`/api/auctions/photos/pairing-sessions/${encodeURIComponent(sessionId)}`, {
     method: 'DELETE',
+    keepalive: options.keepalive,
   });
 }

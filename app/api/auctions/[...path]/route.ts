@@ -192,10 +192,14 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   }
 
   const isAttachListing = path === 'photos/attach-listing';
+  const isPhotosPath = path === 'photos' || path.startsWith('photos/');
+  const upstreamFallbackMessage = isPhotosPath
+    ? 'Operazione foto non riuscita'
+    : 'Operazione asta non riuscita';
 
   try {
     const res = await fetchWithTimeout(url.toString(), { method: request.method, headers, body }, PROXY_TIMEOUT_MS);
-    if (!res.ok) return redactedUpstreamErrorResponse(res.status, 'Operazione asta non riuscita');
+    if (!res.ok) return redactedUpstreamErrorResponse(res.status, upstreamFallbackMessage);
     const data = await readJsonResponseWithLimit(res, MAX_PROXY_RESPONSE_BYTES);
     return NextResponse.json(data, { status: res.status, headers: noStoreHeaders() });
   } catch (err) {

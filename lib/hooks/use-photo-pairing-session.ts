@@ -58,9 +58,21 @@ export function usePhotoPairingSession({
   const [flashPhotoId, setFlashPhotoId] = useState<number | null>(null);
 
   const sessionGenRef = useRef(0);
+  const mountedRef = useRef(true);
+  const pairingSessionIdRef = useRef(pairingSessionId);
+  pairingSessionIdRef.current = pairingSessionId;
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const listingPhotosRef = useRef(listingPhotos);
   listingPhotosRef.current = listingPhotos;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      sessionGenRef.current += 1;
+      void revokePairingSessionSafe(pairingSessionIdRef.current, { keepalive: true });
+    };
+  }, []);
 
   useEffect(() => {
     if (!phonePhotoToast) return;
@@ -138,6 +150,7 @@ export function usePhotoPairingSession({
     if (pairingSessionId) {
       void revokePairingSessionSafe(pairingSessionId);
     }
+    pairingSessionIdRef.current = null;
     setPairingSessionId(null);
     setPairingUploadToken(null);
     setPairingExpiresAt(null);
@@ -155,16 +168,22 @@ export function usePhotoPairingSession({
         contextType === 'listing'
           ? await createListingPhotoPairingSession()
           : await createPhotoPairingSession(contextType);
-      if (gen !== sessionGenRef.current || stepIdRef.current !== photoStepId) {
+      if (
+        !mountedRef.current ||
+        gen !== sessionGenRef.current ||
+        stepIdRef.current !== photoStepId
+      ) {
         void revokePairingSessionSafe(created.session_id);
         return false;
       }
       if (!created.upload_token) {
+        void revokePairingSessionSafe(created.session_id);
         setPairingActionError(
-          'Il server non ha restituito il codice di collegamento. Aggiorna il servizio auction e riprova.',
+          'Il server non ha restituito il codice di collegamento. Riprova più tardi.',
         );
         return false;
       }
+      pairingSessionIdRef.current = created.session_id;
       setPairingSessionId(created.session_id);
       setPairingUploadToken(created.upload_token);
       setPairingExpiresAt(created.expires_at ?? null);
@@ -201,6 +220,7 @@ export function usePhotoPairingSession({
     if (pairingSessionId) {
       await revokePairingSessionSafe(pairingSessionId);
     }
+    pairingSessionIdRef.current = null;
     setPairingSessionId(null);
     setPairingUploadToken(null);
     setPairingExpiresAt(null);
@@ -210,6 +230,7 @@ export function usePhotoPairingSession({
 
   const revokePairing = useCallback(async () => {
     await revokePairingSessionSafe(pairingSessionId);
+    pairingSessionIdRef.current = null;
     setPairingSessionId(null);
     setPairingUploadToken(null);
     setPairingExpiresAt(null);
@@ -219,6 +240,7 @@ export function usePhotoPairingSession({
 
   const revokeOnPublish = useCallback(() => {
     void revokePairingSessionSafe(pairingSessionId);
+    pairingSessionIdRef.current = null;
     setPairingSessionId(null);
     setPairingUploadToken(null);
     setPairingExpiresAt(null);

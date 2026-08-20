@@ -320,3 +320,20 @@ describe('uploadPhoto', () => {
     await expect(promise).rejects.toThrow(/abort/i);
   });
 });
+
+describe('revokePhotoPairingSession', () => {
+  it('propaga keepalive quando il wizard viene smontato', async () => {
+    const { revokePhotoPairingSession } = await import('@/lib/api/auction-photo-client');
+    const { calls } = setupFetch([() => jsonOk({ success: true, data: { status: 'closed' } })]);
+
+    await revokePhotoPairingSession('5a8a649d-d591-48ab-adbe-4fd851b30d11', {
+      keepalive: true,
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe(
+      '/api/auctions/photos/pairing-sessions/5a8a649d-d591-48ab-adbe-4fd851b30d11',
+    );
+    expect(calls[0].init).toMatchObject({ method: 'DELETE', keepalive: true });
+  });
+});

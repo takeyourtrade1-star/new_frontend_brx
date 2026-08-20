@@ -738,3 +738,47 @@ describe('/api/trades - sicurezza privata', () => {
     expect(forwarded.has('X-Request-ID')).toBe(false);
   });
 });
+
+// ─── redactedUpstreamErrorResponse & proxy error mapping ────────────────────
+
+describe('redactedUpstreamErrorResponse & proxy error mapping', () => {
+  it('mappa i codici HTTP standard in messaggi chiari senza esporre body interni', async () => {
+    const { redactedUpstreamErrorResponse } = await import('@/app/api/_lib/proxy-response');
+
+    const check = async (status: number, expectedDetail: string, expectedStatus = status) => {
+      const res = redactedUpstreamErrorResponse(status, 'Fallback personalizzato');
+      const body = await res.json();
+      expect(res.status).toBe(expectedStatus);
+      expect(body.detail).toBe(expectedDetail);
+      expect(res.headers.get('cache-control')).toMatch(/no-store/);
+    };
+
+    await check(400, 'Richiesta non valida');
+    await check(401, 'Autenticazione richiesta');
+    await check(403, 'Permessi insufficienti');
+    await check(404, 'Risorsa non trovata');
+    await check(409, 'Operazione in conflitto');
+    await check(410, 'Sessione scaduta o revocata');
+    await check(413, 'Limite o quota superata');
+    await check(422, 'Dati richiesta non validi');
+    await check(429, 'Troppe richieste');
+    await check(503, 'Servizio temporaneamente non disponibile', 502);
+    await check(504, 'Timeout del servizio', 502);
+    await check(500, 'Fallback personalizzato', 502);
+  });
+
+  it('il proxy /api/auctions usa "Operazione foto non riuscita" per endpoint photos', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Internal Error', { status: 500 })));
+    const { POST } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest('/api/auctions/photos/pairing-sessions', {
+      method: 'POST',
+      cookie: VALID_COOKIE,
+      body: JSON.stringify({ context_type: 'listing' }),
+    });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'pairing-sessions'] }) };
+    const res = await POST(req, ctx);
+    const body = await res.json();
+    expect(res.status).toBe(502);
+    expect(body.detail).toBe('Operazione foto non riuscita');
+  });
+});
