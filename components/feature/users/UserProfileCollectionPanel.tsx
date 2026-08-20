@@ -69,9 +69,11 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
   const [onlyGraded, setOnlyGraded] = useState(false);
   const [sortBy, setSortBy] = useState<'price_asc' | 'price_desc' | 'name_asc' | 'name_desc'>('price_asc');
 
+  const offset = (page - 1) * PAGE_SIZE;
+
   const { data, isLoading, isError, refetch } = usePublicUserCollection(username, {
-    limit: 120,
-    offset: 0,
+    limit: PAGE_SIZE,
+    offset,
   });
 
   const rawItems = data?.items ?? [];
@@ -97,7 +99,6 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
     setOnlyFoil(false);
     setOnlyGraded(false);
     setSortBy('price_asc');
-    setPage(1);
   };
 
   const filteredAndSortedItems = useMemo(() => {
@@ -153,12 +154,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
     });
   }, [rawItems, catalog, searchQuery, selectedCondition, onlyFoil, onlyGraded, sortBy]);
 
-  const totalFiltered = filteredAndSortedItems.length;
-  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
-  const currentPagedItems = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredAndSortedItems.slice(start, start + PAGE_SIZE);
-  }, [filteredAndSortedItems, page]);
+  const totalPages = Math.max(1, Math.ceil(totalRaw / PAGE_SIZE));
 
   if (isLoading) {
     return (
@@ -326,7 +322,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
         <p className="flex items-center gap-2 text-sm font-medium text-slate-600">
           <Archive className="h-4 w-4 text-[#ff7300]" />
           <span>
-            <span className="font-bold text-slate-900">{totalFiltered}</span>{' '}
+            <span className="font-bold text-slate-900">{filteredAndSortedItems.length}</span>{' '}
             {hasActiveFilters
               ? t('userProfile.itemsFound') || 'oggetti trovati'
               : t('userProfile.itemsInCollection') || 'oggetti in collezione'}
@@ -336,7 +332,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
       </div>
 
       {/* Griglia Carte o Stato vuoto con filtri */}
-      {totalFiltered === 0 ? (
+      {filteredAndSortedItems.length === 0 ? (
         <div className="flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/80 bg-white/40 px-8 py-12 text-center backdrop-blur-xl">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100/80">
             <Search className="h-6 w-6 text-slate-400" />
@@ -358,7 +354,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {currentPagedItems.map((item) => {
+          {filteredAndSortedItems.map((item) => {
             const card = catalog[item.blueprint_id];
             const names = card
               ? getCardDisplayNames(
