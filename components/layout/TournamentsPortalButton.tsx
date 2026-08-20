@@ -29,7 +29,7 @@ export function TournamentsPortalLink({
 
   if (variant === 'drawer') {
     return (
-      <div className={cn('border-b border-orange-100 px-5 py-4 md:hidden', className)}>
+      <div className={cn('border-b border-orange-100 px-5 py-4 xl:hidden', className)}>
         <Link
           href="/tornei"
           target="_blank"
@@ -60,7 +60,7 @@ export function TournamentsPortalLink({
       rel="noopener noreferrer"
       className={cn(
         PORTAL_BTN_SHARED,
-        'hidden h-9 shrink-0 rounded-full px-4 text-xs text-white md:inline-flex',
+        'hidden h-9 shrink-0 rounded-full px-4 text-xs text-white xl:inline-flex',
         'focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]',
         className
       )}

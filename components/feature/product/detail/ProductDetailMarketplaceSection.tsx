@@ -10,6 +10,8 @@ import {
   MARKETPLACE_LANGUAGE_FILTER_OPTIONS,
   type MarketplaceSort,
 } from '@/lib/product-detail/marketplace-rows';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect';
@@ -140,6 +142,7 @@ export function ProductDetailMarketplaceSection({
   onOwnerQuantityChange,
   rowBusyId,
 }: ProductDetailMarketplaceSectionProps) {
+  const { t } = useTranslation();
   return (
     <section className="w-full bg-[#F0F0F0] border-t border-gray-300">
       <div className="container-content container-content-card-detail py-2.5 sm:py-3 lg:py-4">
@@ -424,9 +427,15 @@ export function ProductDetailMarketplaceSection({
               })}
             </div>
             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-              <p className="border-b border-gray-200 px-3 py-2 text-[11px] text-gray-500 sm:px-4 sm:text-xs">
-                {tabsHint}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-slate-50/70 px-3 py-2 text-[11px] text-gray-600 sm:px-4 sm:text-xs">
+                <span>{tabsHint}</span>
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-[#FF7300]/10 px-2.5 py-0.5 text-[11px] font-bold text-[#d96200]">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-[#FF7300] text-white">
+                    <ScambiIcon className="h-2.5 w-2.5" strokeWidth={2.5} />
+                  </span>
+                  <span>{t('marketplace.proposeTradeHint')}</span>
+                </div>
+              </div>
               {sellerSubTab === 'VENDITORI' && (
                 <div
                   id="pd-market-panel-VENDITORI"

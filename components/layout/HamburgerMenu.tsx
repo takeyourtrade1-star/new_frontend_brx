@@ -230,7 +230,7 @@ export function HamburgerMenu() {
         <nav className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 overflow-y-auto pb-2">
           {/* GIOCHI: sempre in cima, solo MTG (come desktop) */}
-          <div className="relative border-b border-orange-100 md:hidden" ref={gameMenuRef}>
+          <div className="relative border-b border-orange-100 lg:hidden" ref={gameMenuRef}>
             <p className="px-5 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
               {t('game.label')}
             </p>

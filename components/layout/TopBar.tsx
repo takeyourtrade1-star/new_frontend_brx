@@ -188,10 +188,10 @@ export function TopBar() {
     <>
       {scambiIntroOpen && <ScambiVideoIntro onClose={() => setScambiIntroOpen(false)} />}
       {asteIntroOpen && <AsteVideoIntro onClose={() => setAsteIntroOpen(false)} />}
-      <div className="flex w-full min-h-0 items-center gap-0 py-0.5">
+      <div className="flex w-full min-h-0 items-center justify-between gap-1 sm:gap-2 py-0.5">
         {/* Left: Logo + selettore gioco — colonna allineata al menu Prodotti sotto */}
         <div
-          className={`flex min-w-0 flex-1 md:flex-none items-center overflow-visible ${HEADER_GAME_ROW_GAP_CLASS}`}
+          className={`flex min-w-0 shrink-0 items-center overflow-visible ${HEADER_GAME_ROW_GAP_CLASS}`}
         >
           <div className={HEADER_BRX_LOGO_COLUMN_CLASS}>
             <Link
@@ -214,7 +214,7 @@ export function TopBar() {
           {/* Da tablet in su: selettore in header. Su mobile il gioco si sceglie dal menu hamburger. */}
           <div
             className={cn(
-              'relative hidden h-full min-w-0 items-center md:flex',
+              'relative hidden h-full min-w-0 items-center lg:flex',
               HEADER_GAME_TEXT_INSET_CLASS
             )}
             ref={gamesMenuRef}
@@ -230,10 +230,10 @@ export function TopBar() {
               aria-haspopup="true"
               aria-label={t('game.selectGameAria')}
             >
-              <span className="leading-none">{selectedGame ? gameDisplayName(selectedGame) : t('game.selectGame')}</span>
+              <span className="leading-none whitespace-nowrap">{selectedGame ? gameDisplayName(selectedGame) : t('game.selectGame')}</span>
               <span
                 className={cn(
-                  'ml-1 flex h-4 w-4 items-center justify-center text-[#FF7300] transition-transform',
+                  'ml-1 flex h-4 w-4 shrink-0 items-center justify-center text-[#FF7300] transition-transform',
                   gamesMenuOpen && 'rotate-180'
                 )}
                 aria-hidden
@@ -283,7 +283,7 @@ export function TopBar() {
           ) : isAuthenticated ? (
             <>
               {/* Menu centrale: desktop = Account + Acquisti + Vendi + Scambi + Aste + Carrello. Mobile = Acquisti + Vendite + Scambi + Aste (carrello in FAB) */}
-              <div className="flex flex-1 items-center justify-center gap-0.5 md:gap-2">
+              <div className="flex items-center justify-center gap-1 md:gap-1.5 xl:gap-2">
               {/* 1. Nome utente + icona — solo da tablet in su; su mobile è nel menu hamburger */}
               <div className="relative hidden items-center gap-2 md:flex" ref={accountMenuRef}>
                 <button
@@ -309,13 +309,13 @@ export function TopBar() {
                       animated
                     />
                   </span>
-                  <span className="hidden max-w-[6rem] shrink-0 text-[0.78rem] font-medium uppercase text-white md:block" title={user?.username ?? user?.name ?? user?.email ?? undefined}>
+                  <span className="hidden max-w-[6rem] shrink-0 text-[0.78rem] font-medium uppercase text-white xl:block" title={user?.username ?? user?.name ?? user?.email ?? undefined}>
                     {shortLabel}
                   </span>
-                  <span className="hidden text-[0.78rem] text-white sm:inline shrink-0">({balance})</span>
+                  <span className="hidden text-[0.78rem] text-white xl:inline shrink-0">({balance})</span>
                   <span
                     className={cn(
-                      'ml-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center text-[#FF7300] transition-transform',
+                      'hidden xl:flex ml-0.5 h-3.5 w-3.5 shrink-0 items-center justify-center text-[#FF7300] transition-transform',
                       accountMenuOpen && 'rotate-180'
                     )}
                     aria-hidden
@@ -382,11 +382,11 @@ export function TopBar() {
                   >
                     <PurchasesBagIcon className="h-[0.9rem] w-[0.9rem]" stroke="#FF7300" strokeWidth={2} animated />
                   </span>
-                  <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
+                  <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase xl:inline">
                     {t('purchases.title')}
                   </span>
                   <span
-                    className="ml-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center text-[#FF7300]"
+                    className="hidden xl:flex ml-0.5 h-3.5 w-3.5 shrink-0 items-center justify-center text-[#FF7300]"
                     aria-hidden
                   >
                     {/* Freccia dropdown minimal, senza "bottone nel bottone" */}
@@ -457,10 +457,10 @@ export function TopBar() {
                   >
                     <SalesTagIcon className="h-[0.9rem] w-[0.9rem]" stroke="#FF7300" strokeWidth={2} animated />
                   </span>
-                  <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase lg:inline">
+                  <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase xl:inline">
                     {t('nav.sell')}
                   </span>
-                  <span className="hidden h-3.5 w-3.5 shrink-0 items-center justify-center text-[#FF7300] lg:flex">
+                  <span className="hidden xl:flex h-3.5 w-3.5 shrink-0 items-center justify-center text-[#FF7300]">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="16"
@@ -534,7 +534,7 @@ export function TopBar() {
                     <path d="M21 21v-5h-5" />
                   </svg>
                 </span>
-                <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
+                <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase xl:inline">
                   {t('nav.trades')}
                 </span>
               </button>
@@ -561,7 +561,7 @@ export function TopBar() {
                 >
                   <AuctionGavelIcon className="h-[0.9rem] w-[0.9rem]" stroke="#FF7300" animated />
                 </span>
-                <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
+                <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase xl:inline">
                   {t('nav.auctions')}
                 </span>
               </button>
@@ -575,7 +575,7 @@ export function TopBar() {
           ) : null}
         </div>
         {/* Destra: notifiche, portale tornei (esterno), hamburger */}
-        <div className="ml-1 flex flex-1 justify-end md:flex-none md:justify-start items-center gap-2 md:gap-2.5" aria-label={t('header.menuAria')}>
+        <div className="ml-1 flex shrink-0 items-center gap-2 md:gap-2.5" aria-label={t('header.menuAria')}>
           {isAuthenticated ? <NotificationBell /> : null}
           <TournamentsPortalLink variant="header" />
           {!scambiIntroOpen && !asteIntroOpen && <HamburgerMenu />}

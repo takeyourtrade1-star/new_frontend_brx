@@ -20,7 +20,7 @@ export function DemoBanner() {
       <div className="container-content container-header">
         <div className="flex items-center justify-between gap-1 py-1 sm:py-0.5">
           {/* LEFT — Demo badge */}
-          <div className="flex flex-1 shrink-0 items-center justify-start">
+          <div className="flex shrink-0 items-center justify-start">
             <div className="hidden items-center gap-1.5 sm:flex">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" aria-hidden />
               <span className="text-[10px] font-bold uppercase tracking-wider text-white sm:text-xs whitespace-nowrap">
@@ -36,7 +36,7 @@ export function DemoBanner() {
           </div>
 
           {/* CENTER — 3 links */}
-          <div className="flex items-center justify-center gap-0.5 sm:gap-2">
+          <div className="flex flex-1 min-w-0 items-center justify-center gap-0.5 sm:gap-2">
             <span className="hidden text-[9px] font-medium uppercase tracking-wider text-white/70 lg:inline lg:text-[10px]">
               {isIT ? 'Solo su Ebartex:' : 'Only on Ebartex:'}
             </span>
@@ -70,7 +70,7 @@ export function DemoBanner() {
           </div>
 
           {/* RIGHT — spacer to visually balance the left badge on desktop */}
-          <div className="flex flex-1 shrink-0 items-center justify-end" />
+          <div className="hidden sm:flex shrink-0 items-center justify-end w-16 md:w-24" aria-hidden />
         </div>
       </div>
     </div>

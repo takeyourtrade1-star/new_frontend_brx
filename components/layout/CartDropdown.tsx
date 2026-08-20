@@ -112,7 +112,7 @@ export function CartDropdown() {
             </span>
           )}
         </span>
-        <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase text-white md:inline">
+        <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase text-white xl:inline">
           ({formatEuro(cartTotal)})
         </span>
       </Link>
