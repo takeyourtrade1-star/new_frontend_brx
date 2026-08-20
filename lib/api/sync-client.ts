@@ -304,6 +304,7 @@ export const syncClient = {
     ready: boolean;
     result?: unknown;
     error?: string;
+    error_code?: string | null;
     message?: string;
   }> {
     return request(`/api/v1/sync/task/${taskId}`, token, { method: 'GET' });

@@ -181,7 +181,11 @@ export function SincronizzazioneContent() {
               }
               setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'active' } : null));
             } else if (taskRes.status === 'FAILURE' || taskRes.error) {
-              setLastSyncError(taskRes.error || t('accountPage.syncErrFailedRetry'));
+              setLastSyncError(
+                taskRes.error_code === 'snapshot_rejected'
+                  ? t('accountPage.syncErrSnapshotRejected')
+                  : t('accountPage.syncErrFailedRetry'),
+              );
               setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'error' } : null));
             }
             setLoadingStart(false);

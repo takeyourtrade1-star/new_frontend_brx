@@ -818,6 +818,8 @@ export const fr: Record<MessageKey, string> = {
   'accountPage.syncErrTokenFormat': 'Le format du jeton est incorrect. Copiez-le à nouveau depuis les Settings CardTrader.',
   'accountPage.syncErrTokenRejected': 'CardTrader n’a pas pu vérifier le jeton. Vérifiez qu’il est actif et recopiez-le depuis les Settings.',
   'accountPage.syncErrFailedRetry': 'La synchronisation s’est interrompue. Le jeton reste connecté ; réessayez depuis Opérations.',
+  'accountPage.syncErrSnapshotRejected': 'CardTrader a renvoyé un inventaire nettement plus petit. Par sécurité, nous attendons des confirmations cohérentes avant de l’appliquer ; réessayez après le prochain export.',
+  'accountPage.syncRealListingExport': 'Les nouvelles annonces Ebartex sont exportées vers CardTrader via la file sécurisée.',
   'accountPage.syncSubtitle': 'Connectez CardTrader, importez votre inventaire et suivez la synchronisation.',
   'accountPage.syncRefreshAll': 'Actualiser l’état',
   'accountPage.syncOperationsTitle': 'Opérations d’inventaire',

@@ -818,6 +818,8 @@ export const pt: Record<MessageKey, string> = {
   'accountPage.syncErrTokenFormat': 'O formato do token não é válido. Copie-o novamente dos Settings do CardTrader.',
   'accountPage.syncErrTokenRejected': 'O CardTrader não conseguiu verificar o token. Confirme que está ativo e copie-o novamente dos Settings.',
   'accountPage.syncErrFailedRetry': 'A sincronização foi interrompida. O token continua ligado; tente novamente em Operações.',
+  'accountPage.syncErrSnapshotRejected': 'O CardTrader devolveu um inventário muito menor. Por segurança, aguardamos confirmações consistentes antes de o aplicar; tente novamente após a próxima exportação.',
+  'accountPage.syncRealListingExport': 'Os novos anúncios Ebartex são exportados para o CardTrader através da fila segura.',
   'accountPage.syncSubtitle': 'Ligue o CardTrader, importe o inventário e acompanhe a sincronização.',
   'accountPage.syncRefreshAll': 'Atualizar estado',
   'accountPage.syncOperationsTitle': 'Operações de inventário',

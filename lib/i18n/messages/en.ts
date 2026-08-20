@@ -816,6 +816,8 @@ export const en = {
   'accountPage.syncErrTokenFormat': 'The token format is not valid. Copy it again from CardTrader Settings.',
   'accountPage.syncErrTokenRejected': 'CardTrader could not verify the token. Check that it is active and copy it again from Settings.',
   'accountPage.syncErrFailedRetry': 'Synchronization stopped. Your token is still connected; retry from Operations.',
+  'accountPage.syncErrSnapshotRejected': 'CardTrader returned a much smaller inventory. For safety, we wait for consistent confirmation before applying it; retry after the next export.',
+  'accountPage.syncRealListingExport': 'New Ebartex listings are exported to CardTrader through the secure queue.',
   'accountPage.syncSubtitle': 'Connect CardTrader, import your inventory and monitor synchronization status.',
   'accountPage.syncRefreshAll': 'Refresh status',
   'accountPage.syncOperationsTitle': 'Inventory operations',

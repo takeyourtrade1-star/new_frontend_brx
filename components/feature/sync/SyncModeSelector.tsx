@@ -10,6 +10,7 @@ import {
 } from '@/lib/api/marketplace-client';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface ModeInfo {
   value: SyncMode;
@@ -42,6 +43,8 @@ function ConfirmRealModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#1D3160]/70 p-4"
@@ -64,7 +67,7 @@ function ConfirmRealModal({
         </p>
         <ul className="mt-5 space-y-2 text-sm text-[#1D3160]/70">
           <li>La chiave API deve avere permessi di lettura e scrittura.</li>
-          <li>Le inserzioni Ebartex restano separate: non vengono esportate.</li>
+          <li>{t('accountPage.syncRealListingExport')}</li>
           <li>Puoi tornare in Demo o Parziale in qualunque momento.</li>
         </ul>
         <div className="mt-8 flex justify-end gap-3">
