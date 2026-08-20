@@ -67,7 +67,6 @@ export interface ProductDetailMarketplaceSectionProps {
   listingActionMessage: string | null;
   sortedMarketplaceRows: MarketplaceRow[];
   listingsLoading: boolean;
-  auctionsLoading: boolean;
   listingsError: string | null;
   marketplaceEmptyMessage: string | undefined;
   card?: CardDocument;
@@ -129,7 +128,6 @@ export function ProductDetailMarketplaceSection({
   listingActionMessage,
   sortedMarketplaceRows,
   listingsLoading,
-  auctionsLoading,
   listingsError,
   marketplaceEmptyMessage,
   card,
@@ -451,7 +449,6 @@ export function ProductDetailMarketplaceSection({
                   <ModernSellerTable
                     rows={sortedMarketplaceRows}
                     loading={listingsLoading}
-                    auctionsLoading={auctionsLoading}
                     error={listingsError}
                     emptyMessage={marketplaceEmptyMessage}
                     cardImageSrc={cardImageSrc}

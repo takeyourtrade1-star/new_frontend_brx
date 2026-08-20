@@ -216,7 +216,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   } = useProductFilters({ userCountry: user?.country, detectedCountry, productId: card?.id });
 
   // Piano 1.3 — aste correlate alla carta.
-  const { enrichedCardAuctions, auctionsLoading } = useProductAuctions(card);
+  const { enrichedCardAuctions } = useProductAuctions(card);
 
   // Piano 1.3 — gestione inserzioni proprie (modali + mutazioni quantità/modifica).
   const {
@@ -499,7 +499,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           listingActionMessage={listingActionMessage}
           sortedMarketplaceRows={sortedMarketplaceRows}
           listingsLoading={listingsLoading}
-          auctionsLoading={auctionsLoading}
           listingsError={listingsError}
           marketplaceEmptyMessage={marketplaceEmptyMessage}
           card={card}

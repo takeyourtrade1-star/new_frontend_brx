@@ -30,11 +30,17 @@ describe('useProductAuctions', () => {
 
     expect(useAuctionList).toHaveBeenCalledWith(
       { q: 'Black Lotus', status: 'ACTIVE', limit: 20 },
-      { enabled: true }
+      { enabled: true, retry: expect.any(Function) }
     );
+    const retry = vi.mocked(useAuctionList).mock.calls[0]?.[1]?.retry as (
+      failureCount: number,
+      error: Error & { status?: number }
+    ) => boolean;
+    expect(retry(0, Object.assign(new Error('upstream'), { status: 502 }))).toBe(true);
+    expect(retry(1, Object.assign(new Error('upstream'), { status: 502 }))).toBe(false);
+    expect(retry(0, Object.assign(new Error('bad request'), { status: 400 }))).toBe(false);
     expect(apiToAuctionUI).toHaveBeenCalledTimes(2);
     expect(result.current.enrichedCardAuctions).toHaveLength(2);
-    expect(result.current.auctionsLoading).toBe(false);
   });
 
   it('disabilita la query quando non c\'è un nome carta', () => {
@@ -44,7 +50,7 @@ describe('useProductAuctions', () => {
 
     expect(useAuctionList).toHaveBeenCalledWith(
       { q: undefined, status: 'ACTIVE', limit: 20 },
-      { enabled: false }
+      { enabled: false, retry: expect.any(Function) }
     );
     expect(result.current.enrichedCardAuctions).toHaveLength(0);
   });

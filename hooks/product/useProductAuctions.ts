@@ -4,6 +4,16 @@ import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI } from '@/lib/auction/auction-adapter';
 import { useEnrichedCardAuctions } from '@/lib/hooks/use-enriched-card-auctions';
 
+function retryTransientAuctionListError(failureCount: number, error: Error): boolean {
+  const status = 'status' in error
+    ? (error as Error & { status?: number }).status
+    : undefined;
+
+  // La lista aste arricchisce quella venditori in background: un errore client
+  // non va ritentato, mentre per rete/5xx basta un solo secondo tentativo.
+  return failureCount < 1 && (status == null || status >= 500);
+}
+
 /**
  * Piano 1.3 — seam "aste correlate" estratto da ProductDetailView.
  * Incapsula la query delle aste attive per nome carta e l'arricchimento
@@ -15,7 +25,10 @@ export function useProductAuctions(card: CardDocument | undefined) {
 
   const cardAuctionsQuery = useAuctionList(
     { q: cardNameForAuctions || undefined, status: 'ACTIVE', limit: 20 },
-    { enabled: cardNameForAuctions.length > 0 }
+    {
+      enabled: cardNameForAuctions.length > 0,
+      retry: retryTransientAuctionListError,
+    }
   );
 
   const baseCardAuctions = useMemo(
@@ -27,6 +40,5 @@ export function useProductAuctions(card: CardDocument | undefined) {
 
   return {
     enrichedCardAuctions,
-    auctionsLoading: cardAuctionsQuery.isLoading,
   };
 }
