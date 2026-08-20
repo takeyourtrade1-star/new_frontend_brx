@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 
 import { Check, ChevronLeft, ChevronRight, Loader2, Tag } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -164,11 +165,15 @@ export function SellSingleWizard({
 
   const validateDetails = useCallback((): boolean => {
     if (!user?.id || !accessToken) {
-      setError('Accedi per pubblicare un\'inserzione.');
+      setError('Effettua l\'accesso per pubblicare un\'inserzione.');
       return false;
     }
     if (!embeddedCard.id) {
       setError('Carta non disponibile per la pubblicazione.');
+      return false;
+    }
+    if (!draft.condition) {
+      setError('Seleziona la condizione della carta.');
       return false;
     }
     if (unitPrice <= 0) {
@@ -181,7 +186,7 @@ export function SellSingleWizard({
     }
     setError(null);
     return true;
-  }, [user?.id, accessToken, embeddedCard.id, unitPrice, quantity]);
+  }, [user?.id, accessToken, embeddedCard.id, draft.condition, unitPrice, quantity]);
 
   const validatePhotos = useCallback((): boolean => {
     // Foto opzionali: blocca solo se l'utente ne ha aggiunte ma non sono pronte.
@@ -412,12 +417,20 @@ export function SellSingleWizard({
               </div>
             )}
             {error && (
-              <p
-                className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"
+              <div
+                className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"
                 role="alert"
               >
-                {error}
-              </p>
+                <span>{error}</span>
+                {(!user?.id || !accessToken || error.toLowerCase().includes('accesso') || error.toLowerCase().includes('autenticazione')) && (
+                  <Link
+                    href="/login"
+                    className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm hover:bg-primary/90 transition-colors"
+                  >
+                    Accedi
+                  </Link>
+                )}
+              </div>
             )}
 
             {stepId === 'details' && (
@@ -431,7 +444,7 @@ export function SellSingleWizard({
                 compact={isEmbedded}
                 onConditionChange={(value) => {
                   update('condition', value);
-                  if (!dontShowConditionModal) {
+                  if (value && !dontShowConditionModal) {
                     setIsConditionModalOpen(true);
                   }
                 }}

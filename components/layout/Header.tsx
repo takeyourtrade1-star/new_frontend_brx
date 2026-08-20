@@ -56,7 +56,7 @@ export function Header({
         ref={(n) => {
           headerRef.current = n;
         }}
-        className={`fixed top-0 left-0 right-0 z-[100] w-full font-display text-white ${transparent ? 'bg-transparent' : 'header-gradient'}`}
+        className={`fixed top-0 left-0 right-0 z-[500] w-full font-display text-white ${transparent ? 'bg-transparent' : 'header-gradient'}`}
       >
       {/* Demo Banner - parte sopra dell'header */}
       <DemoBanner />

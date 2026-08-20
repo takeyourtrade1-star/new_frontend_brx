@@ -230,7 +230,7 @@ export function SearchResultsDropdown({
     inlinePreview && inlinePreviewLayout && typeof document !== 'undefined'
       ? createPortal(
           <div
-            className="fixed z-[1100] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+            className="fixed z-[550] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
             style={{
               left: inlinePreviewLayout.left,
               top: inlinePreviewLayout.top,
@@ -278,7 +278,7 @@ export function SearchResultsDropdown({
           top: position.top,
           left: position.left,
           width: position.width,
-          zIndex: 1001,
+          zIndex: 510,
         }}
       >
         {suggestionsBody}

@@ -9,7 +9,11 @@ import {
 } from '@/lib/auction/auction-language-preference';
 import type { CardLanguageOption } from '@/lib/card-languages';
 import { SELL_SINGLE_CONDITION_OPTIONS } from '@/lib/marketplace/sell-single-conditions';
-import type { SellSingleDraft } from '@/lib/marketplace/sell-single-draft';
+import {
+  parseSellSinglePriceInput,
+  sanitizePriceInput,
+  type SellSingleDraft,
+} from '@/lib/marketplace/sell-single-draft';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -119,7 +123,11 @@ export function SellSingleDetailsStep({
             type="text"
             inputMode="decimal"
             value={draft.price}
-            onChange={(e) => update('price', e.target.value)}
+            onChange={(e) => update('price', sanitizePriceInput(e.target.value))}
+            onBlur={(e) => {
+              const parsed = parseSellSinglePriceInput(e.target.value);
+              if (parsed > 0) update('price', parsed.toFixed(2));
+            }}
             className={cn(
               'w-full rounded-md border border-zinc-200 bg-zinc-50/50 px-2 py-1 text-[13px] font-medium text-zinc-900 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10',
               compact && 'py-0.5 text-xs',
@@ -166,6 +174,7 @@ export function SellSingleDetailsStep({
               label: opt.label,
             }))}
             value={draft.condition}
+            placeholder="Seleziona condizione"
             onChange={(value) => onConditionChange(value)}
             className={cn(
               compact &&

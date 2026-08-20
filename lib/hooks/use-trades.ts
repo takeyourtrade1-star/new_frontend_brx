@@ -14,7 +14,13 @@ export const tradeKeys = {
 
 export function useTrades(params?: TradeListParams) {
   const owner = useAuthStore((state) => state.user?.id || 'anonymous');
-  return useQuery({ queryKey: tradeKeys.list(owner, params), queryFn: () => tradesApi.list(params), staleTime: 15_000 });
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  return useQuery({
+    queryKey: tradeKeys.list(owner, params),
+    queryFn: () => tradesApi.list(params),
+    enabled: Boolean(isAuthenticated && owner && owner !== 'anonymous'),
+    staleTime: 15_000,
+  });
 }
 
 export function useTrade(tradeId: number) {

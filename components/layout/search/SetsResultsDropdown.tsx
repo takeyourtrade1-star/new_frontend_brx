@@ -107,7 +107,7 @@ export function SetsResultsDropdown({
         top: position.top,
         left: position.left,
         width: position.width,
-        zIndex: 1001,
+        zIndex: 510,
       }}
     >
       {setsBody}

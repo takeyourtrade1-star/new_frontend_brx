@@ -54,15 +54,19 @@ interface PickerItem {
   setName?: string;
   condition?: string;
   language?: string;
+  foil?: boolean;
+  signed?: boolean;
+  altered?: boolean;
+  graded?: boolean;
   priceCents: number;
   source: 'cardtrader' | 'marketplace';
 }
 
-type PickerSort = 'default' | 'price-desc' | 'price-asc' | 'name-asc';
+type PickerSort = 'default' | 'price-desc' | 'price-asc' | 'name-asc' | 'name-desc';
+type PickerTraitFilter = 'all' | 'foil' | 'non-foil' | 'altered' | 'signed' | 'graded';
 
 const PICKER_INITIAL_ITEMS = 32;
 const PICKER_ITEMS_STEP = 32;
-const PRIVATE_CASH_MAX_CENTS = 1_000_000;
 
 export function parsePrivateCashInput(value: string): number | null {
   const normalized = value.trim().replace(',', '.');
@@ -71,8 +75,8 @@ export function parsePrivateCashInput(value: string): number | null {
   if (!/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(normalized)) return null;
 
   const cents = Math.round(Number(normalized) * 100);
-  if (!Number.isFinite(cents)) return null;
-  return Math.min(PRIVATE_CASH_MAX_CENTS, Math.max(0, cents));
+  if (!Number.isFinite(cents) || cents < 0) return null;
+  return cents;
 }
 
 function privateCashInputValue(amountCents: number): string {
@@ -116,10 +120,26 @@ function toTradeItems(selected: Record<string, number>, items: PickerItem[]): Tr
 
 function inventoryProperty(
   properties: Record<string, unknown> | null | undefined,
-  key: string,
+  ...keys: string[]
 ): string | undefined {
-  const value = properties?.[key];
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  if (!properties) return undefined;
+  for (const key of keys) {
+    const value = properties[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+function inventoryBoolProperty(
+  properties: Record<string, unknown> | null | undefined,
+  ...keys: string[]
+): boolean {
+  if (!properties) return false;
+  for (const key of keys) {
+    const value = properties[key];
+    if (value === true || value === 'true' || value === 1 || value === '1') return true;
+  }
+  return false;
 }
 
 function selectedValueCents(selected: Record<string, number>, items: PickerItem[]): number {
@@ -152,39 +172,72 @@ const ItemPicker = memo(function ItemPicker({
   const { t } = useTranslation();
   const locale = useIntlLocale();
   const [query, setQuery] = useState('');
+  const [setFilter, setSetFilter] = useState('all');
   const [condition, setCondition] = useState('all');
   const [language, setLanguage] = useState('all');
+  const [traitFilter, setTraitFilter] = useState<PickerTraitFilter>('all');
   const [sort, setSort] = useState<PickerSort>('default');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [visibleLimit, setVisibleLimit] = useState(PICKER_INITIAL_ITEMS);
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase(locale));
   const selectedCount = Object.values(selected).reduce((sum, quantity) => sum + quantity, 0);
-  const conditions = useMemo(() => [...new Set(items.flatMap((item) => item.condition ? [item.condition] : []))].sort(), [items]);
-  const languages = useMemo(() => [...new Set(items.flatMap((item) => item.language ? [item.language] : []))]
-    .sort((left, right) => getCardLanguageLabel(left).localeCompare(getCardLanguageLabel(right), locale)), [items, locale]);
+
+  const sets = useMemo(
+    () => [...new Set(items.flatMap((item) => (item.setName ? [item.setName] : [])))].sort((a, b) =>
+      a.localeCompare(b, locale),
+    ),
+    [items, locale],
+  );
+  const conditions = useMemo(
+    () => [...new Set(items.flatMap((item) => (item.condition ? [item.condition] : [])))].sort(),
+    [items],
+  );
+  const languages = useMemo(
+    () =>
+      [...new Set(items.flatMap((item) => (item.language ? [item.language] : [])))].sort((left, right) =>
+        getCardLanguageLabel(left).localeCompare(getCardLanguageLabel(right), locale),
+      ),
+    [items, locale],
+  );
+
   const filteredItems = useMemo(() => {
     const matches = items.filter((item) => {
+      if (setFilter !== 'all' && item.setName !== setFilter) return false;
       if (condition !== 'all' && item.condition !== condition) return false;
       if (language !== 'all' && item.language !== language) return false;
+      if (traitFilter === 'foil' && !item.foil) return false;
+      if (traitFilter === 'non-foil' && item.foil) return false;
+      if (traitFilter === 'altered' && !item.altered) return false;
+      if (traitFilter === 'signed' && !item.signed) return false;
+      if (traitFilter === 'graded' && !item.graded) return false;
       if (!deferredQuery) return true;
       return `${item.name} ${item.setName ?? ''}`.toLocaleLowerCase(locale).includes(deferredQuery);
     });
     if (sort === 'price-desc') return [...matches].sort((a, b) => b.priceCents - a.priceCents);
     if (sort === 'price-asc') return [...matches].sort((a, b) => a.priceCents - b.priceCents);
     if (sort === 'name-asc') return [...matches].sort((a, b) => a.name.localeCompare(b.name, locale));
+    if (sort === 'name-desc') return [...matches].sort((a, b) => b.name.localeCompare(a.name, locale));
     return matches;
-  }, [condition, deferredQuery, items, language, locale, sort]);
+  }, [condition, deferredQuery, items, language, locale, setFilter, sort, traitFilter]);
+
   const visibleItems = filteredItems.slice(0, visibleLimit);
-  const activeFilterCount = Number(query.trim().length > 0) + Number(condition !== 'all') + Number(language !== 'all') + Number(sort !== 'default');
+  const activeFilterCount =
+    Number(query.trim().length > 0) +
+    Number(setFilter !== 'all') +
+    Number(condition !== 'all') +
+    Number(language !== 'all') +
+    Number(traitFilter !== 'all') +
+    Number(sort !== 'default');
 
   useEffect(() => {
     setVisibleLimit(PICKER_INITIAL_ITEMS);
-  }, [deferredQuery, condition, language, sort]);
+  }, [deferredQuery, setFilter, condition, language, traitFilter, sort]);
 
   const toggle = (item: PickerItem) => {
     if (locked?.has(item.id)) return;
     const next = { ...selected };
-    if (next[item.id]) delete next[item.id]; else next[item.id] = 1;
+    if (next[item.id]) delete next[item.id];
+    else next[item.id] = 1;
     onChange(next);
   };
 
@@ -197,10 +250,14 @@ const ItemPicker = memo(function ItemPicker({
             {t('trades.inventoryResults', { shown: filteredItems.length, total: totalCount ?? items.length })}
           </p>
         </div>
-        <span className={cn(
-          'rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide',
-          selectedCount ? 'bg-[#FF7300] text-white shadow-sm' : 'bg-white/10 text-white/40',
-        )} aria-live="polite" aria-atomic="true">
+        <span
+          className={cn(
+            'rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide',
+            selectedCount ? 'bg-[#FF7300] text-white shadow-sm' : 'bg-white/10 text-white/40',
+          )}
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {t('trades.selectedCount', { count: selectedCount })}
         </span>
       </div>
@@ -230,35 +287,94 @@ const ItemPicker = memo(function ItemPicker({
           >
             <SlidersHorizontal className="h-4 w-4" aria-hidden />
             <span className="hidden xl:inline">{t('trades.filters')}</span>
-            {activeFilterCount > 0 && <span className="rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] text-white">{activeFilterCount}</span>}
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] text-white">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
         </div>
 
         {filtersOpen && (
-          <div className="mt-2 grid gap-2 animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none sm:grid-cols-3">
+          <div className="mt-2 grid gap-2 animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+            {sets.length > 0 && (
+              <label className="relative col-span-2 sm:col-span-1">
+                <span className="sr-only">{t('trades.filterSet')}</span>
+                <select
+                  value={setFilter}
+                  onChange={(event) => setSetFilter(event.target.value)}
+                  className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60"
+                >
+                  <option value="all">{t('trades.allSets')}</option>
+                  {sets.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" aria-hidden />
+              </label>
+            )}
             <label className="relative">
               <span className="sr-only">{t('trades.filterCondition')}</span>
-              <select value={condition} onChange={(event) => setCondition(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60">
+              <select
+                value={condition}
+                onChange={(event) => setCondition(event.target.value)}
+                className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60"
+              >
                 <option value="all">{t('trades.allConditions')}</option>
-                {conditions.map((value) => <option key={value} value={value}>{value}</option>)}
+                {conditions.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" aria-hidden />
             </label>
             <label className="relative">
               <span className="sr-only">{t('trades.filterLanguage')}</span>
-              <select value={language} onChange={(event) => setLanguage(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60">
+              <select
+                value={language}
+                onChange={(event) => setLanguage(event.target.value)}
+                className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60"
+              >
                 <option value="all">{t('trades.allLanguages')}</option>
-                {languages.map((value) => <option key={value} value={value}>{getCardLanguageLabel(value)}</option>)}
+                {languages.map((value) => (
+                  <option key={value} value={value}>
+                    {getCardLanguageLabel(value)}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" aria-hidden />
             </label>
             <label className="relative">
+              <span className="sr-only">{t('trades.filterTrait')}</span>
+              <select
+                value={traitFilter}
+                onChange={(event) => setTraitFilter(event.target.value as PickerTraitFilter)}
+                className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60"
+              >
+                <option value="all">{t('trades.allTraits')}</option>
+                <option value="foil">{t('trades.onlyFoil')}</option>
+                <option value="non-foil">{t('trades.nonFoil')}</option>
+                <option value="altered">{t('trades.onlyAltered')}</option>
+                <option value="signed">{t('trades.onlySigned')}</option>
+                <option value="graded">{t('trades.onlyGraded')}</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" aria-hidden />
+            </label>
+            <label className="relative col-span-2 sm:col-span-1">
               <span className="sr-only">{t('trades.sortInventory')}</span>
-              <select value={sort} onChange={(event) => setSort(event.target.value as PickerSort)} className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60">
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value as PickerSort)}
+                className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#13213D] px-3 pr-8 text-xs font-bold text-white outline-none focus:border-[#FF8A26]/60"
+              >
                 <option value="default">{t('trades.sortDefault')}</option>
                 <option value="price-desc">{t('trades.sortPriceDesc')}</option>
                 <option value="price-asc">{t('trades.sortPriceAsc')}</option>
                 <option value="name-asc">{t('trades.sortNameAsc')}</option>
+                <option value="name-desc">{t('trades.sortNameDesc')}</option>
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" aria-hidden />
             </label>
@@ -306,19 +422,47 @@ const ItemPicker = memo(function ItemPicker({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-black text-white">{item.name}</span>
                     <span className="mt-0.5 block truncate text-[11px] font-semibold text-white/40">
-                      {[item.setName, item.condition, item.language ? getCardLanguageLabel(item.language) : null].filter(Boolean).join(' · ') || t('trades.availableCount', { count: item.quantity })}
+                      {[item.setName, item.condition, item.language ? getCardLanguageLabel(item.language) : null]
+                        .filter(Boolean)
+                        .join(' · ') || t('trades.availableCount', { count: item.quantity })}
                     </span>
-                    <span className="mt-1 block text-[10px] font-black tabular-nums text-orange-200/75">{formatEurCents(item.priceCents, locale)}</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-black tabular-nums text-orange-200/75">
+                        {formatEurCents(item.priceCents, locale)}
+                      </span>
+                      {item.foil && (
+                        <span className="rounded bg-violet-500/25 px-1.5 py-0.5 text-[9px] font-black uppercase text-violet-200">
+                          Foil
+                        </span>
+                      )}
+                      {item.signed && (
+                        <span className="rounded bg-sky-500/25 px-1.5 py-0.5 text-[9px] font-black uppercase text-sky-200">
+                          Firmata
+                        </span>
+                      )}
+                      {item.altered && (
+                        <span className="rounded bg-rose-500/25 px-1.5 py-0.5 text-[9px] font-black uppercase text-rose-200">
+                          Alterata
+                        </span>
+                      )}
+                      {item.graded && (
+                        <span className="rounded bg-emerald-500/25 px-1.5 py-0.5 text-[9px] font-black uppercase text-emerald-200">
+                          Gradata
+                        </span>
+                      )}
+                    </div>
                     {isLocked && (
                       <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-[#FF7300]">
                         <LockKeyhole className="h-3 w-3" aria-hidden /> {t('trades.lockedCard')}
                       </span>
                     )}
                   </span>
-                  <span className={cn(
-                    'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-200',
-                    isSelected ? 'border-[#FF7300] bg-[#FF7300] text-white' : 'border-white/25 bg-white/5 text-transparent',
-                  )}>
+                  <span
+                    className={cn(
+                      'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-200',
+                      isSelected ? 'border-[#FF7300] bg-[#FF7300] text-white' : 'border-white/25 bg-white/5 text-transparent',
+                    )}
+                  >
                     <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
                   </span>
                 </button>
@@ -329,7 +473,12 @@ const ItemPicker = memo(function ItemPicker({
                     min={1}
                     max={item.quantity}
                     value={quantity}
-                    onChange={(event) => onChange({ ...selected, [item.id]: Math.max(1, Math.min(item.quantity, Number(event.target.value) || 1)) })}
+                    onChange={(event) =>
+                      onChange({
+                        ...selected,
+                        [item.id]: Math.max(1, Math.min(item.quantity, Number(event.target.value) || 1)),
+                      })
+                    }
                     onFocus={(event) => event.currentTarget.select()}
                     className="h-9 w-14 rounded-xl border border-white/15 bg-white/90 px-1 text-center text-sm font-black text-[#1D3160] outline-none focus:ring-2 focus:ring-[#FF7300]/35"
                     aria-label={t('trades.quantityFor', { card: item.name })}
@@ -392,7 +541,7 @@ export function PrivateCashControls({
   };
 
   const changeAmount = (next: number) => {
-    const safeAmount = Math.min(PRIVATE_CASH_MAX_CENTS, Math.max(0, Math.round(next)));
+    const safeAmount = Math.max(0, Math.round(next));
     onAmountChange(safeAmount);
     setAmountInput(privateCashInputValue(safeAmount));
   };
@@ -1020,9 +1169,13 @@ export function TradeProposalPage() {
         quantity: item.quantity,
         name: card?.name || item.description || t('trades.cardFallback', { id: item.blueprint_id }),
         image: card?.image,
-        setName: card?.set_name,
-        condition: inventoryProperty(item.properties, 'condition'),
-        language: inventoryProperty(item.properties, 'mtg_language'),
+        setName: card?.set_name || inventoryProperty(item.properties, 'set_name', 'set'),
+        condition: inventoryProperty(item.properties, 'condition', 'mtg_condition'),
+        language: inventoryProperty(item.properties, 'mtg_language', 'language', 'lang'),
+        foil: inventoryBoolProperty(item.properties, 'mtg_foil', 'foil'),
+        signed: inventoryBoolProperty(item.properties, 'signed'),
+        altered: inventoryBoolProperty(item.properties, 'altered'),
+        graded: item.graded === true || inventoryBoolProperty(item.properties, 'graded'),
         priceCents: Math.max(0, item.price_cents),
         source: isMarketplace ? 'marketplace' : 'cardtrader',
       };
@@ -1042,9 +1195,13 @@ export function TradeProposalPage() {
           quantity: item.quantity,
           name: item.name || card?.name || t('trades.cardFallback', { id: item.blueprintId }),
           image: card?.image,
-          setName: card?.set_name,
-          condition: inventoryProperty(item.properties, 'condition'),
-          language: inventoryProperty(item.properties, 'mtg_language'),
+          setName: card?.set_name || inventoryProperty(item.properties, 'set_name', 'set'),
+          condition: inventoryProperty(item.properties, 'condition', 'mtg_condition'),
+          language: inventoryProperty(item.properties, 'mtg_language', 'language', 'lang'),
+          foil: inventoryBoolProperty(item.properties, 'mtg_foil', 'foil'),
+          signed: inventoryBoolProperty(item.properties, 'signed'),
+          altered: inventoryBoolProperty(item.properties, 'altered'),
+          graded: inventoryBoolProperty(item.properties, 'graded'),
           priceCents: Math.max(0, item.priceCents ?? 0),
           source: item.source === 'marketplace' ? 'marketplace' as const : 'cardtrader' as const,
         }];
@@ -1061,9 +1218,13 @@ export function TradeProposalPage() {
         quantity: item.quantity,
         name: card?.name || t('trades.cardFallback', { id: item.blueprint_id }),
         image: card?.image,
-        setName: card?.set_name,
-        condition: inventoryProperty(item.properties, 'condition'),
-        language: inventoryProperty(item.properties, 'mtg_language'),
+        setName: card?.set_name || inventoryProperty(item.properties, 'set_name', 'set'),
+        condition: inventoryProperty(item.properties, 'condition', 'mtg_condition'),
+        language: inventoryProperty(item.properties, 'mtg_language', 'language', 'lang'),
+        foil: inventoryBoolProperty(item.properties, 'mtg_foil', 'foil'),
+        signed: inventoryBoolProperty(item.properties, 'signed'),
+        altered: inventoryBoolProperty(item.properties, 'altered'),
+        graded: inventoryBoolProperty(item.properties, 'graded'),
         priceCents: Math.max(0, item.price_cents),
         source: 'cardtrader',
       };
@@ -1082,7 +1243,13 @@ export function TradeProposalPage() {
           quantity: ctx.listing.quantity,
           name: ctx.card.name,
           image: ctx.card.image,
+          setName: (ctx.card as { setName?: string }).setName,
           condition: ctx.card.condition || undefined,
+          language: (ctx.card as { language?: string }).language,
+          foil: Boolean((ctx.card as { foil?: boolean }).foil),
+          signed: Boolean((ctx.card as { signed?: boolean }).signed),
+          altered: Boolean((ctx.card as { altered?: boolean }).altered),
+          graded: Boolean((ctx.card as { graded?: boolean }).graded),
           priceCents: Math.max(0, Math.round(ctx.card.priceEur * 100)),
           source: isMarketplace ? 'marketplace' : 'cardtrader',
         });

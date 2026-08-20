@@ -13,7 +13,7 @@ export interface AuctionFloatingNoticeProps {
 export function AuctionFloatingNotice({ top, notice }: AuctionFloatingNoticeProps) {
   return (
     <div
-      className="fixed left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 px-1"
+      className="fixed left-1/2 z-30 w-[min(92vw,640px)] -translate-x-1/2 px-1"
       style={{ top: top + 8 }}
       role="status"
       aria-live="polite"

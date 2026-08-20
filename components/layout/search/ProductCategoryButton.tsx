@@ -135,8 +135,8 @@ export function ProductCategoryButton({
             ref={dropdownRef}
             className={
               isBarOpen
-                ? 'search-category-dropdown-panel search-category-dropdown-panel--attached fixed z-[1100] overflow-hidden bg-white py-1 !rounded-t-none !rounded-br-none !rounded-bl-[20px] md:!rounded-bl-[24px]'
-                : 'search-category-dropdown-panel fixed z-[1100] min-w-[180px] max-w-[220px] overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-xl'
+                ? 'search-category-dropdown-panel search-category-dropdown-panel--attached fixed z-[550] overflow-hidden bg-white py-1 !rounded-t-none !rounded-br-none !rounded-bl-[20px] md:!rounded-bl-[24px]'
+                : 'search-category-dropdown-panel fixed z-[550] min-w-[180px] max-w-[220px] overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-xl'
             }
             style={{
               top: pos.top,

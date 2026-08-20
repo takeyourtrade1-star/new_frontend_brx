@@ -16,7 +16,7 @@ import {
  */
 
 export type TriState = 'SÌ' | 'NO' | 'ENTRAMBI';
-export type SellerSubTab = 'VENDITORI' | 'ASTE' | 'TCG_EXPRESS';
+export type SellerSubTab = 'VENDITORI' | 'ASTE';
 
 export interface ProductFiltersState {
   hideAuctions: boolean;

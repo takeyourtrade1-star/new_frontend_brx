@@ -48,6 +48,7 @@ export function HamburgerMenu() {
   const [scannerQrUrl, setScannerQrUrl] = useState('');
   const { theme, toggleTheme } = useTheme();
   const { selectedLang, setSelectedLang, availableLangs } = useLanguage();
+  const [mounted, setMounted] = useState(false);
   const [linguaDropdownOpen, setLinguaDropdownOpen] = useState(false);
   const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
@@ -173,13 +174,17 @@ export function HamburgerMenu() {
   }, [open]);
 
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          'relative z-[10001] flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:h-12 md:w-12',
+          'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:h-12 md:w-12',
           open && 'pointer-events-none invisible'
         )}
         aria-label={t('common.openMenu')}
@@ -188,23 +193,27 @@ export function HamburgerMenu() {
         <Menu className="h-6 w-6 shrink-0 md:h-8 md:w-8" strokeWidth={2.25} aria-hidden />
       </button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-[9999] bg-black/40 transition-opacity"
-          aria-hidden
-          onClick={() => setOpen(false)}
-        />
-      )}
+      {mounted &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            {open && (
+              <div
+                className="fixed inset-0 z-[9999] bg-black/40 transition-opacity"
+                aria-hidden
+                onClick={() => setOpen(false)}
+              />
+            )}
 
-      <div
-        className={cn(
-          'fixed right-0 top-0 z-[10000] flex h-full w-[min(100%,320px)] max-w-[88vw] flex-col bg-white shadow-[-8px_0_32px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out',
-          open ? 'translate-x-0' : 'translate-x-full'
-        )}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('common.menuDialog')}
-      >
+            <div
+              className={cn(
+                'fixed right-0 top-0 z-[10000] flex h-full w-[min(100%,320px)] max-w-[88vw] flex-col bg-white shadow-[-8px_0_32px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out',
+                open ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+              )}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('common.menuDialog')}
+            >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
           <span className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Menu</span>
@@ -502,6 +511,9 @@ export function HamburgerMenu() {
           )}
         </nav>
       </div>
+          </>,
+          document.body
+        )}
 
       {typeof document !== 'undefined' &&
         createPortal(

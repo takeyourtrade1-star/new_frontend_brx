@@ -21,8 +21,8 @@ export interface ProductDetailMarketplaceSectionProps {
   filtersOpen: boolean;
   onFiltersOpen: () => void;
   onFiltersClose: () => void;
-  sellerSubTab: 'VENDITORI' | 'ASTE' | 'TCG_EXPRESS';
-  onSellerSubTabChange: (tab: 'VENDITORI' | 'ASTE' | 'TCG_EXPRESS') => void;
+  sellerSubTab: 'VENDITORI' | 'ASTE';
+  onSellerSubTabChange: (tab: 'VENDITORI' | 'ASTE') => void;
   hideAuctions: boolean;
   onHideAuctionsChange: (value: boolean) => void;
   listingsSort: MarketplaceSort;
@@ -392,7 +392,6 @@ export function ProductDetailMarketplaceSection({
                 [
                   { id: 'VENDITORI' as const, label: inVenditaLabel, icon: 'vendita' },
                   { id: 'ASTE' as const, label: asteLabel, icon: 'aste' },
-                  { id: 'TCG_EXPRESS' as const, label: brxExpressLabel, icon: 'express' },
                 ] as const
               ).map((tab) => {
                 const selected = sellerSubTab === tab.id;
@@ -419,13 +418,7 @@ export function ProductDetailMarketplaceSection({
                   >
                     {tab.icon === 'vendita' && <Tag className={iconClass} aria-hidden />}
                     {tab.icon === 'aste' && <AuctionGavelIcon className={iconClass} animated />}
-                    {tab.icon === 'express' && <Zap className={iconClass} aria-hidden />}
                     <span className="truncate">{tab.label}</span>
-                    {tab.id === 'TCG_EXPRESS' && (
-                      <span className="inline-flex items-center rounded-full bg-emerald-500 px-1 text-[7px] font-bold leading-[1.6] text-white">
-                        {brxNewLabel}
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -472,24 +465,6 @@ export function ProductDetailMarketplaceSection({
                   aria-labelledby="pd-market-tab-ASTE"
                 >
                   <ProductAuctionsPanel card={card} />
-                </div>
-              )}
-              {sellerSubTab === 'TCG_EXPRESS' && (
-                <div
-                  id="pd-market-panel-TCG_EXPRESS"
-                  role="tabpanel"
-                  aria-labelledby="pd-market-tab-TCG_EXPRESS"
-                  className="p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300"
-                >
-                  <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50/60 p-6 text-center">
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-400 shadow-md shadow-orange-500/20">
-                      <Zap className="h-6 w-6 text-white" aria-hidden />
-                    </div>
-                    <p className="text-sm font-extrabold uppercase tracking-wide text-orange-700">BRX Express</p>
-                    <p className="mt-1 text-sm text-orange-600/80">
-                      Spedizione ultra-rapida per le tue carte. Presto disponibile.
-                    </p>
-                  </div>
                 </div>
               )}
             </div>

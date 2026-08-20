@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { AUCTION_LISTING_PHOTO_MAX, type ListingPhotoSlot } from '@/lib/auction/auction-create-draft';
 import {
   deletePhoto as deleteUploadedPhoto,
@@ -81,41 +81,49 @@ export function useSellSinglePhotos({
       });
   }, []);
 
+  const listingPhotosRef = useRef(listingPhotos);
+  listingPhotosRef.current = listingPhotos;
+  const photoUploadsRef = useRef(photoUploads);
+  photoUploadsRef.current = photoUploads;
+
   const setListingPhotos = useCallback(
     (next: ListingPhotoSlot[]) => {
-      setDraft((d) => {
-        const previous = d.listingPhotos;
+      const previous = listingPhotosRef.current;
+      const currentUploads = photoUploadsRef.current;
 
-        for (const old of previous) {
-          if (slotIncludedIn(next, old)) continue;
-          if (old.kind === 'local') {
-            const entry = photoUploads.get(old.file);
-            if (!entry) continue;
+      // Handle removed photos: abort in-flight and delete from backend
+      for (const old of previous) {
+        if (slotIncludedIn(next, old)) continue;
+        if (old.kind === 'local') {
+          const entry = currentUploads.get(old.file);
+          if (entry) {
             entry.abort.abort();
             if (entry.status === 'done' && entry.photo) {
               void deleteUploadedPhoto(entry.photo.id).catch(() => {});
             }
-            setPhotoUploads((prev) => {
-              if (!prev.has(old.file)) return prev;
-              const m = new Map(prev);
-              m.delete(old.file);
-              return m;
-            });
-          } else {
-            void deleteUploadedPhoto(old.photo.id).catch(() => {});
           }
+          setPhotoUploads((prev) => {
+            if (!prev.has(old.file)) return prev;
+            const m = new Map(prev);
+            m.delete(old.file);
+            return m;
+          });
+        } else {
+          void deleteUploadedPhoto(old.photo.id).catch(() => {});
         }
+      }
 
-        for (const s of next) {
-          if (slotIncludedIn(previous, s)) continue;
-          if (s.kind === 'local') startUploadFor(s.file);
+      // Handle newly added local photos: start upload
+      for (const s of next) {
+        if (!slotIncludedIn(previous, s) && s.kind === 'local') {
+          startUploadFor(s.file);
         }
+      }
 
-        return { ...d, listingPhotos: next };
-      });
+      setDraft((d) => ({ ...d, listingPhotos: next }));
       setError(null);
     },
-    [photoUploads, startUploadFor, setDraft, setError],
+    [startUploadFor, setDraft, setError],
   );
 
   const retryFailedUpload = useCallback(
@@ -135,15 +143,17 @@ export function useSellSinglePhotos({
   const appendListingPhotos = useCallback(
     (fileList: FileList | null) => {
       if (!fileList?.length) return;
-      const next = [...listingPhotos];
+      const currentList = listingPhotosRef.current;
+      const next = [...currentList];
       for (const f of Array.from(fileList)) {
-        if (!f.type.startsWith('image/')) continue;
+        const isImg = f.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|avif|gif)$/i.test(f.name);
+        if (!isImg) continue;
         if (next.length >= AUCTION_LISTING_PHOTO_MAX) break;
         next.push({ kind: 'local', file: f });
       }
-      if (next.length > listingPhotos.length) setListingPhotos(next);
+      if (next.length > currentList.length) setListingPhotos(next);
     },
-    [listingPhotos, setListingPhotos],
+    [setListingPhotos],
   );
 
   const photoUploadStatuses = useMemo<ListingPhotoUploadStatus[]>(

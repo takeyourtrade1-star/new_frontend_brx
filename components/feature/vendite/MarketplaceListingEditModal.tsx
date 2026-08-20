@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Loader2, X } from 'lucide-react';
+import { sanitizePriceInput } from '@/lib/marketplace/sell-single-draft';
 
 const fieldClass =
   'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25';
@@ -71,7 +72,7 @@ export function MarketplaceListingEditModal({
               type="text"
               inputMode="decimal"
               value={priceEuro}
-              onChange={(e) => setPriceEuro(e.target.value)}
+              onChange={(e) => setPriceEuro(sanitizePriceInput(e.target.value))}
               className={`${fieldClass} mt-1`}
               required
             />

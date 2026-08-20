@@ -55,7 +55,7 @@ export function SellSinglePhotoStep({
                   <input
                     ref={galleryInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
                     multiple
                     className="sr-only"
                     onChange={(e) => {
@@ -66,7 +66,7 @@ export function SellSinglePhotoStep({
                   <input
                     ref={cameraInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
                     capture="environment"
                     className="sr-only"
                     onChange={(e) => {

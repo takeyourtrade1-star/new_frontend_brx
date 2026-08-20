@@ -246,8 +246,20 @@ export function ScambiContent() {
               </div>
             ) : trades.length === 0 ? (
               <div className={cn(scambiGlass, 'flex min-h-56 flex-col items-center justify-center rounded-[1.5rem] p-6 text-center')}>
-                <h3 className="text-lg font-black uppercase text-white">{t('trades.emptyTitle')}</h3>
-                <p className="mt-1 max-w-md text-sm text-white/60">{t('trades.emptyText')}</p>
+                <h3 className="text-lg font-black uppercase text-white">
+                  {tab === 'received'
+                    ? t('trades.emptyReceivedTitle')
+                    : tab === 'sent'
+                      ? t('trades.emptySentTitle')
+                      : t('trades.emptyClosedTitle')}
+                </h3>
+                <p className="mt-1 max-w-md text-sm text-white/60">
+                  {tab === 'received'
+                    ? t('trades.emptyReceivedText')
+                    : tab === 'sent'
+                      ? t('trades.emptySentText')
+                      : t('trades.emptyClosedText')}
+                </p>
               </div>
             ) : (
               <div className="grid gap-3">

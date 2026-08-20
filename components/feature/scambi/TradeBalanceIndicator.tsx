@@ -156,10 +156,16 @@ export function TradeBalanceIndicator({
         : t('trades.balance.requestedHeavy', { user: otherName, amount: difference });
 
   return (
-    <div className={cn('relative z-30 flex flex-col items-center', className)}>
+    <div
+      className={cn('relative z-30 flex flex-col items-center', className)}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
         aria-expanded={open}
         aria-label={t('trades.balance.open')}
         className={cn(
@@ -176,7 +182,7 @@ export function TradeBalanceIndicator({
       </button>
 
       {open && (
-        <div className="absolute top-full mt-2 w-64 rounded-2xl border border-white/15 bg-[#08162E]/95 p-3 text-center text-white shadow-[0_18px_45px_rgba(0,0,0,.42)] backdrop-blur-xl" role="status">
+        <div className="absolute top-full mt-2 w-64 rounded-2xl border border-white/15 bg-[#08162E]/95 p-3 text-center text-white shadow-[0_18px_45px_rgba(0,0,0,.42)] backdrop-blur-xl animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none" role="status">
           <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#FFB477]">
             <Scale className="h-3.5 w-3.5" aria-hidden /> {t('trades.balance.title')}
           </div>

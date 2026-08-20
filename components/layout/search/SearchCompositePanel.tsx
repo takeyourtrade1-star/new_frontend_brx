@@ -80,7 +80,7 @@ export function SearchCompositePanel({
         top: position.top,
         left: position.left,
         width: position.width,
-        zIndex: 1001,
+        zIndex: 510,
       }}
     >
       <div className="search-composite-panel__category-col" style={{ width: position.categoryWidth }}>

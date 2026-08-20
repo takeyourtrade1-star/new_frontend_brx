@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { sanitizePriceInput } from '@/lib/marketplace/sell-single-draft';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import type { ConditionCode } from '@/components/ui/ConditionBadge';
 
@@ -113,7 +114,7 @@ export function InventoryEditModal({
                 type="text"
                 inputMode="decimal"
                 value={priceEuro}
-                onChange={(e) => setPriceEuro(e.target.value)}
+                onChange={(e) => setPriceEuro(sanitizePriceInput(e.target.value))}
                 className={fieldClass}
               />
             </div>

@@ -1,9 +1,10 @@
 /** Sync-style condition codes used in sell-single wizard (maps via condition-map.ts). */
 export const SELL_SINGLE_CONDITION_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'Seleziona condizione' },
   { value: 'near_mint', label: 'Near Mint' },
-  { value: 'heavily_played', label: 'Heavily Played' },
-  { value: 'moderately_played', label: 'Moderately Played' },
   { value: 'lightly_played', label: 'Lightly Played' },
+  { value: 'moderately_played', label: 'Moderately Played' },
+  { value: 'heavily_played', label: 'Heavily Played' },
   { value: 'damaged', label: 'Damaged' },
 ];
 
@@ -16,5 +17,6 @@ export const SELL_SINGLE_CONDITION_IMAGES: Record<string, { front: string; back:
 };
 
 export function sellSingleConditionLabel(code: string): string {
-  return SELL_SINGLE_CONDITION_OPTIONS.find((o) => o.value === code)?.label ?? 'Near Mint';
+  if (!code) return 'Seleziona condizione';
+  return SELL_SINGLE_CONDITION_OPTIONS.find((o) => o.value === code)?.label ?? 'Seleziona condizione';
 }

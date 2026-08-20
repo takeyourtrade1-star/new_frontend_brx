@@ -26,10 +26,11 @@ export class MarketplaceApiError extends Error {
 }
 
 function parseMarketplaceErrorBody(body: string, status: number): string {
+  if (status === 401) {
+    return 'Effettua l\'accesso per pubblicare sul marketplace.';
+  }
   if (!body.trim()) {
-    return status === 401
-      ? 'Sessione scaduta. Effettua di nuovo l\'accesso.'
-      : `Errore del marketplace (${status}).`;
+    return `Errore del marketplace (${status}).`;
   }
   try {
     const json = JSON.parse(body) as {

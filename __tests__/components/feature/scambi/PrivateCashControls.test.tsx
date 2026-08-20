@@ -58,14 +58,14 @@ describe('PrivateCashControls', () => {
     expect(input).toHaveValue('12.34');
   });
 
-  it('accetta punto o virgola, rifiuta più di due decimali e applica il limite', () => {
+  it('accetta punto o virgola, rifiuta più di due decimali e non ha limite a 10k', () => {
     expect(parsePrivateCashInput('9.50')).toBe(950);
     expect(parsePrivateCashInput('9,50')).toBe(950);
     expect(parsePrivateCashInput('9,')).toBe(900);
     expect(parsePrivateCashInput(',50')).toBe(50);
     expect(parsePrivateCashInput('9,999')).toBeNull();
     expect(parsePrivateCashInput('oltre')).toBeNull();
-    expect(parsePrivateCashInput('20000')).toBe(1_000_000);
+    expect(parsePrivateCashInput('20000')).toBe(2_000_000);
   });
 
   it('aumenta e diminuisce il numero di monete in base al compenso', () => {

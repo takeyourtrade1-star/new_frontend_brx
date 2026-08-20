@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   Star,
   X,
+  Zap,
 } from 'lucide-react';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { FlagIcon } from '@/components/ui/FlagIcon';
@@ -32,6 +33,46 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { MarketplaceReportModal } from '@/components/feature/product/MarketplaceReportModal';
 import type { MarketplaceReportContext } from '@/lib/marketplace/report-reasons';
+
+export function isExpressListing(item: ListingItem): boolean {
+  const ext = item as ListingItem & {
+    is_express?: boolean;
+    express?: boolean;
+    brx_express?: boolean;
+    delivery_speed?: string;
+    is_tcg_express?: boolean;
+    shipping_method?: string;
+  };
+  return Boolean(
+    ext.is_express ||
+    ext.express ||
+    ext.brx_express ||
+    ext.delivery_speed === 'express' ||
+    ext.is_tcg_express ||
+    ext.shipping_method === 'express' ||
+    ext.shipping_method === 'brx_express'
+  );
+}
+
+export function BrxExpressBadge({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        'group/express relative inline-flex items-center justify-center cursor-pointer shrink-0',
+        className
+      )}
+      title="BRX Express"
+      aria-label="BRX Express"
+    >
+      <span className="relative flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-sm transition-transform duration-200 group-hover/express:scale-125">
+        <Zap className="h-2.5 w-2.5 fill-amber-200 text-white animate-pulse" strokeWidth={2.5} aria-hidden />
+      </span>
+      <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-md opacity-0 transition-opacity duration-150 group-hover/express:opacity-100 z-30">
+        BRX Express
+      </span>
+    </span>
+  );
+}
 
 const CONDITION_TEXT_TO_CODE: Record<string, ConditionCode> = {
   'Near Mint': 'NM',
@@ -141,6 +182,7 @@ function MarketplaceSellerCell({
   reviewCount,
   salesCount,
   isPro,
+  isExpress,
   onReport,
 }: {
   username: string;
@@ -149,6 +191,7 @@ function MarketplaceSellerCell({
   reviewCount: number;
   salesCount: number;
   isPro?: boolean;
+  isExpress?: boolean;
   onReport?: () => void;
 }) {
   const { t } = useTranslation();
@@ -180,6 +223,7 @@ function MarketplaceSellerCell({
       {isPro ? (
         <span className="shrink-0 rounded bg-slate-700 px-1 py-px text-[7px] font-bold uppercase text-white">Pro</span>
       ) : null}
+      {isExpress ? <BrxExpressBadge /> : null}
       {onReport ? (
         <>
           <span className="shrink-0 text-slate-300">·</span>
@@ -739,6 +783,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
           reviewCount={rep.reviewCount}
           salesCount={rep.salesCount}
           isPro={item.seller_account_type === 'business'}
+          isExpress={isExpressListing(item)}
           onReport={onReport}
         />
       </td>
@@ -1030,6 +1075,7 @@ const MobileListingRow = memo(function MobileListingRow({
           reviewCount={rep.reviewCount}
           salesCount={rep.salesCount}
           isPro={item.seller_account_type === 'business'}
+          isExpress={isExpressListing(item)}
           onReport={onReport}
         />
         <div className="mt-1.5 flex items-center justify-between gap-2">

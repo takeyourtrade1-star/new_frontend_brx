@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { LayoutGrid, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -9,8 +10,13 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 export function ProdottiMenu() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const [headerBottom, setHeaderBottom] = useState(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const menuItems = useMemo(
     () =>
@@ -93,43 +99,50 @@ export function ProdottiMenu() {
         </span>
       </button>
 
-      {/* Overlay — solo sotto l'header */}
-      {open && (
-        <div
-          className="fixed inset-x-0 bottom-0 z-[9999] bg-black/40 transition-opacity"
-          style={{ top: headerBottom }}
-          aria-hidden
-          onClick={() => setOpen(false)}
-        />
-      )}
-
-      {/* Drawer — parte dal bordo inferiore dell'header */}
-      <div
-        ref={drawerRef}
-        className={cn(
-          'fixed left-0 bottom-0 z-[10000] flex w-[min(100%,340px)] max-w-[92vw] flex-col bg-white shadow-[8px_0_32px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out',
-          open ? 'translate-x-0' : '-translate-x-full'
-        )}
-        style={{ top: headerBottom }}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('products.menuAria')}
-      >
-        {/* Voci menu */}
-        <nav className="flex-1 overflow-y-auto">
-          {menuItems.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
+      {/* Overlay + Drawer portaled su document.body per sfuggire allo stacking context dell'header */}
+      {mounted &&
+        open &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            {/* Overlay — solo sotto l'header */}
+            <div
+              className="fixed inset-x-0 bottom-0 z-[9999] bg-black/40 transition-opacity"
+              style={{ top: headerBottom }}
+              aria-hidden
               onClick={() => setOpen(false)}
-              className="block border-b border-gray-100 px-5 py-3.5 text-[13px] font-semibold uppercase tracking-wide text-[#1D3160] transition-colors duration-200 hover:bg-primary/30 hover:backdrop-blur-2xl hover:backdrop-saturate-150 focus:bg-primary/30 focus:outline-none"
-              role="menuitem"
+            />
+
+            {/* Drawer — parte dal bordo inferiore dell'header */}
+            <div
+              ref={drawerRef}
+              className={cn(
+                'fixed left-0 bottom-0 z-[10000] flex w-[min(100%,340px)] max-w-[92vw] flex-col bg-white shadow-[8px_0_32px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out',
+                open ? 'translate-x-0' : '-translate-x-full'
+              )}
+              style={{ top: headerBottom }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('products.menuAria')}
             >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
+              {/* Voci menu */}
+              <nav className="flex-1 overflow-y-auto">
+                {menuItems.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="block border-b border-gray-100 px-5 py-3.5 text-[13px] font-semibold uppercase tracking-wide text-[#1D3160] transition-colors duration-200 hover:bg-primary/30 hover:backdrop-blur-2xl hover:backdrop-saturate-150 focus:bg-primary/30 focus:outline-none"
+                    role="menuitem"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          </>,
+          document.body
+        )}
     </>
   );
 }
