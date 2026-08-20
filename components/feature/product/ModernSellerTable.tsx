@@ -27,7 +27,11 @@ import { formatAuctionCountdown } from '@/lib/auction/auction-countdown';
 import type { AuctionUI } from '@/lib/auction/auction-adapter';
 import { listingConditionCode, type MarketplaceRow } from '@/lib/product-detail/marketplace-rows';
 import { listingRowKey } from '@/lib/marketplace/listing-map';
-import { getListingPhotos } from '@/lib/api/listing-photo-client';
+import {
+  getCachedListingPhotos,
+  getListingPhotos,
+  subscribeListingPhotos,
+} from '@/lib/api/listing-photo-client';
 import { MarketplaceNowProvider, useMarketplaceNowMs } from '@/lib/hooks/use-marketplace-now-ms';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
@@ -267,34 +271,37 @@ function getListingPhotoUrls(fallback?: string | null): string[] {
 }
 
 function useListingRowImageUrls(item: ListingItem, fallback?: string | null): string[] {
-  const [urls, setUrls] = useState<string[]>(() => getListingPhotoUrls(fallback));
+  const listingId = item.listing_source === 'marketplace' ? item.marketplace_listing_id : null;
+
+  const [urls, setUrls] = useState<string[]>(() => {
+    if (listingId) {
+      const cached = getCachedListingPhotos(listingId);
+      if (cached && cached.length > 0) {
+        return dedupePhotoUrls([cached[0]?.cdn_url, fallback]);
+      }
+    }
+    return getListingPhotoUrls(fallback);
+  });
 
   useEffect(() => {
     const base = getListingPhotoUrls(fallback);
-    if (item.listing_source !== 'marketplace' || !item.marketplace_listing_id) {
+    if (!listingId) {
       setUrls(base);
       return;
     }
 
-    let cancelled = false;
-    void getListingPhotos(item.marketplace_listing_id)
-      .then((photos) => {
-        if (cancelled) return;
-        const first = photos[0]?.cdn_url;
-        setUrls(dedupePhotoUrls([first, fallback]));
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          // eslint-disable-next-line no-console
-          console.warn('[ModernSellerTable] photo fetch error', { listingId: item.marketplace_listing_id, err });
-          setUrls(base);
-        }
-      });
-
-    return () => {
-      cancelled = true;
+    const updateFromCache = () => {
+      const cached = getCachedListingPhotos(listingId);
+      if (cached && cached.length > 0) {
+        setUrls(dedupePhotoUrls([cached[0]?.cdn_url, fallback]));
+      } else {
+        setUrls(base);
+      }
     };
-  }, [item.listing_source, item.marketplace_listing_id, fallback]);
+
+    updateFromCache();
+    return subscribeListingPhotos(updateFromCache);
+  }, [listingId, fallback]);
 
   return urls;
 }

@@ -58,13 +58,27 @@ function chunk<T>(values: T[], size: number): T[][] {
   return out;
 }
 
+const QUERY_UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function fetchPublicUserProfiles(
   userIds: string[]
 ): Promise<Record<string, PublicUserProfile | null>> {
   const uniqueIds = [...new Set(userIds.filter(Boolean))];
   if (uniqueIds.length === 0) return {};
 
-  const uncachedIds = uniqueIds.filter((id) => profileCache[id] === undefined);
+  const validUuidIds: string[] = [];
+  for (const id of uniqueIds) {
+    if (QUERY_UUID.test(id)) {
+      validUuidIds.push(id);
+    } else {
+      if (profileCache[id] === undefined) {
+        profileCache[id] = null;
+      }
+    }
+  }
+
+  const uncachedIds = validUuidIds.filter((id) => profileCache[id] === undefined);
   if (uncachedIds.length === 0) {
     return asProfileMap(uniqueIds);
   }

@@ -34,10 +34,11 @@ async function fetchAuctionBlueprintInventory(
 export function useAuctionBlueprintInventory(
   userId: string | undefined,
   accessToken: string | null,
-  blueprintId: number | null
+  blueprintId: number | null,
+  enabledTab = true
 ) {
   const queryClient = useQueryClient();
-  const enabled = Boolean(userId && accessToken && blueprintId != null);
+  const enabled = Boolean(userId && accessToken && blueprintId != null && enabledTab);
 
   const query = useQuery({
     queryKey:
@@ -46,7 +47,7 @@ export function useAuctionBlueprintInventory(
         : ['product-detail', 'auction-inventory', 'none'],
     queryFn: () => fetchAuctionBlueprintInventory(userId!, accessToken!, blueprintId!),
     enabled,
-    staleTime: 0,
+    staleTime: 30_000,
   });
 
   const invalidateAuctionInventory = async () => {

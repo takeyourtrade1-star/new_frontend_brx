@@ -146,7 +146,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const { auctionInventoryItems, auctionInventoryLoading } = useAuctionBlueprintInventory(
     user?.id,
     accessToken,
-    blueprintIdForAuction
+    blueprintIdForAuction,
+    activeTab === 'ASTA'
   );
 
   const {

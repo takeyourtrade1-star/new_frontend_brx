@@ -20,9 +20,17 @@ async function fetchRawListings(
     items: [] as const,
     total: 0,
   };
+  const emptySync = {
+    blueprint_id: blueprintId,
+    listings: [] as ListingItem[],
+  };
 
   const [syncResult, mktResult] = await Promise.allSettled([
-    syncClient.getListingsByBlueprint(blueprintId),
+    withTimeout(
+      syncClient.getListingsByBlueprint(blueprintId).catch(() => emptySync),
+      MARKETPLACE_LISTINGS_TIMEOUT_MS,
+      emptySync
+    ),
     withTimeout(
       getPublicListingsByBlueprint(blueprintId, cardId).catch(() => emptyMarketplace),
       MARKETPLACE_LISTINGS_TIMEOUT_MS,

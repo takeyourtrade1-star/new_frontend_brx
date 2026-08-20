@@ -75,8 +75,38 @@ async function fetchListingPhotosFromApi(listingId: string): Promise<ListingPhot
   return normalizeListingPhotos(photos);
 }
 
+type PhotoCacheListener = () => void;
+const photoCacheListeners = new Set<PhotoCacheListener>();
+
+export function subscribeListingPhotos(listener: PhotoCacheListener): () => void {
+  photoCacheListeners.add(listener);
+  return () => {
+    photoCacheListeners.delete(listener);
+  };
+}
+
+function notifyListingPhotos(): void {
+  for (const listener of photoCacheListeners) {
+    try {
+      listener();
+    } catch {
+      /* ignore listener error */
+    }
+  }
+}
+
+export function getCachedListingPhotos(listingId: string): ListingPhotoSummary[] | null {
+  const key = String(listingId);
+  const cached = listingPhotosCache.get(key);
+  if (cached && Date.now() - cached.at < LISTING_PHOTOS_CACHE_MS) {
+    return cached.photos;
+  }
+  return null;
+}
+
 function seedListingPhotosCache(listingId: string, photos: ListingPhotoSummary[]): void {
   listingPhotosCache.set(String(listingId), { at: Date.now(), photos: normalizeListingPhotos(photos) });
+  notifyListingPhotos();
 }
 
 /** Warm cache for many listings in one request (product detail venditori tab). */
@@ -90,18 +120,31 @@ export async function prefetchListingCoverPhotos(listingIds: string[]): Promise<
   });
   if (missing.length === 0) return;
 
-  const qs = encodeURIComponent(missing.slice(0, 40).join(','));
-  const res = await fetch(`/api/auctions/photos/by-listings?ids=${qs}`, {
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json' },
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) return;
-
-  const covers = (data as { data?: { covers?: Record<string, ListingPhotoSummary> } })?.data?.covers ?? {};
-  for (const [listingId, photo] of Object.entries(covers)) {
-    seedListingPhotosCache(listingId, [photo]);
+  const chunks: string[][] = [];
+  for (let i = 0; i < missing.length; i += 40) {
+    chunks.push(missing.slice(i, i + 40));
   }
+
+  await Promise.allSettled(
+    chunks.map(async (chunk) => {
+      const qs = encodeURIComponent(chunk.join(','));
+      const res = await fetch(`/api/auctions/photos/by-listings?ids=${qs}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+
+      const covers = (data as { data?: { covers?: Record<string, ListingPhotoSummary> } })?.data?.covers ?? {};
+      for (const [listingId, photo] of Object.entries(covers)) {
+        listingPhotosCache.set(String(listingId), {
+          at: Date.now(),
+          photos: normalizeListingPhotos([photo]),
+        });
+      }
+    })
+  );
+  notifyListingPhotos();
 }
 
 /** Published photos for a marketplace listing (CDN URLs). Cached + deduped in-flight. */
