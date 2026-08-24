@@ -103,7 +103,7 @@ describe('BFF segnalazioni persistenti', () => {
 
   it('inoltra assistenza ordine e richiesta generale alla coda Staff', async () => {
     process.env.MARKETPLACE_API_URL = 'https://marketplace-api.ebartex.com';
-    const fetchSpy = vi.fn(async () =>
+    const fetchSpy = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       Response.json({ id: '55555555-5555-4555-8555-555555555555' }, { status: 201 }));
     vi.stubGlobal('fetch', fetchSpy);
     const { POST } = await import('@/app/api/support/cases/route');
@@ -118,7 +118,7 @@ describe('BFF segnalazioni persistenti', () => {
       context: { sourcePath: '/acquisti' },
     }));
     expect(orderResponse.status).toBe(201);
-    const orderInit = fetchSpy.mock.calls[0]?.[1] as RequestInit | undefined;
+    const [, orderInit] = fetchSpy.mock.calls[0];
     expect(JSON.parse(String(orderInit?.body))).toMatchObject({
       category: 'order_support',
       reference_type: 'order',
@@ -133,7 +133,7 @@ describe('BFF segnalazioni persistenti', () => {
       context: { sourcePath: '/aiuto', consultedFaqIds: ['faq-1'] },
     }));
     expect(helpResponse.status).toBe(201);
-    const helpInit = fetchSpy.mock.calls[1]?.[1] as RequestInit | undefined;
+    const [, helpInit] = fetchSpy.mock.calls[1];
     expect(JSON.parse(String(helpInit?.body))).toMatchObject({
       category: 'general_support',
       reference_type: 'page',
