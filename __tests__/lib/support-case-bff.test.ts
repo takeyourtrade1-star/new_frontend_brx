@@ -118,7 +118,8 @@ describe('BFF segnalazioni persistenti', () => {
       context: { sourcePath: '/acquisti' },
     }));
     expect(orderResponse.status).toBe(201);
-    expect(JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body))).toMatchObject({
+    const orderInit = fetchSpy.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(JSON.parse(String(orderInit?.body))).toMatchObject({
       category: 'order_support',
       reference_type: 'order',
     });
@@ -132,7 +133,8 @@ describe('BFF segnalazioni persistenti', () => {
       context: { sourcePath: '/aiuto', consultedFaqIds: ['faq-1'] },
     }));
     expect(helpResponse.status).toBe(201);
-    expect(JSON.parse(String(fetchSpy.mock.calls[1]?.[1]?.body))).toMatchObject({
+    const helpInit = fetchSpy.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(JSON.parse(String(helpInit?.body))).toMatchObject({
       category: 'general_support',
       reference_type: 'page',
       context: { source_path: '/aiuto', consulted_faq_ids: ['faq-1'] },
