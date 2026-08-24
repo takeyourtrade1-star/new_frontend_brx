@@ -100,4 +100,42 @@ describe('BFF segnalazioni persistenti', () => {
 
     expect(response.status).toBe(502);
   });
+
+  it('inoltra assistenza ordine e richiesta generale alla coda Staff', async () => {
+    process.env.MARKETPLACE_API_URL = 'https://marketplace-api.ebartex.com';
+    const fetchSpy = vi.fn(async () =>
+      Response.json({ id: '55555555-5555-4555-8555-555555555555' }, { status: 201 }));
+    vi.stubGlobal('fetch', fetchSpy);
+    const { POST } = await import('@/app/api/support/cases/route');
+
+    const orderResponse = await POST(request('/api/support/cases', {
+      category: 'order_support',
+      subject: 'Merce non arrivata',
+      description: 'L’ordine non è stato consegnato.',
+      referenceType: 'order',
+      referenceId: '11111111-1111-4111-8111-111111111111',
+      referenceLabel: 'Ordine marketplace',
+      context: { sourcePath: '/acquisti' },
+    }));
+    expect(orderResponse.status).toBe(201);
+    expect(JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body))).toMatchObject({
+      category: 'order_support',
+      reference_type: 'order',
+    });
+
+    const helpResponse = await POST(request('/api/support/cases', {
+      category: 'general_support',
+      subject: '[Account] Richiesta assistenza',
+      description: 'Non riesco ad accedere.',
+      referenceType: 'page',
+      referenceId: 'help:account',
+      context: { sourcePath: '/aiuto', consultedFaqIds: ['faq-1'] },
+    }));
+    expect(helpResponse.status).toBe(201);
+    expect(JSON.parse(String(fetchSpy.mock.calls[1]?.[1]?.body))).toMatchObject({
+      category: 'general_support',
+      reference_type: 'page',
+      context: { source_path: '/aiuto', consulted_faq_ids: ['faq-1'] },
+    });
+  });
 });

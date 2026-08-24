@@ -76,7 +76,7 @@ export function MockShippingOrderCard({
     actions:
       order.status === 'in_transit' ? (
         <>
-          <OrderActionButton variant="danger" icon={AlertTriangle} onClick={() => onNotReceived?.(order)}>
+          <OrderActionButton variant="danger" icon={AlertTriangle} onClick={() => { window.location.assign('/aiuto'); }}>
             Non ricevuto
           </OrderActionButton>
           <OrderActionButton variant="positive" icon={CheckCircle2} onClick={() => onReceived?.(order.id)}>

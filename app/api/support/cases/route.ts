@@ -1,7 +1,6 @@
 /**
- * Durable bug-report adapter. The browser never receives the support service
- * credential and success is returned only with a backend-issued receipt id.
- * Submissions require an authenticated Ebartex session.
+ * Durable BFF for assistance cases (order_support / general_support).
+ * Success only with an upstream receipt id. Browser never sees Marketplace URLs.
  */
 
 import { createHash } from 'node:crypto';
@@ -16,44 +15,39 @@ import { readJsonResponseWithLimit } from '@/app/api/_lib/bounded-json-response'
 import { trustedMarketplaceServiceOrigin } from '@/app/api/_lib/upstream-url';
 import { fetchWithBodyDeadline } from '@/app/api/_lib/upstream-fetch';
 import { getMarketplaceApiUrlEnv } from '@/lib/server-runtime-env';
-import { canonicalEbartexPageUrl } from '@/app/api/_lib/bug-report-input';
 
 export const dynamic = 'force-dynamic';
 
 const MARKETPLACE_API_URL = trustedMarketplaceServiceOrigin(getMarketplaceApiUrlEnv());
-const MAX_BODY_BYTES = 2 * 1024 * 1024;
+const MAX_BODY_BYTES = 32 * 1024;
 const MAX_RESPONSE_BYTES = 256 * 1024;
-const MAX_DESCRIPTION_BYTES = 5_000;
-const pageUrlSchema = z
-  .string()
-  .trim()
-  .max(2048)
-  .transform((value, context) => {
-    const canonical = canonicalEbartexPageUrl(value);
-    if (!canonical) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid page URL' });
-      return z.NEVER;
-    }
-    return canonical;
-  });
 
-const reportSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  email: z.string().trim().email().max(320),
+const schema = z.object({
+  category: z.enum(['order_support', 'general_support']),
   subject: z.string().trim().min(3).max(200),
-  message: z.string().trim().min(1).max(5000),
-  bugType: z.enum(['functional', 'visual', 'performance', 'payment', 'other']),
-  priority: z.enum(['low', 'medium', 'high']),
-  pageUrl: pageUrlSchema.optional(),
+  description: z.string().trim().min(1).max(5000),
+  referenceType: z.enum(['order', 'page', 'account', 'other']).optional(),
+  referenceId: z.string().trim().min(1).max(128).optional(),
+  referenceLabel: z.string().trim().min(1).max(200).optional(),
+  context: z.object({
+    sourcePath: z.string().regex(/^\/[^?#]*$/).max(500).optional(),
+    consultedFaqIds: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
+  }).strict().optional(),
+}).strict().superRefine((value, ctx) => {
+  if (value.category === 'order_support') {
+    if (value.referenceType !== 'order' || !value.referenceId) {
+      ctx.addIssue({ code: 'custom', message: 'Riferimento ordine richiesto.' });
+    }
+  }
 });
 
 function extractReceiptId(payload: unknown): string | null {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
   const record = payload as Record<string, unknown>;
-  const value = record.report_id ?? record.reportId ?? record.ticket_id ?? record.ticketId ?? record.id;
+  const value = record.id ?? record.caseId ?? record.case_id;
   if (typeof value === 'string' || typeof value === 'number') {
-    const id = String(value).trim();
-    return id ? id.slice(0, 200) : null;
+    const receipt = String(value).trim();
+    return receipt ? receipt.slice(0, 200) : null;
   }
   if (record.data) return extractReceiptId(record.data);
   return null;
@@ -67,58 +61,56 @@ export async function POST(request: NextRequest) {
   if (!auth) return unauthorizedResponse();
 
   const rl = await checkRateLimit(request, {
-    scope: 'support:bug-report',
-    limit: 3,
-    windowMs: 15 * 60_000,
+    scope: 'support-case-create',
+    limit: 8,
+    windowMs: 10 * 60_000,
     userId: extractUserIdForRateLimit(auth),
   });
   if (!rl.allowed) return rateLimitExceededResponse(rl);
 
-  let payload: unknown;
+  let body: unknown;
   try {
-    const body = await readTextBodyWithLimit(request, MAX_BODY_BYTES);
-    if (body.tooLarge) {
+    const bodyResult = await readTextBodyWithLimit(request, MAX_BODY_BYTES);
+    if (bodyResult.tooLarge) {
       return NextResponse.json(
-        { detail: 'Segnalazione non valida.' },
+        { detail: 'Dati richiesta assistenza non validi.' },
         { status: 413, headers: noStoreHeaders() },
       );
     }
-    payload = JSON.parse(body.body || '{}') as unknown;
+    body = JSON.parse(bodyResult.body || '{}') as unknown;
   } catch {
     return NextResponse.json(
-      { detail: 'Segnalazione non valida.' },
+      { detail: 'Dati richiesta assistenza non validi.' },
       { status: 400, headers: noStoreHeaders() },
     );
   }
 
-  const parsed = reportSchema.safeParse(payload);
+  const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { detail: 'Segnalazione non valida.' },
+      { detail: 'Dati richiesta assistenza non validi.' },
       { status: 400, headers: noStoreHeaders() },
     );
   }
 
   if (!MARKETPLACE_API_URL) {
     return NextResponse.json(
-      { detail: 'Servizio segnalazioni temporaneamente non disponibile.' },
+      { detail: 'Servizio assistenza temporaneamente non disponibile.' },
       { status: 503, headers: noStoreHeaders() },
     );
   }
 
-  const { name, email, subject, message, bugType, priority, pageUrl } = parsed.data;
-
-  const header = `Nome: ${name}\nEmail: ${email}\n\n`;
-  const description = (header + message).slice(0, MAX_DESCRIPTION_BYTES);
-
+  const { category, subject, description, referenceType, referenceId, referenceLabel, context } = parsed.data;
   const supportCase = {
-    category: 'bug_report',
+    category,
     subject,
     description,
+    ...(referenceType ? { reference_type: referenceType } : {}),
+    ...(referenceId ? { reference_id: referenceId } : {}),
+    ...(referenceLabel ? { reference_label: referenceLabel } : {}),
     context: {
-      bug_type: bugType,
-      client_priority: priority,
-      ...(pageUrl ? { source_path: new URL(pageUrl).pathname } : {}),
+      ...(context?.sourcePath ? { source_path: context.sourcePath } : {}),
+      consulted_faq_ids: context?.consultedFaqIds ?? [],
     },
   };
 
@@ -133,33 +125,29 @@ export async function POST(request: NextRequest) {
       headers: {
         Accept: 'application/json',
         'Accept-Encoding': 'identity',
-        'Content-Type': 'application/json',
         Authorization: auth,
+        'Content-Type': 'application/json',
         'X-Idempotency-Key': idempotencyKey,
       },
       body: JSON.stringify(supportCase),
       cache: 'no-store',
       redirect: 'error',
-    }, 12_000);
+    }, 10_000);
     if (!upstream.ok) await upstream.body?.cancel();
-    const responsePayload = upstream.ok
+    const payload = upstream.ok
       ? await readJsonResponseWithLimit(upstream, MAX_RESPONSE_BYTES)
       : null;
-    const reportId = extractReceiptId(responsePayload);
-    if (!upstream.ok || !reportId) {
+    const caseId = extractReceiptId(payload);
+    if (!upstream.ok || !caseId) {
       return NextResponse.json(
-        { detail: 'Invio segnalazione non riuscito.' },
+        { detail: 'Invio richiesta non riuscito.' },
         { status: upstream.status === 429 ? 429 : 502, headers: noStoreHeaders() },
       );
     }
-
-    return NextResponse.json(
-      { ok: true, reportId },
-      { status: 202, headers: noStoreHeaders() },
-    );
+    return NextResponse.json({ ok: true, caseId }, { status: 201, headers: noStoreHeaders() });
   } catch {
     return NextResponse.json(
-      { detail: 'Servizio segnalazioni temporaneamente non disponibile.' },
+      { detail: 'Servizio assistenza temporaneamente non disponibile.' },
       { status: 502, headers: noStoreHeaders() },
     );
   }

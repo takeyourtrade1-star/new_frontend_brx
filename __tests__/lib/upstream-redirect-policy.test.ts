@@ -32,6 +32,7 @@ describe('credentialed upstream redirect policy', () => {
       'app/api/auth/sso/authorize/route.ts',
       'app/api/marketplace/reports/route.ts',
       'app/api/support/bug-reports/route.ts',
+      'app/api/support/cases/route.ts',
       'app/api/scanner/[...path]/route.ts',
       'lib/product-detail-server.ts',
     ];

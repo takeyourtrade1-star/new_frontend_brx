@@ -10,8 +10,6 @@ import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-sha
 import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { useMockSupportStore } from '@/lib/stores/mock-support-store';
-import { SupportTicketCard } from '@/components/feature/acquisti/SupportTicketCard';
 import {
   countByStato,
   filterVendite,
@@ -82,8 +80,6 @@ export function VenditeContent() {
   const filtered = useMemo(() => filterVendite(activeTab as VenditaStato | 'tutte'), [activeTab]);
   const tabMeta = useMemo(() => VENDITA_TAB_META.find((t) => t.id === activeTab) ?? VENDITA_TAB_META[0], [activeTab]);
 
-  const mockSupportTickets = useMockSupportStore((s) => s.tickets);
-
   const leftTabs = useMemo(
     () =>
       TABS_LEFT.map((tab) => ({
@@ -97,9 +93,9 @@ export function VenditeContent() {
     () =>
       TABS_RIGHT.map((tab) => ({
         ...tab,
-        count: mockSupportTickets.length,
+        count: 0,
       })),
-    [mockSupportTickets],
+    [],
   );
 
   const breadcrumbItems: AppBreadcrumbItem[] = useMemo(
@@ -145,24 +141,14 @@ export function VenditeContent() {
   };
 
   const renderSupportContent = () => {
-    const mockTickets = mockSupportTickets.map((m) => ({ type: 'mock' as const, data: m }));
-    if (mockTickets.length === 0) {
-      return (
-        <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 border border-gray-200 bg-white px-6 py-12">
-          <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
-            {emptyMessage}
-          </p>
-        </div>
-      );
-    }
     return (
-      <div className="space-y-4">
-        {mockTickets.map((ticket) => (
-          <SupportTicketCard key={`mock-${ticket.data.id}`} ticket={ticket} />
-        ))}
-        <p className="text-center text-xs text-gray-500">
-          {mockTickets.length} segnalazion{mockTickets.length === 1 ? 'e' : 'i'} totali
+      <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 border border-gray-200 bg-white px-6 py-12">
+        <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
+          {emptyMessage}
         </p>
+        <Link href="/aiuto" className="text-sm font-semibold text-[#FF7300] hover:underline">
+          Apri una richiesta allo staff
+        </Link>
       </div>
     );
   };

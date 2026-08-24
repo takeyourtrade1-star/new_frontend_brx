@@ -1,7 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Gavel } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import { reportOrderSupport } from '@/lib/support/submit-support-case';
 import {
   OrderActionButton,
   OrderItemCard,
@@ -78,6 +80,8 @@ export function OrderCard({
   layout = 'list',
 }: OrderCardProps) {
   const intlLocale = useIntlLocale();
+  const { t } = useTranslation();
+  const [reportState, setReportState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const statusMeta = STATUS_META[order.status];
   const dueRelative = useMemo(() => relativeTime(order.due_at), [order.due_at]);
 
@@ -90,6 +94,10 @@ export function OrderCard({
     perspective === 'buyer' && (order.status === 'PAYMENT_PENDING' || order.status === 'PAYMENT_OVERDUE');
   const canOpenDispute =
     perspective === 'seller' && (order.status === 'PAYMENT_PENDING' || order.status === 'PAYMENT_OVERDUE');
+  const canReportIssue =
+    !canPay
+    && order.status !== 'CANCELLED'
+    && order.status !== 'REASSIGNED';
 
   const metaLine =
     order.status === 'PAID'
@@ -117,6 +125,24 @@ export function OrderCard({
       ) : canOpenDispute && onOpenDispute ? (
         <OrderActionButton variant="danger" disabled={openingDispute} onClick={() => onOpenDispute(order)}>
           {openingDispute ? 'Apertura…' : 'Apri contestazione'}
+        </OrderActionButton>
+      ) : canReportIssue ? (
+        <OrderActionButton
+          variant="danger"
+          disabled={reportState !== 'idle'}
+          onClick={() => {
+            if (reportState !== 'idle') return;
+            setReportState('sending');
+            void reportOrderSupport({
+              orderId: String(order.id),
+              subject: `Problema ordine asta #${order.id}`,
+              description: `Problema segnalato sull'ordine asta #${order.id} (${order.auction_title || 'asta'}).`,
+              label: (order.auction_title || `Asta #${order.auction_id}`).slice(0, 200),
+              sourcePath: '/acquisti',
+            }).then(() => setReportState('sent')).catch(() => setReportState('idle'));
+          }}
+        >
+          {reportState === 'sending' ? t('support.orderIssueSending') : reportState === 'sent' ? t('support.orderIssueSent') : t('support.orderIssue')}
         </OrderActionButton>
       ) : undefined,
   };
