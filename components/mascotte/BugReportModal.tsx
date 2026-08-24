@@ -174,6 +174,8 @@ export function BugReportModal({
                 type="text"
                 required
                 value={bugForm.subject}
+                minLength={3}
+                maxLength={200}
                 onChange={(e) => setBugForm({ ...bugForm, subject: e.target.value })}
                 placeholder={t('asso.bugReport.subjectPlaceholder')}
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -295,7 +297,7 @@ export function BugReportModal({
                   !bugForm.message.trim() ||
                   !bugForm.name.trim() ||
                   !bugForm.email.trim() ||
-                  !bugForm.subject.trim() ||
+                  bugForm.subject.trim().length < 3 ||
                   isSubmitting
                 }
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"

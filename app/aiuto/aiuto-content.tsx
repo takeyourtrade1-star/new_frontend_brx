@@ -42,6 +42,7 @@ import {
   type FAQGroup,
   type FAQItem,
 } from '@/lib/support-workflow-data';
+import { SupportCaseForm } from '@/components/support/SupportCaseForm';
 
 /* ──────────────────────────────────────────────────────────────────
    ICON MAP — maps JSON icon field → Lucide component
@@ -1302,30 +1303,12 @@ function EscalationView({
       {/* Contact */}
       {emailChannel && (
         <GlassCard className="border-[#FF7300]/20">
-          <div className="flex flex-col items-center gap-5 p-8 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FF7300]/20">
-              <Mail className="h-7 w-7 text-[#FF7300]" />
-            </div>
-            <div>
-              <p className="text-lg font-semibold text-white">
-                Invia una email al supporto
-              </p>
-              <p className="text-sm text-white/60">
-                Tempo di risposta: {emailChannel.response_time}
-              </p>
-            </div>
-            <a
-              href={`mailto:${emailChannel.value}?subject=${encodeURIComponent(
-                `[${section?.title ?? 'Supporto'}] Richiesta assistenza`
-              )}&body=${encodeURIComponent(
-                `Categoria: ${section?.title ?? 'N/A'}\nFAQ consultate: ${consultedFaqIds.join(', ')}\n\nDescrizione del problema:\n\n`
-              )}`}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#FF7300] px-8 py-3 text-sm font-semibold text-white transition-all hover:bg-[#FF7300]/90 hover:shadow-lg hover:shadow-[#FF7300]/20"
-            >
-              <Mail className="h-4 w-4" />
-              Scrivi a {emailChannel.value}
-            </a>
-          </div>
+          <SupportCaseForm
+            sectionId={sectionId}
+            sectionTitle={section?.title ?? 'Supporto'}
+            consultedFaqIds={consultedFaqIds}
+            responseTime={emailChannel.response_time}
+          />
         </GlassCard>
       )}
 

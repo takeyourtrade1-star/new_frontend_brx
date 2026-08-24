@@ -28,6 +28,7 @@ import {
   tradeTrackingUrl,
   type TradeCarrierId,
 } from '@/lib/shipping/trade-carriers';
+import { reportTradeSupport } from '@/lib/support/submit-support-case';
 import { ScambiShell, TradeCardThumb, scambiGlass, scambiGlassLight } from './ScambiShell';
 
 const EMPTY_ADDRESS: TradeAddress = {
@@ -495,7 +496,11 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
                     onSubmit={(event) => {
                       event.preventDefault();
                       const reason = assistanceReason.trim();
-                      if (reason.length >= 3 && !busy) void perform(() => assistance.mutateAsync({ tradeId, reason }));
+                      if (reason.length < 3 || busy) return;
+                      void perform(async () => {
+                        await reportTradeSupport({ tradeId, reason });
+                        await assistance.mutateAsync({ tradeId, reason });
+                      });
                     }}
                   >
                     <input value={assistanceReason} onChange={(event) => setAssistanceReason(event.target.value)} placeholder={t('trades.assistanceReason')} aria-label={t('trades.assistanceReason')} className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/15" />

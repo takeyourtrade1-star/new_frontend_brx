@@ -697,7 +697,6 @@ export function AssoRoot() {
           bugType: bugForm.bugType,
           priority: bugForm.priority,
           pageUrl,
-          ...(screenshot ? { screenshot } : {}),
         }),
       });
       const result = (await response.json().catch(() => null)) as { reportId?: unknown } | null;
@@ -722,7 +721,7 @@ export function AssoRoot() {
     } finally {
       setIsSubmittingBug(false);
     }
-  }, [bugForm, isSubmittingBug, resetBugState, scheduleTimeout, screenshot, t]);
+  }, [bugForm, isSubmittingBug, resetBugState, scheduleTimeout, t]);
 
   const captureScreenshot = useCallback(async () => {
     if (isCapturing) return;

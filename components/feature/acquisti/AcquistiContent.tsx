@@ -40,7 +40,7 @@ import {
   useMockPurchaseStore,
   type MockPurchaseOrder,
 } from '@/lib/stores/mock-purchase-store';
-import { useMockSupportStore } from '@/lib/stores/mock-support-store';
+
 import { useCartStore } from '@/lib/stores/cart-store';
 import { OrderCard } from './OrderCard';
 import { MarketplaceOrderCard } from './MarketplaceOrderCard';
@@ -53,7 +53,7 @@ import {
   MockShippingOrder,
   MockShippingOrderCard,
 } from './MockShippingOrderCard';
-import { SupportRequestModal } from './SupportRequestModal';
+
 
 const TABS_LEFT: OrderTab<TabId>[] = [
   { id: 'da-pagare', label: 'DA PAGARE', icon: Wallet },
@@ -221,9 +221,6 @@ export function AcquistiContent() {
     ]);
   }, []);
 
-  const [supportModalOpen, setSupportModalOpen] = useState(false);
-  const [supportModalOrder, setSupportModalOrder] = useState<MockShippingOrder | null>(null);
-
   const mockPendingOrders = useMemo(
     () => mockOrders.filter((o) => o.status === 'payment_pending'),
     [mockOrders],
@@ -305,7 +302,7 @@ export function AcquistiContent() {
     : null;
   const loadDisputes = disputesQuery.refetch;
 
-  const mockSupportTickets = useMockSupportStore((s) => s.tickets);
+
 
   const countsByTab = useMemo<Record<TabId, number>>(() => {
     const allOrders = allOrdersQuery.data?.data ?? [];
@@ -341,10 +338,10 @@ export function AcquistiContent() {
 
     counts['acquisti'] =
       counts['da-pagare'] + counts['pagato'] + counts['inviato'] + counts['ricevuto'];
-    counts['supporto'] = disputes.length + mockSupportTickets.length;
+    counts['supporto'] = disputes.length;
 
     return counts;
-  }, [allOrdersQuery.data?.data, marketplaceOrders, mockOrders, mockShippingOrders, disputes, mockSupportTickets]);
+  }, [allOrdersQuery.data?.data, marketplaceOrders, mockOrders, mockShippingOrders, disputes]);
 
   const leftTabs = useMemo(
     () => TABS_LEFT.map((tab) => ({ ...tab, count: countsByTab[tab.id] })),
@@ -415,34 +412,7 @@ export function AcquistiContent() {
     );
   };
 
-  const handleShippingNotReceived = (order: MockShippingOrder) => {
-    setSupportModalOrder(order);
-    setSupportModalOpen(true);
-  };
 
-  const handleSupportModalSubmit = ({
-    title,
-    description,
-  }: {
-    title: string;
-    description: string;
-  }) => {
-    if (!supportModalOrder) return;
-    useMockSupportStore.getState().addTicket({
-      orderId: supportModalOrder.id,
-      status: 'OPEN',
-      title,
-      description,
-      category: 'contestazione',
-    });
-    setMockShippingOrders((prev) =>
-      prev.map((o) =>
-        o.id === supportModalOrder.id ? { ...o, status: 'delayed' as const } : o,
-      ),
-    );
-    setSupportModalOpen(false);
-    setSupportModalOrder(null);
-  };
 
   const totalItemsCount =
     orders.length + filteredMarketplaceOrders.length + filteredMockOrders.length + filteredShippingOrders.length;
@@ -624,7 +594,6 @@ export function AcquistiContent() {
                 key={order.id}
                 order={order}
                 onReceived={handleShippingReceived}
-                onNotReceived={handleShippingNotReceived}
                 layout={viewMode}
               />
             ))}
@@ -741,9 +710,7 @@ export function AcquistiContent() {
         </div>
       );
     }
-    const realTickets = disputes.map((d) => ({ type: 'real' as const, data: d }));
-    const mockTickets = mockSupportTickets.map((m) => ({ type: 'mock' as const, data: m }));
-    const allTickets = [...realTickets, ...mockTickets];
+    const allTickets = disputes.map((d) => ({ type: 'real' as const, data: d }));
     if (allTickets.length === 0) {
       return (
         <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 border border-gray-200 bg-white px-6 py-12">
@@ -847,16 +814,6 @@ export function AcquistiContent() {
         onConfirm={handleConfirmMockPayment}
       />
 
-      <SupportRequestModal
-        isOpen={supportModalOpen}
-        onClose={() => {
-          setSupportModalOpen(false);
-          setSupportModalOrder(null);
-        }}
-        orderTitle={supportModalOrder?.title ?? ''}
-        orderId={supportModalOrder?.id ?? ''}
-        onSubmit={handleSupportModalSubmit}
-      />
     </div>
   );
 }

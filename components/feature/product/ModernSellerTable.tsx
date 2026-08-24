@@ -1279,7 +1279,7 @@ function ModernSellerTableInner({
         sellerUsername: item.seller_display_name,
         sellerId: item.seller_id,
         kind: 'listing',
-        referenceId: listingRowKey(item),
+        referenceId: item.marketplace_listing_id || listingRowKey(item),
         referenceLabel: cardName,
       });
     },
