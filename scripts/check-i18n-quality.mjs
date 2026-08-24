@@ -68,7 +68,7 @@ const ALLOW_EXACT = new Set(
     'ID', 'URL', 'Email', 'E-mail', 'PDF', 'OK', 'PIN', 'OTP', 'MFA', 'IVA',
     'QR', 'CSV', 'JSON', 'SKU',
     // Parole identiche in più lingue romanze/germaniche o feature-name
-    'Menu', 'Asso Vision', 'Scan', 'Online', 'Wishlist', 'Login', 'Logout',
+    'Menu', 'Scan', 'Online', 'Wishlist', 'Login', 'Logout',
     'Marketplace', 'Trading', 'Booster', 'Reset', 'Standard', 'Test', 'Demo',
   ].map((s) => s.toLowerCase())
 );

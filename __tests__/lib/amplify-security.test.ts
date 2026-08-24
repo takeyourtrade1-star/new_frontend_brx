@@ -10,7 +10,6 @@ describe('Amplify release gates', () => {
     expect(config).toContain('nvm install 24.18.1');
     expect(config).toContain('test "$(node --version)" = "v24.18.1"');
     expect(config).toContain('npm ci --ignore-scripts');
-    expect(config).toContain('node scripts/copy-ort-wasm.mjs');
     expect(config).toContain('npm audit --audit-level=high');
     expect(config).toContain('npm run lint');
     expect(config).toContain('npm run typecheck');

@@ -266,8 +266,8 @@ export interface SupportWorkflowData {
 
 /**
  * The full support workflow data, typed from the JSON.
- * Contains metadata, workflow entry/decision-tree, 15 sections with 62 FAQs,
- * and escalation configuration.
+ * Contains metadata, workflow entry/decision-tree, support sections, FAQs and
+ * escalation configuration.
  */
 export const SUPPORT_WORKFLOW = rawData as unknown as SupportWorkflowData;
 

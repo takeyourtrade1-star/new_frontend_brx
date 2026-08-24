@@ -3,7 +3,6 @@ import { NextRequest } from 'next/server';
 import { GET as searchGET } from '@/app/api/search/route';
 import { POST as autocompletePOST } from '@/app/api/search/autocomplete/route';
 import { POST as cardsByIdsPOST } from '@/app/api/search/cards-by-ids/route';
-import { POST as scannerCandidatesPOST } from '@/app/api/search/scanner-candidates/route';
 import * as meiliServerEnv from '@/lib/meilisearch-server-env';
 import * as searchUtils from '@/lib/search/search-request-utils';
 
@@ -363,12 +362,6 @@ describe('public POST search request boundary', () => {
       handler: cardsByIdsPOST,
       body: { ids: [1] },
     },
-    {
-      name: 'scanner-candidates',
-      url: '/api/search/scanner-candidates',
-      handler: scannerCandidatesPOST,
-      body: { items: [{ id: 'scan-1', cardName: 'Bolt' }] },
-    },
   ] as const;
 
   it.each(routes)('rejects cross-site $name before upstream work', async (route) => {
@@ -432,18 +425,6 @@ describe('public POST search request boundary', () => {
       handler: cardsByIdsPOST,
       body: { ids: [1], filterField: 'private_field' },
     },
-    {
-      name: 'scanner unknown item key',
-      url: '/api/search/scanner-candidates',
-      handler: scannerCandidatesPOST,
-      body: { items: [{ id: 'scan-1', cardName: 'Bolt', admin: true }] },
-    },
-    {
-      name: 'scanner malformed item shape',
-      url: '/api/search/scanner-candidates',
-      handler: scannerCandidatesPOST,
-      body: { items: [{ id: 'scan-1', cardName: 123 }] },
-    },
   ] as const)('rejects exact-JSON violation: $name', async (testCase) => {
     const request = new NextRequest(`http://localhost:3000${testCase.url}`, {
       method: 'POST',
@@ -477,76 +458,6 @@ describe('public POST search request boundary', () => {
 
     expect(response.status).toBe(408);
     expect(response.headers.get('cache-control')).toMatch(/no-store/);
-    expect(searchUtils.fetchMeiliWithTimeout).not.toHaveBeenCalled();
-  });
-});
-
-describe('Route: POST /api/search/scanner-candidates', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(meiliServerEnv.getMeilisearchServerConfig).mockReturnValue({
-      url: 'https://meili.local',
-      apiKey: 'test-key',
-      index: 'cards',
-    });
-  });
-
-  it('risolve in una sola multi-search le stampe ufficiali del lotto', async () => {
-    vi.mocked(searchUtils.fetchMeiliWithTimeout).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        results: [{
-          hits: [{
-            id: 'mtg_123',
-            cardtrader_id: 456,
-            name: 'Lightning Bolt',
-            set_name: 'Magic 2011',
-            set_code: 'm11',
-            collector_number: '149',
-            image: '/cards/bolt.webp',
-            available_languages: ['EN', 'it'],
-            market_price: '2.50',
-          }],
-        }],
-      }),
-    } as Response);
-
-    const request = new NextRequest('http://localhost:3000/api/search/scanner-candidates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        items: [{
-          id: 'scan-1',
-          cardName: 'Lightning Bolt',
-          setName: 'Magic 2011',
-          setCode: 'm11',
-          collectorNumber: '149',
-        }],
-      }),
-    });
-
-    const response = await scannerCandidatesPOST(request);
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.results['scan-1'][0]).toMatchObject({
-      cardId: 'mtg_123',
-      blueprintId: 456,
-      availableLanguages: ['en', 'it'],
-      marketPrice: 2.5,
-    });
-    expect(searchUtils.fetchMeiliWithTimeout).toHaveBeenCalledTimes(1);
-  });
-
-  it('non interroga il catalogo per un lotto vuoto', async () => {
-    const request = new NextRequest('http://localhost:3000/api/search/scanner-candidates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: [] }),
-    });
-    const response = await scannerCandidatesPOST(request);
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ results: {} });
     expect(searchUtils.fetchMeiliWithTimeout).not.toHaveBeenCalled();
   });
 });

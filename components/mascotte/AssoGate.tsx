@@ -12,7 +12,6 @@ const AssoRoot = dynamic(
 );
 
 const HIDDEN_PATH_PREFIXES = [
-  '/scanner',
   '/tornei',
   '/login',
   '/registrati',

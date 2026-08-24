@@ -9,13 +9,14 @@ describe('middleware CSP', () => {
     const csp = buildContentSecurityPolicy('abc123');
 
     expect(csp).toContain(
-      "script-src 'self' 'nonce-abc123' 'strict-dynamic' 'wasm-unsafe-eval'"
+      "script-src 'self' 'nonce-abc123' 'strict-dynamic'"
     );
     expect(csp).toContain("script-src-attr 'none'");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("frame-src 'none'");
     expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/);
     expect(csp).not.toContain("'unsafe-eval'");
+    expect(csp).not.toContain("'wasm-unsafe-eval'");
     expect(csp).not.toContain('fonts.googleapis.com');
     expect(csp).not.toContain('fonts.gstatic.com');
     const connectDirective = csp.split('; ').find((value) => value.startsWith('connect-src'));
@@ -48,7 +49,7 @@ describe('middleware CSP', () => {
       'https://ebartex.com/login?accesso=1&redirect=%2Faccount%2Fprofilo'
     );
     expect(response.headers.get('content-security-policy')).toMatch(
-      /script-src 'self' 'nonce-[a-f0-9]{32}' 'strict-dynamic' 'wasm-unsafe-eval'/
+      /script-src 'self' 'nonce-[a-f0-9]{32}' 'strict-dynamic'/
     );
     expect(response.headers.get('cache-control')).toBe('private, no-store, max-age=0');
   });

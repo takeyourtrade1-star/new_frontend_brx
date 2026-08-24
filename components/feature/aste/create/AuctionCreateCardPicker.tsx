@@ -1,15 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Camera, Loader2, Search } from 'lucide-react';
-
-// Lazy: lo scanner carica onnxruntime-web (~1.1MB) solo quando l'utente lo apre.
-const ScannerModal = dynamic(
-  () => import('@/components/feature/scanner/ScannerModal').then((m) => m.ScannerModal),
-  { ssr: false, loading: () => null }
-);
+import { Loader2, Search } from 'lucide-react';
 import type { SearchHit } from '@/app/api/search/route';
 import { useInfiniteSearchCards } from '@/lib/hooks/use-search';
 import {
@@ -115,7 +108,6 @@ export function AuctionCreateCardPicker({
   const [debounced, setDebounced] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [collectionQuery, setCollectionQuery] = useState('');
-  const [scannerTarget, setScannerTarget] = useState<'catalog' | 'collection' | null>(null);
 
   const isWizardInventory = variant === 'wizard-step1-inventory';
   const showCollectionSection = !selectedId;
@@ -250,19 +242,10 @@ export function AuctionCreateCardPicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('auctions.createSearchPlaceholder')}
-            className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-10 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20"
+            className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20"
             autoComplete="off"
             aria-label={t('auctions.createSearchPlaceholder')}
           />
-          <button
-            type="button"
-            onClick={() => setScannerTarget('catalog')}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#FF7300]/10 hover:text-[#FF7300]"
-            aria-label="Scansiona carta con fotocamera"
-            title="Scansiona carta con fotocamera"
-          >
-            <Camera className="h-4 w-4" />
-          </button>
         </div>
 
         {loadingSearch && debounced && (
@@ -395,19 +378,10 @@ export function AuctionCreateCardPicker({
             value={collectionQuery}
             onChange={(e) => setCollectionQuery(e.target.value)}
             placeholder={t('auctions.createCollectionFilterPlaceholder')}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50/80 py-2 pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#FF7300] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20"
+            className="w-full rounded-lg border border-gray-200 bg-gray-50/80 py-2 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#FF7300] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20"
             autoComplete="off"
             aria-label={t('auctions.createCollectionFilterPlaceholder')}
           />
-          <button
-            type="button"
-            onClick={() => setScannerTarget('collection')}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#FF7300]/10 hover:text-[#FF7300]"
-            aria-label="Scansiona carta con fotocamera"
-            title="Scansiona carta con fotocamera"
-          >
-            <Camera className="h-4 w-4" />
-          </button>
         </div>
 
         {selectedId && selectedTitle && (
@@ -586,19 +560,6 @@ export function AuctionCreateCardPicker({
       </>
       )}
 
-      {scannerTarget !== null && (
-        <ScannerModal
-          onConfirm={(query) => {
-            if (scannerTarget === 'catalog') {
-              setQuery(query);
-            } else {
-              setCollectionQuery(query);
-            }
-            setScannerTarget(null);
-          }}
-          onClose={() => setScannerTarget(null)}
-        />
-      )}
     </div>
   );
 }

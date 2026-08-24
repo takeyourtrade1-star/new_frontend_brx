@@ -50,7 +50,7 @@ export interface SearchHit {
   collector_number?: string;
   /** Lingue disponibili per questa carta (es. ["en","it","fr"]). */
   available_languages?: string[];
-  /** ID ufficiale CardTrader, usato dalla review venditore di Asso Vision. */
+  /** ID ufficiale CardTrader usato dai flussi inventario, vendita e scambio. */
   cardtrader_id?: number;
   market_price?: number;
   foil_price?: number;

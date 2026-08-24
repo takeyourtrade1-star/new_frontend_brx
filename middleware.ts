@@ -49,7 +49,7 @@ function canonicalAppOrigin(request: NextRequest): string | null {
 export function buildContentSecurityPolicy(nonce: string): string {
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
     "script-src-attr 'none'",
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline'",

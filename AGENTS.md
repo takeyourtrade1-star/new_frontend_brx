@@ -6,7 +6,7 @@ Guida per agenti AI (Codex) che lavorano su questo repository.
 
 Frontend del marketplace **Ebartex** (carte collezionabili: Magic, Pokémon, One Piece).
 Next.js 15 App Router, TypeScript strict, Tailwind + shadcn/ui. Dominio: aste live,
-scambi, vendita C2C, BRX Express, scanner carte.
+scambi, vendita C2C e BRX Express.
 
 ## Comandi
 
@@ -56,15 +56,14 @@ devono passare. Se tocchi le stringhe i18n, esegui anche `npm run i18n:keys`.
 | Config servizi/CDN/Meili | `lib/config.ts` |
 | Auth | `lib/stores/auth-store.ts`, `app/api/auth/` |
 | i18n runtime | `lib/i18n/` (`useTranslation`, `getMessage`, `dictionaries`) |
-| Scanner carte | `hooks/useBrxScanner.ts`, `hooks/scannerEmbed.worker.ts`, `app/scanner/` |
 | Mascotte Asso | `components/mascotte/` (machine/audio/persistence; item wardrobe lazy in `wardrobe/items/`, regole in `wardrobe/ART_DIRECTION.md`) |
 | Ricerca | `app/api/search/`, `lib/hooks/use-search.ts`, `components/layout/GlobalSearchBar.tsx` |
 | Guide deploy/setup | `docs/` |
 
 ## Trappole note
 
-- **CSP** (`next.config.mjs`) include `unsafe-inline`/`unsafe-eval`: serve a
-  framer-motion e al wasm dello scanner. Non rimuoverli senza smoke-test runtime.
+- **CSP** (`middleware.ts`) usa nonce e `strict-dynamic`: ogni modifica richiede
+  uno smoke-test sul build di produzione.
 - **`compiler.removeConsole`** strippa i `console.log` in produzione (tiene
   `error`/`warn`). Non affidarti a `console.log` per logica.
 - **Type generati stantii**: dopo aver cancellato route, `.next/types/*` può

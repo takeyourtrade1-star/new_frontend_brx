@@ -49,8 +49,6 @@ riutilizzare impropriamente segreti:
   produzione richiede un'identita' scoped. `AUTH_INTERNAL_API_TOKEN` e' un
   vecchio shared token, viene ignorato dal backend hardened e non e' un alias
   sicuro;
-- `BRX_MATCH_SERVICE_TOKEN` e `BRX_MATCH_TRUSTED_ORIGINS`: l'URL storico non
-  fornisce ne' una credenziale dedicata ne' una allowlist indipendente;
 - `RATE_LIMIT_REDIS_REST_URL`, `RATE_LIMIT_REDIS_REST_TOKEN` e
   `RATE_LIMIT_KEY_SECRET`: finche' il provider runtime non e' disponibile, il
   deploy Amplify usa l'eccezione temporanea per-instance documentata in

@@ -1,14 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Camera, Loader2, Search } from 'lucide-react';
-
-// Lazy: lo scanner carica onnxruntime-web (~1.1MB) solo quando l'utente lo apre.
-const ScannerModal = dynamic(
-  () => import('@/components/feature/scanner/ScannerModal').then((m) => m.ScannerModal),
-  { ssr: false, loading: () => null }
-);
+import { Loader2, Search } from 'lucide-react';
 import type { SearchHit } from '@/app/api/search/route';
 import { useInfiniteSearchCards } from '@/lib/hooks/use-search';
 import {
@@ -58,7 +51,6 @@ export function AuctionCreateGenericSearch({
   const [searchGame] = useState<AuctionGame>('mtg');
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [scannerOpen, setScannerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
@@ -130,19 +122,10 @@ export function AuctionCreateGenericSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('auctions.createGenericSearchPlaceholder')}
-          className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-10 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20"
+          className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20"
           autoComplete="off"
           aria-label={t('auctions.createGenericSearchPlaceholder')}
         />
-        <button
-          type="button"
-          onClick={() => setScannerOpen(true)}
-          className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#FF7300]/10 hover:text-[#FF7300]"
-          aria-label="Scansiona con fotocamera"
-          title="Scansiona con fotocamera"
-        >
-          <Camera className="h-4 w-4" />
-        </button>
       </div>
 
       {loadingSearch && debounced && (
@@ -298,15 +281,6 @@ export function AuctionCreateGenericSearch({
       </>
       )}
 
-      {scannerOpen && (
-        <ScannerModal
-          onConfirm={(scanQuery) => {
-            setQuery(scanQuery);
-            setScannerOpen(false);
-          }}
-          onClose={() => setScannerOpen(false)}
-        />
-      )}
     </div>
   );
 }

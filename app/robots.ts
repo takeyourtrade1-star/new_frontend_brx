@@ -17,7 +17,6 @@ export default function robots(): MetadataRoute.Robots {
         '/registrati/',
         '/ordini/',
         // Flussi app/privati (dietro auth o non utili all'indice).
-        '/scanner',
         '/bidding',
         '/cart',
         '/aste/nuova',

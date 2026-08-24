@@ -1,5 +1,10 @@
 # Piano 16 — Asso Vision: scansione continua e vendita rapida
 
+> **RITIRATO IL 2026-08-24.** Documento storico: non implementare né riattivare.
+> Il frontend, il BFF e gli asset ONNX sono stati rimossi. L'infrastruttura BRX
+> Match può essere dismessa solo dopo il deploy del frontend, smoke test e prova
+> di assenza di consumer residui.
+
 > Destinatari: frontend, backend `brx-match`, marketplace, ML/data e DevOps.
 > Scritto il 2026-07-14 dopo la lettura end-to-end del frontend e del servizio `brx-match` recuperato.
 > Obiettivo: `passa carta → cattura → riconoscimento in background → ripeti → revisione → pubblicazione`.

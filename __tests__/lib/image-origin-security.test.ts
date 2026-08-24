@@ -38,16 +38,5 @@ describe('remote image origin boundary', () => {
     ]) {
       expect(middleware).not.toContain(wildcard);
     }
-    expect(middleware).not.toContain('https://ebartex-brx-match-data.s3');
-  });
-
-  it('does not expose scanner diagnostics in production through a query flag', () => {
-    const scannerPage = read('app/scanner/page.tsx');
-    expect(scannerPage).toContain(
-      "process.env.NODE_ENV !== 'production' && searchParams?.get('debug') === '1'",
-    );
-    expect(scannerPage).not.toContain(
-      "process.env.NODE_ENV !== 'production' || searchParams?.get('debug') === '1'",
-    );
   });
 });

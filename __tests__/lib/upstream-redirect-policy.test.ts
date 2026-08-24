@@ -33,7 +33,6 @@ describe('credentialed upstream redirect policy', () => {
       'app/api/marketplace/reports/route.ts',
       'app/api/support/bug-reports/route.ts',
       'app/api/support/cases/route.ts',
-      'app/api/scanner/[...path]/route.ts',
       'lib/product-detail-server.ts',
     ];
     for (const path of credentialedRoutes) {

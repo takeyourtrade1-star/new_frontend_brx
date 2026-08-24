@@ -83,9 +83,9 @@ const nextConfig = {
   },
   // Rewrites: proxy verso servizi esterni (stesso origin per il browser, niente CORS)
   async rewrites() {
-    // NOTA: /api/sync/*, /api/marketplace/* e /api/scanner/* NON hanno rewrite qui.
+    // NOTA: /api/sync/* e /api/marketplace/* NON hanno rewrite qui.
     // Esistono route handler dedicati (app/api/sync/[...path]/route.ts e
-    // app/api/marketplace/[...path]/route.ts, app/api/scanner/[...path]/route.ts)
+    // app/api/marketplace/[...path]/route.ts)
     // che applicano auth cookie-first quando presente,
     // rate limiting e timeout. I rewrites Next.js vengono eseguiti prima dei
     // route handler e li bypasserebbero, vanificando i controlli di sicurezza.

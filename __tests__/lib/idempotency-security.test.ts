@@ -27,16 +27,4 @@ describe('idempotency key security contract', () => {
     expect(generator).not.toContain('Math.random');
     expect(randomSource).not.toContain('Math.random');
   });
-
-  it('does not use predictable scanner identifier fallbacks', () => {
-    const scanLoop = readFileSync(resolve(root, 'hooks/scanner/useScanLoop.ts'), 'utf8');
-    const scanSession = readFileSync(
-      resolve(root, 'hooks/scanner/useLocalScanSession.ts'),
-      'utf8',
-    );
-    expect(scanLoop).toContain('createSecureRandomUuid()');
-    expect(scanSession).toContain('createSecureRandomUuid()');
-    expect(scanLoop).not.toContain('Math.random');
-    expect(scanSession).not.toContain('Math.random');
-  });
 });

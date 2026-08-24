@@ -3,7 +3,7 @@
  * Contenuto editoriale (non chrome UI): testi in italiano, come le altre
  * pagine editoriali. Le date ricalcano l'introduzione reale delle feature
  * nella storia del repository (aste/scambi dal primo commit 2026-03-25,
- * BRX Express 2026-04-28, scanner 2026-05-14, tornei 2026-06-09).
+ * BRX Express 2026-04-28 e tornei 2026-06-09).
  */
 
 export type BlogPost = {
@@ -86,20 +86,6 @@ export const BLOG_POSTS: BlogPost[] = [
       'Non ti serve nient’altro che il tuo account Ebartex e una webcam. Scegli un tavolo, siediti, sfida il tuo avversario faccia a faccia e scrivi con noi il primo capitolo dei Tornei.',
     ],
     cta: { href: '/tornei', label: 'Entra nei Tornei (Pre-beta) →' },
-  },
-  {
-    slug: 'cameramatch-beta',
-    date: '2026-05-14',
-    dateLabel: '14 maggio 2026',
-    tag: 'Scanner',
-    tagClass: 'bg-sky-100 text-sky-700',
-    title: 'Asso Vision (beta): inquadra una carta, la troviamo noi',
-    excerpt:
-      'Il nuovo scanner riconosce le tue carte dalla fotocamera del telefono, direttamente nel browser.',
-    paragraphs: [
-      'Digitare nomi lunghissimi è ufficialmente storia: con Asso Vision inquadri una carta con la fotocamera e il riconoscimento avviene in tempo reale, direttamente nel browser, senza installare nulla.',
-      'La beta parte da Magic: The Gathering. Usala per cercare una carta al volo, aggiungerla all’inventario o metterla in vendita in pochi secondi.',
-    ],
   },
   {
     slug: 'brx-express',

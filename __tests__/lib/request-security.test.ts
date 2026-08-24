@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { enforceSameOrigin } from '@/app/api/_lib/request-security';
-import { enforceScannerBrowserFetch } from '@/app/api/scanner/_request-security';
 
 describe('production same-origin boundary', () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -57,32 +56,5 @@ describe('production same-origin boundary', () => {
     vi.stubEnv('APP_ORIGIN', 'https://attacker.example');
     expect(enforceSameOrigin(request({ origin: 'https://www.ebartex.com' }))?.status).toBe(403);
     expect(enforceSameOrigin(request({ 'sec-fetch-site': 'same-origin' }))?.status).toBe(403);
-  });
-
-  it('applica lo stesso resolver production ai download scanner', () => {
-    vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('APP_ORIGIN', '');
-    const scannerRequest = (origin?: string) =>
-      new NextRequest('https://attacker.example/api/scanner/static/model.onnx', {
-        headers: {
-          'x-scanner-request': '1',
-          'sec-fetch-site': 'same-origin',
-          'sec-fetch-dest': 'empty',
-          host: 'attacker.example',
-          'x-forwarded-host': 'attacker.example',
-          ...(origin ? { origin } : {}),
-        },
-      });
-
-    expect(enforceScannerBrowserFetch(scannerRequest('https://www.ebartex.com'))).toBeNull();
-    expect(
-      enforceScannerBrowserFetch(
-        scannerRequest('https://main.d8ry9s45st8bf.amplifyapp.com'),
-      ),
-    ).toBeNull();
-    expect(enforceScannerBrowserFetch(scannerRequest('https://attacker.example'))?.status).toBe(403);
-
-    vi.stubEnv('APP_ORIGIN', 'https://attacker.example');
-    expect(enforceScannerBrowserFetch(scannerRequest())?.status).toBe(403);
   });
 });

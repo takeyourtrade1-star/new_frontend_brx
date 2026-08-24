@@ -1,12 +1,12 @@
 {
   "metadata": {
     "version": "1.0",
-    "last_updated": "2026-06-24",
+    "last_updated": "2026-08-24",
     "platform": "eBartex",
     "company": "PHONEX SRL",
     "status": "production",
-    "total_sections": 19,
-    "total_faqs": 62,
+    "total_sections": 18,
+    "total_faqs": 58,
     "languages": ["it", "en", "de", "es", "fr", "pt"]
   },
   "workflow": {
@@ -68,11 +68,6 @@
           "id": "sync",
           "label": "Sincronizzazione e API (Sync, inventari esterni, Token)",
           "target_section": "sincronizzazione_api"
-        },
-        {
-          "id": "cameramatch",
-          "label": "Asso Vision e Scanner (ricerca per foto, riconoscimento)",
-          "target_section": "cameramatch_scanner"
         },
         {
           "id": "condizioni",
@@ -444,18 +439,9 @@
                 "Sfoglia i risultati e confronta i venditori"
               ],
               "alternatives": [
-                "Usa la funzione Asso Vision (icona fotocamera accanto alla barra di ricerca) per scansionare una carta fisica",
                 "Usa la Ricerca Avanzata Singole dal menu per filtri più dettagliati (espansione, set, venditore specifico)",
                 "Cerca per nome venditore se conosci un seller affidabile"
               ]
-            },
-            {
-              "id": "cc_002",
-              "question": "Cos'è Asso Vision?",
-              "answer_type": "text",
-              "description": "Asso Vision è una funzione in Beta che permette di scansionare carte fisiche con la fotocamera del dispositivo. Riconosce automaticamente la carta e mostra i risultati disponibili sul marketplace.",
-              "how_to": "Clicca l'icona della fotocamera accanto alla barra di ricerca, inquadra la carta frontalmente con buona luce.",
-              "limitations": "Essendo in Beta, il riconoscimento potrebbe non essere perfetto per tutte le carte, specialmente foil o carte con riflessi."
             },
             {
               "id": "cc_003",
@@ -1373,51 +1359,6 @@
                 { "check": "Verifica i log di sincronizzazione nel pannello", "detail": "Possono indicare errori specifici." }
               ],
               "escalation": "Se nessuna delle verifiche risolve, contatta il supporto con: piattaforma terza, messaggio di errore esatto, data ultima sincronizzazione riuscita."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cameramatch_scanner",
-      "title": "Asso Vision e Scanner",
-      "icon": "camera",
-      "priority": 13,
-      "faq_groups": [
-        {
-          "group_title": "Uso di Asso Vision",
-          "faqs": [
-            {
-              "id": "cm_001",
-              "question": "Come uso la funzione Asso Vision?",
-              "answer_type": "steps",
-              "steps": [
-                "Clicca l'icona della fotocamera accanto alla barra di ricerca in homepage",
-                "Permetti l'accesso alla fotocamera quando richiesto dal browser",
-                "Inquadra la carta con la fotocamera: fronte visibile, ben centrata",
-                "Assicurati di avere buona illuminazione e niente riflessi",
-                "Il sistema riconoscerà automaticamente la carta e mostrerà i risultati",
-                "Sfoglia i risultati disponibili sul marketplace"
-              ]
-            },
-            {
-              "id": "cm_002",
-              "question": "Asso Vision non riconosce la mia carta",
-              "answer_type": "checklist",
-              "checklist": [
-                { "check": "Assicurati di avere buona illuminazione", "detail": "Evita ombre e punti luce troppo forti" },
-                { "check": "Inquadra solo la carta, senza oggetti di sfondo", "detail": "Sfondo pulito e contrastante aiuta il riconoscimento" },
-                { "check": "La carta deve essere ben visibile e a fuoco", "detail": "Tieni fermo il dispositivo durante la scansione" },
-                { "check": "Carte foil o con riflessi", "detail": "Possono essere difficili da riconoscere. Prova ad angolare la luce." }
-              ],
-              "fallback": "Se Asso Vision non funziona, usa la ricerca manuale per nome della carta. Digita il nome nella barra di ricerca e seleziona dai risultati."
-            },
-            {
-              "id": "cm_003",
-              "question": "Asso Vision è disponibile per tutti i giochi?",
-              "answer_type": "text",
-              "answer": "Asso Vision è progettato per riconoscere carte dei principali giochi TCG supportati da eBartex: Magic: The Gathering, Pokémon, Yu-Gi-Oh!, One Piece TCG, Lorcana, Star Wars. Il database di riconoscimento viene aggiornato regolarmente con le nuove espansioni.",
-              "note": "Essendo una funzione in Beta, il supporto per giochi meno popolari o carte promo speciali potrebbe essere limitato."
             }
           ]
         }

@@ -1,7 +1,7 @@
 # Ebartex — Frontend
 
 Marketplace di carte collezionabili (Magic, Pokémon, One Piece): aste live, scambi,
-vendita C2C, BRX Express e scanner carte. Costruito con Next.js 15 (App Router),
+vendita C2C e BRX Express. Costruito con Next.js 15 (App Router),
 TypeScript strict, Tailwind CSS e shadcn/ui.
 
 ## Tech stack
@@ -16,13 +16,12 @@ TypeScript strict, Tailwind CSS e shadcn/ui.
 | Form | React Hook Form + Zod |
 | Ricerca | Meilisearch (via route BFF) |
 | PWA | Serwist (service worker) |
-| Scanner carte | onnxruntime-web (worker) + servizio BRX Match |
 | i18n | 6 lingue (it, en, es, fr, pt, de) |
 
 ## Avvio rapido
 
 ```bash
-npm install            # installa + copia i wasm onnxruntime (postinstall)
+npm install            # installa le dipendenze
 cp .env.local.example .env.local   # se presente; altrimenti vedi "Variabili d'ambiente"
 npm run dev            # http://localhost:3000
 ```
@@ -65,10 +64,10 @@ lib/
   hooks/             # Hook React Query (use-search, use-meilisearch-cards, …)
   i18n/              # Dizionari e runtime traduzioni
   config.ts          # Config centralizzata (URL servizi, CDN, Meilisearch)
-hooks/               # Hook dello scanner (useBrxScanner) e worker ONNX
+hooks/               # Hook client condivisi
 types/               # Interfacce TypeScript condivise
 docs/                # Guide di deploy e setup servizi
-scripts/             # Tooling (check i18n, build-info, copy wasm)
+scripts/             # Tooling (check i18n, build-info, budget bundle)
 ```
 
 ## Variabili d'ambiente

@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu, X, ChevronDown, LogOut, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, ShoppingCart, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, Newspaper, ScanLine, QrCode } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, ShoppingCart, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, Newspaper } from 'lucide-react';
 import { useCartStore } from '@/lib/stores/cart-store';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
@@ -25,9 +25,7 @@ import type { GameSlug } from '@/lib/contexts/GameContext';
 import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { QRCodeSVG } from 'qrcode.react';
 import { TournamentsPortalLink } from './TournamentsPortalButton';
-import { BetaBadge } from '@/components/ui/BetaBadge';
 
 const GAME_HOME_PATH: Record<GameSlug, string> = {
   mtg: '/home/magic',
@@ -43,8 +41,6 @@ export function HamburgerMenu() {
   const router = useRouter();
   const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
   const [open, setOpen] = useState(false);
-  const [scannerQrOpen, setScannerQrOpen] = useState(false);
-  const [scannerQrUrl, setScannerQrUrl] = useState('');
   const { theme, toggleTheme } = useTheme();
   const { selectedLang, setSelectedLang, availableLangs } = useLanguage();
   const [mounted, setMounted] = useState(false);
@@ -68,9 +64,8 @@ export function HamburgerMenu() {
 
   const navItems = useMemo(
     () => [
-      { label: t('nav.cameraMatch') ?? 'Asso Vision', href: '/scanner', icon: ScanLine, badge: 'beta' as const },
-      { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced', icon: Search, badge: undefined },
-      { label: t('nav.userSearch'), href: '/search/user', icon: Users, badge: undefined },
+      { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced', icon: Search },
+      { label: t('nav.userSearch'), href: '/search/user', icon: Users },
     ],
     [t]
   );
@@ -138,15 +133,6 @@ export function HamburgerMenu() {
       console.error('Errore durante il logout:', error);
     }
   };
-
-  useEffect(() => {
-    if (!scannerQrOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setScannerQrOpen(false);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [scannerQrOpen]);
 
   useClickOutside(linguaDropdownRef, () => setLinguaDropdownOpen(false), linguaDropdownOpen);
   useClickOutside(gameMenuRef, () => setGameDropdownOpen(false), gameDropdownOpen);
@@ -373,46 +359,9 @@ export function HamburgerMenu() {
             </div>
           )}
 
-          {/* Nav items — Asso Vision: su desktop apre popup QR verso /scanner sul telefono */}
+          {/* Nav items */}
           {navItems.map((item) => {
             const IconComponent = item.icon;
-            const isAssoVision = item.href === '/scanner';
-            if (isAssoVision) {
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={(e) => {
-                    if (
-                      typeof window !== 'undefined' &&
-                      window.matchMedia('(min-width: 768px)').matches
-                    ) {
-                      e.preventDefault();
-                      setScannerQrUrl(`${window.location.origin}/scanner`);
-                      setOpen(false);
-                      setScannerQrOpen(true);
-                      return;
-                    }
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    navLinkClass,
-                    'font-medium text-[#1D3160] hover:bg-blue-50'
-                  )}
-                  aria-label={t('nav.cameraMatchAria')}
-                >
-                  <IconComponent
-                    className="h-6 w-6 shrink-0 text-[#1D3160]"
-                    strokeWidth={1.5}
-                    aria-hidden
-                  />
-                  <span className="flex flex-1 items-center gap-2">
-                    {item.label}
-                    {item.badge === 'beta' && <BetaBadge variant="nav" />}
-                  </span>
-                </Link>
-              );
-            }
             return (
               <Link
                 key={item.href}
@@ -425,10 +374,7 @@ export function HamburgerMenu() {
                   strokeWidth={1.5}
                   aria-hidden
                 />
-                <span className="flex flex-1 items-center gap-2">
-                  {item.label}
-                  {item.badge === 'beta' && <BetaBadge variant="nav" />}
-                </span>
+                <span className="flex flex-1 items-center gap-2">{item.label}</span>
               </Link>
             );
           })}
@@ -511,83 +457,6 @@ export function HamburgerMenu() {
           document.body
         )}
 
-      {typeof document !== 'undefined' &&
-        createPortal(
-          <AnimatePresence>
-            {scannerQrOpen && scannerQrUrl ? (
-              <motion.div
-                key="scanner-qr-modal"
-                className="fixed inset-0 z-[10050] flex items-center justify-center p-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <motion.div
-                  className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                  onClick={() => setScannerQrOpen(false)}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                />
-                <motion.div
-                  className="relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl"
-                  initial={{ y: 20, opacity: 0, scale: 0.95 }}
-                  animate={{ y: 0, opacity: 1, scale: 1 }}
-                  exit={{ y: 10, opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="scanner-qr-title"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setScannerQrOpen(false)}
-                    className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-                    aria-label={t('common.close')}
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-
-                  <div className="text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
-                      <QrCode className="h-6 w-6 text-[#FF7300]" aria-hidden />
-                    </div>
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <h3 id="scanner-qr-title" className="text-lg font-bold text-gray-900">
-                        {t('nav.cameraMatchQrTitle')}
-                      </h3>
-                      <BetaBadge variant="nav" />
-                    </div>
-                    <p className="mt-1 text-sm text-gray-500">{t('nav.cameraMatchQrSubtitle')}</p>
-                    <p className="mt-2 text-xs leading-relaxed text-gray-400">{t('scanner.betaNotice')}</p>
-                  </div>
-
-                  <div className="mt-5 flex flex-col items-center gap-4">
-                    <div className="rounded-xl border-2 border-gray-100 bg-white p-4 shadow-sm">
-                      <QRCodeSVG
-                        value={scannerQrUrl}
-                        size={200}
-                        level="M"
-                        includeMargin={false}
-                        bgColor="#ffffff"
-                        fgColor="#1f2937"
-                      />
-                    </div>
-                    <p className="text-center text-xs font-medium uppercase tracking-wide text-[#1D3160]">
-                      {t('nav.cameraMatch')}
-                    </p>
-                  </div>
-
-                  <div className="mt-5 border-t border-gray-100 pt-4 text-center">
-                    <p className="text-xs text-gray-500">{t('nav.cameraMatchQrHint')}</p>
-                  </div>
-                </motion.div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>,
-          document.body
-        )}
     </>
   );
 }

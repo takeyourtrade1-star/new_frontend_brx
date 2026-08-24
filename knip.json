@@ -2,7 +2,6 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "entry": [
     "app/sw.ts",
-    "hooks/scannerEmbed.worker.ts",
     "scripts/*.{js,mjs}",
     "vitest.setup.ts",
     "**/*.test.{ts,tsx}"
